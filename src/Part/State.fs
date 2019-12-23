@@ -14,9 +14,9 @@ let init () : Model * Cmd<Msg> =
         PreviousButton = defaultAppearanceAttributes
         GoBackButton = defaultAppearanceAttributes
         Instruction = "instruction"
-        Title = "PartTitle"
-        Video = Some ""
-        InstructionTxt =Some ""
+        Title = "Example instruction"
+        Video = Some "Videos/Video1.mp4"
+        InstructionTxt =Some "This is some info that'll be available for the user, so that the user'll know what to do"
     }, []
 
 let update msg model : Model * Cmd<Msg> =

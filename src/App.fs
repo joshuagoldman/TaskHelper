@@ -40,7 +40,7 @@ let menuButton model dispatch name =
                     Html.a
                         [
                             prop.className "button"
-                            prop.href (toHash (chooseSideMenuHref name)
+                            prop.href (toHash (chooseSideMenuHref name))
                             prop.style
                                 [
                                     style.backgroundColor ""

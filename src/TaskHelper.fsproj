@@ -15,6 +15,9 @@
     <Compile Include="Instruction\Types.fs" />
     <Compile Include="Instruction\State.fs" />
     <Compile Include="Instruction\View.fs" />
+    <Compile Include="Category\State.fs" />
+    <Compile Include="Category\Types.fs" />
+    <Compile Include="Category\View.fs" />
     <!-- Home -->
     <Compile Include="InstructionSearch\Types.fs" />
     <Compile Include="InstructionSearch\State.fs" />

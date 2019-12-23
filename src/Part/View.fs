@@ -4,7 +4,7 @@ open Fable.React
 open Fable.React.Props
 open Feliz
 
-let instrVideo model dispatch =
+let instrVideo (model : Part.Types.Model) dispatch =
     video
         [
             Style
@@ -17,13 +17,13 @@ let instrVideo model dispatch =
         [
             source
                 [
-                    Src "Videos/Video1.mp4"
+                    Src model.Video.Value
                     Type "video/mp4"
                 ]
             str "Your browser does not support the video"
         ]
 
-let textArea model dispatch =
+let textArea (model : Part.Types.Model) dispatch =
     Html.div
         [
             prop.style
@@ -34,7 +34,7 @@ let textArea model dispatch =
 
             prop.children
                 [
-                    str "This is some info that'll be available for the user, so that the user'll know what to do"
+                    str model.InstructionTxt.Value
                 ]
         ]
 
