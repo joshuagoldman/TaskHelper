@@ -69,6 +69,11 @@ let WritePartOrInstruction result =
     | Part (model, modelCmd) -> model.Title
     | Instruction (model, modelCmd) -> model.Title
 
+let choosePage page =
+    match page with
+    | Part (_,_) -> Global.Part
+    | Instruction (_,_) -> Global.Instruction
+
 let searchResult model dispatch result =
     Html.a
         [
@@ -81,7 +86,7 @@ let searchResult model dispatch result =
                     style.opacity 0.9
                     style.borderRadius 10
                 ]
-
+            prop.href (Global.toHash (choosePage result) )
             prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
             prop.children
                 [

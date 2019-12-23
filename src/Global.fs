@@ -9,4 +9,4 @@ let toHash page =
     match page with
     | Part -> "#part"
     | Instruction -> "#instruction"
-    | InstructionSearch -> "#instructionSearch"
+    | InstructionSearch -> "#search"

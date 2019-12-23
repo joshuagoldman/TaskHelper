@@ -25,7 +25,12 @@ let menuItem label page currentPage =
             Href (toHash page) ]
           [ str label ] ]
 
-    
+let chooseSideMenuHref name =
+    match name with
+    | "Search Instruction" -> Global.InstructionSearch
+    | "Category" -> Global.Part
+    | _ -> Global.InstructionSearch
+
 let menuButton model dispatch name =
     Html.div
         [
@@ -35,7 +40,7 @@ let menuButton model dispatch name =
                     Html.a
                         [
                             prop.className "button"
-                            prop.href (toHash model.CurrentPage)
+                            prop.href (toHash (chooseSideMenuHref name)
                             prop.style
                                 [
                                     style.backgroundColor ""
@@ -128,7 +133,10 @@ let bodyCols model dispatch =
                             prop.className "column"
                             prop.style
                                 [
-                                    style.margin(80,400,100,5)
+                                    style.margin(30,400,100,5)
+                                    style.backgroundColor.deepSkyBlue
+                                    style.borderRadius 20
+                                    style.opacity 0.9
                                 ]
                             prop.children
                                 [

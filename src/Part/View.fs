@@ -28,9 +28,8 @@ let textArea model dispatch =
         [
             prop.style
                 [
-                    style.backgroundColor "white"
-                    style.color "black"
-                    style.margin(50,50,50,150)
+                    style.color.white
+                    style.margin(20,0,100,0)
                 ]
 
             prop.children
@@ -45,7 +44,8 @@ let root model dispatch =
         [
             prop.style
                 [
-                    style.backgroundColor.white
+                    style.backgroundColor.deepSkyBlue
+                    style.width 800 
                 ]
             prop.children
                 [
