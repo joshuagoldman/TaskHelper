@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <UserSecretsId>7a4351b0-1e05-4747-a2a8-91bf391903d1</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Global to the app -->
+    <Compile Include="Controls.fs" />
+    <Compile Include="Global.fs" />
+    <Compile Include="Part\Types.fs" />
+    <Compile Include="Part\State.fs" />
+    <!-- Info -->
+    <Compile Include="Part\View.fs" />
+    <!-- Counter -->
+    <Compile Include="Instruction\Types.fs" />
+    <Compile Include="Instruction\State.fs" />
+    <Compile Include="Instruction\View.fs" />
+    <!-- Home -->
+    <Compile Include="InstructionSearch\Types.fs" />
+    <Compile Include="InstructionSearch\State.fs" />
+    <Compile Include="InstructionSearch\View.fs" />
+    <!-- Navbar -->
+    <!-- App -->
+    <Compile Include="Types.fs" />
+    <Compile Include="State.fs" />
+    <Compile Include="App.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Fable.Core" Version="3.1.3" />
+    <PackageReference Include="Fable.Elmish" Version="3.0.6" />
+    <PackageReference Include="Fable.Elmish.Browser" Version="3.0.2" />
+    <PackageReference Include="Fable.Elmish.Debugger" Version="3.0.3" />
+    <PackageReference Include="Fable.Elmish.HMR" Version="4.0.1" />
+    <PackageReference Include="Fable.Elmish.React" Version="3.0.1" />
+    <PackageReference Include="Fable.React" Version="5.3.5" />
+    <PackageReference Include="Feliz" Version="0.68.10" />
+    <PackageReference Include="FSharp.Core" Version="4.7.0" />
+    <PackageReference Include="Thoth.Json" Version="3.4.1" />
+  </ItemGroup>
+  <Import Project="..\.paket\Paket.Restore.targets" />
+</Project>
