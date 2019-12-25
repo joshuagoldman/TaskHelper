@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <UserSecretsId>7a4351b0-1e05-4747-a2a8-91bf391903d1</UserSecretsId>
@@ -42,5 +42,5 @@
     <PackageReference Include="FSharp.Core" Version="4.7.0" />
     <PackageReference Include="Thoth.Json" Version="3.4.1" />
   </ItemGroup>
-  <Import Project="..\.paket\Paket.Restore.targets" />
+  <!--<Import Project="..\.paket\Paket.Restore.targets" />-->
 </Project>
