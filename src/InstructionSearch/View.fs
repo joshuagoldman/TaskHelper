@@ -8,6 +8,7 @@ open Feliz
 open Types
 open State
 open System
+open Data
 
 let searchBarName model dispatch =
     Html.div
@@ -97,10 +98,10 @@ let searchResult model dispatch result =
 
 let getSearchResults model dispatch =
     let instructionResults =
-        Data.allData
+        allData
         |> Seq.map (fun instruction -> Instruction(instruction, []))
     let partResults =
-        Data.allData
+        allData
         |> Seq.collect (fun instruction -> instruction.Data
                                            |> Seq.map (fun part -> Part(part, [])))
     Seq.append instructionResults partResults

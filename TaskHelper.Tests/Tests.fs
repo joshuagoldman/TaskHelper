@@ -53,7 +53,7 @@ let ``go2PreviousOrNextTest`` () =
                                |> fun result -> Assert.True (result)
 
                 | _ -> Assert.True (false)
-            |> fun _ -> Assert.True (false)
+            |> fun _ -> ()
 
         go2PreviousOrNext model testDispatch buttonName
 
@@ -72,13 +72,15 @@ let ``go2PreviousOrNextTest`` () =
         |> Seq.map (fun dt -> { testModel with Data = dt } )
 
     let allCases =
-        dataCases
-        |> Seq.collect (fun case -> buttonNameCases
-                                    |> Seq.map (fun button ->
-                                                        {|
-                                                            Button = button
-                                                            Model = case
-                                                        |}))
+        let result =
+            dataCases
+            |> Seq.collect (fun case -> buttonNameCases
+                                        |> Seq.map (fun button ->
+                                                            {|
+                                                                Button = button
+                                                                Model = case
+                                                            |}))
+        result
 
     Seq.zip allCases [0..allCases |> Seq.length |> fun x -> x - 1]
     |> Seq.map (fun (case,pos) -> testing case.Model case.Button pos) 
