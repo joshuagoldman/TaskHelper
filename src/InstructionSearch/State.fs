@@ -9,7 +9,7 @@ open State
 
 type Msg =
     | TextHasChanged of string
-    | InstructionHasBeenClicked of Instruction.Types.Msg
+    | InstructionHasBeenClicked of Instruction.State.Msg
     | PartHasBeenClicked of Part.State.Msg
 
 let init() : InstructionSearch.Types.Model * Cmd<Msg> =
@@ -17,8 +17,8 @@ let init() : InstructionSearch.Types.Model * Cmd<Msg> =
      SearchBar =  defaultAppearanceAttributes
      ResultFromSearch =
         seq [
-                Instruction(Instruction.State.init())
-                Part(Part.State.init())
+                Instruction(Instruction.State.init() |> fun (a,b) -> a.Instruction, b)
+                Part(Part.State.init() |> fun (a,b) -> a.Data, b)
             ]
      Instruction = Instruction.State.init() |> fun (a,_) -> a
      Part = Part.State.init() |> fun (a,_) -> a

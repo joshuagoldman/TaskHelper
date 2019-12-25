@@ -1,14 +1,12 @@
 module Part.Types
 
 open Controls
+open Data
 
 type Model =
     {
         NextButton : AppearanceAttributes
         PreviousButton : AppearanceAttributes
-        GoBackButton : AppearanceAttributes
-        Instruction : string
-        Title : string
-        Video : string option
-        InstructionTxt : string option
+        Go2Instruction : AppearanceAttributes
+        Data : partData
     }

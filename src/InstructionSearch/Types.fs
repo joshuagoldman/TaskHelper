@@ -4,10 +4,11 @@ open Controls
 open Part
 open Elmish
 open Types
+open Data
 
 type SearchResult =
-    | Instruction of Instruction.Types.Model * Cmd<Instruction.Types.Msg>
-    | Part of Part.Types.Model * Cmd<Part.State.Msg>
+    | Instruction of Data.InstructionData * Cmd<Instruction.State.Msg>
+    | Part of Data.partData * Cmd<Part.State.Msg>
 
 type Model =
     {
@@ -17,11 +18,3 @@ type Model =
        Part : Part.Types.Model 
     }
 
-let allPartsAndInstructions = 
-    seq
-        [
-            Part(Part.State.init())
-
-            Instruction(Instruction.State.init())
-             
-        ]

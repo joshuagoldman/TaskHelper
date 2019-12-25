@@ -4,22 +4,18 @@ open Elmish
 open Controls
 open Types
 open Part
+open Data
+
+type Msg =
+    | NewInstruction2Show of Data.InstructionData
 
 let init () : Model * Cmd<Msg> =
 
     {
-        Parts =
-            seq[
-                    {
-                        Control = defaultAppearanceAttributes
-                        Data = Part.State.init()
-                    }
-            ]
-
-        Title = ""
+      Instruction = allData |> Seq.item 0 
     }, []
 
 
 let update msg model : Instruction.Types.Model * Cmd<Msg>  =
     match msg with
-    | NewInstruction2Show newModel -> newModel, []
+    | NewInstruction2Show instruction -> { model with Instruction = instruction }, []

@@ -3,6 +3,8 @@ module Part.View
 open Fable.React
 open Fable.React.Props
 open Feliz
+open State
+open Logic
 
 let instrVideo (model : Part.Types.Model) dispatch =
     video
@@ -17,7 +19,7 @@ let instrVideo (model : Part.Types.Model) dispatch =
         [
             source
                 [
-                    Src model.Video.Value
+                    Src model.Data.InstructionVideo
                     Type "video/mp4"
                 ]
             str "Your browser does not support the video"
@@ -34,7 +36,31 @@ let textArea (model : Part.Types.Model) dispatch =
 
             prop.children
                 [
-                    str model.InstructionTxt.Value
+                    str model.Data.InstructionTxt
+                ]
+        ]
+    
+let navigationButton ( model : Part.Types.Model ) dispatch buttonName =
+    Html.a
+        [
+            prop.className "button"
+            prop.onClick (fun _ -> buttonName
+                                   |> whichNavigationButton
+                                   |> go2PreviousOrNext model dispatch buttonName)
+            prop.children
+                [
+                    str buttonName
+                ]
+        ]
+let navigationButtons model dispatch =
+    Html.div
+        [
+            prop.className "columns"
+            prop.children
+                [
+                    navigationButton model dispatch "NextButton"
+                    navigationButton model dispatch "PreviousButton"
+                    
                 ]
         ]
 
@@ -51,5 +77,6 @@ let root model dispatch =
                 [
                     instrVideo model dispatch
                     textArea model dispatch
+                    navigationButtons model dispatch
                 ]
         ]

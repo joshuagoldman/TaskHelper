@@ -48,10 +48,10 @@ let searchBar model dispatch =
             prop.onTextChange (fun ev -> TextHasChanged ev |> dispatch)
         ]
 
-let searchInfo (info : SearchResult) (keyWord : string) =
+let searchInfo info (keyWord : string) =
     match info with
-    | Instruction (model, modelCmd) -> model.Title.ToLower().Contains keyWord && keyWord <> ""
-    | Part (model, modelCmd) -> model.Title.ToLower().Contains keyWord && keyWord <> ""
+    | Instruction (model, _) -> model.Title.ToLower().Contains keyWord && keyWord <> ""
+    | Part (model, _) -> model.Title.ToLower().Contains keyWord && keyWord <> ""
 
 let go2PartOrInstruction dispatch result =
     match result with
@@ -60,14 +60,14 @@ let go2PartOrInstruction dispatch result =
         |> PartHasBeenClicked
         |> dispatch
     | Instruction (instructionModel, _) ->
-        Instruction.Types.NewInstruction2Show instructionModel
+        Instruction.State.NewInstruction2Show instructionModel
         |> InstructionHasBeenClicked
         |> dispatch
 
 let WritePartOrInstruction result =
     match result with
-    | Part (model, modelCmd) -> model.Title
-    | Instruction (model, modelCmd) -> model.Title
+    | Part (instruction, modelCmd) -> instruction.Title
+    | Instruction (data, modelCmd) -> data.Title
 
 let choosePage page =
     match page with
@@ -96,7 +96,14 @@ let searchResult model dispatch result =
 
 
 let getSearchResults model dispatch =
-    allPartsAndInstructions
+    let instructionResults =
+        Data.allData
+        |> Seq.map (fun instruction -> Instruction(instruction, []))
+    let partResults =
+        Data.allData
+        |> Seq.collect (fun instruction -> instruction.Data
+                                           |> Seq.map (fun part -> Part(part, [])))
+    Seq.append instructionResults partResults
     |> Seq.filter (fun info -> searchInfo info (model.SearchBar.Text.ToLower()))
     |> function
        | res when res |> Seq.length <> 0 ->

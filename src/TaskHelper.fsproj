@@ -1,22 +1,24 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <UserSecretsId>7a4351b0-1e05-4747-a2a8-91bf391903d1</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <!-- Global to the app -->
+    <Compile Include="Data.fs" />
     <Compile Include="Controls.fs" />
     <Compile Include="Global.fs" />
     <Compile Include="Part\Types.fs" />
     <Compile Include="Part\State.fs" />
     <!-- Info -->
+    <Compile Include="Part\Logic.fs" />
     <Compile Include="Part\View.fs" />
     <!-- Counter -->
     <Compile Include="Instruction\Types.fs" />
     <Compile Include="Instruction\State.fs" />
     <Compile Include="Instruction\View.fs" />
-    <Compile Include="Category\State.fs" />
     <Compile Include="Category\Types.fs" />
+    <Compile Include="Category\State.fs" />
     <Compile Include="Category\View.fs" />
     <!-- Home -->
     <Compile Include="InstructionSearch\Types.fs" />
@@ -29,7 +31,7 @@
     <Compile Include="App.fs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Fable.Core" Version="3.1.3" />
+    <PackageReference Include="Fable.Core" Version="3.1.4" />
     <PackageReference Include="Fable.Elmish" Version="3.0.6" />
     <PackageReference Include="Fable.Elmish.Browser" Version="3.0.2" />
     <PackageReference Include="Fable.Elmish.Debugger" Version="3.0.3" />

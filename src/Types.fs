@@ -5,7 +5,7 @@ open Global
 type Msg =
     | PartMsg of Part.State.Msg
     | InstructionSearchMsg of InstructionSearch.State.Msg
-    | InstructionMsg of Instruction.Types.Msg
+    | InstructionMsg of Instruction.State.Msg
 
 type Model =
     {
