@@ -44,14 +44,13 @@ let navigationButton ( model : Part.Types.Model ) dispatch buttonName =
     Html.a
         [
             prop.className "button"
-            prop.onClick (fun _ -> buttonName
-                                   |> whichNavigationButton
-                                   |> go2PreviousOrNext model dispatch buttonName)
+            prop.onClick (fun _ -> go2PreviousOrNext model dispatch buttonName)
             prop.children
                 [
                     str buttonName
                 ]
         ]
+
 let navigationButtons model dispatch =
     Html.div
         [
