@@ -58,8 +58,9 @@ let go2PartOrInstruction dispatch result =
     match result with
     | Part (partModel, _) ->
         Part.State.NewPart2Show partModel
-        |> PartHasBeenClicked
+        |> PartMsgFromSearch
         |> dispatch
+        |> fun _ -> Part.Logic.go2PreviousOrNext partModel (PartMsgFromSearch >> dispatch) "" 
     | Instruction (instructionModel, _) ->
         Instruction.State.NewInstruction2Show instructionModel
         |> InstructionHasBeenClicked
@@ -67,8 +68,8 @@ let go2PartOrInstruction dispatch result =
 
 let WritePartOrInstruction result =
     match result with
-    | Part (instruction, modelCmd) -> instruction.Title
-    | Instruction (data, modelCmd) -> data.Title
+    | Part (instruction, _) -> instruction.Title
+    | Instruction (data, _) -> data.Title
 
 let choosePage page =
     match page with
@@ -76,25 +77,31 @@ let choosePage page =
     | Instruction (_,_) -> Global.Instruction
 
 let searchResult model dispatch result =
-    Html.a
+    Html.div
         [
-            prop.className "Button"
-            prop.style
-                [
-                    style.backgroundColor.white
-                    style.margin(5,5,5,50)
-                    style.fontSize 25
-                    style.opacity 0.9
-                    style.borderRadius 10
-                ]
-            prop.href (Global.toHash (choosePage result) )
-            prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
+            prop.className "row"
             prop.children
                 [
-                    str (WritePartOrInstruction result)
+                    Html.a
+                        [
+                            prop.className "button"
+                            prop.style
+                                [
+                                    style.backgroundColor.white
+                                    style.margin(5,5,5,50)
+                                    style.fontSize 25
+                                    style.opacity 0.9
+                                    style.borderRadius 10
+                                ]
+                            prop.href (Global.toHash (choosePage result) )
+                            prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
+                            prop.children
+                                [
+                                    str (WritePartOrInstruction result)
+                                ]
+                        ]
                 ]
         ]
-
 
 let getSearchResults model dispatch =
     let instructionResults =
@@ -123,7 +130,9 @@ let getSearchResults model dispatch =
                             ]
                         prop.children
                             [
-                                str "No results found"
+                                str ( if model.SearchBar.Text = ""
+                                      then ""
+                                      else "No results found" ) 
                             ]
                     ]
             ]
@@ -141,8 +150,7 @@ let root model dispatch =
         [
             prop.className "rows"
             prop.children
-                (List.append searchBarList searchResults)
-                    
+                (List.append searchBarList searchResults)  
         ]
 
 

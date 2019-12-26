@@ -39,15 +39,20 @@ let textArea (model : Part.Types.Model) dispatch =
                     str model.Data.InstructionTxt
                 ]
         ]
-    
+
 let navigationButton ( model : Part.Types.Model ) dispatch buttonName =
     Html.a
         [
             prop.className "button"
-            prop.onClick (fun _ -> go2PreviousOrNext model dispatch buttonName)
+            prop.onClick (fun _ -> go2PreviousOrNext model.Data dispatch buttonName)
+            prop.style
+                [
+                    whichNavigationButton model buttonName
+                    |> fun x -> x.Visible
+                ]
             prop.children
                 [
-                    str buttonName
+                    str (buttonName.Replace("Button", ""))
                 ]
         ]
 
@@ -57,8 +62,8 @@ let navigationButtons model dispatch =
             prop.className "columns"
             prop.children
                 [
-                    navigationButton model dispatch "NextButton"
                     navigationButton model dispatch "PreviousButton"
+                    navigationButton model dispatch "NextButton"
                     
                 ]
         ]

@@ -10,7 +10,8 @@ open State
 type Msg =
     | TextHasChanged of string
     | InstructionHasBeenClicked of Instruction.State.Msg
-    | PartHasBeenClicked of Part.State.Msg
+    | PartMsgFromSearch of Part.State.Msg
+    | ClearSearchResult 
 
 let init() : InstructionSearch.Types.Model * Cmd<Msg> =
   {
@@ -32,7 +33,10 @@ let update msg model =
         let (newInstruction, newInstructionCmd) =
             Instruction.State.update msg model.Instruction
         { model with Instruction = newInstruction }, Cmd.map InstructionHasBeenClicked newInstructionCmd
-    | PartHasBeenClicked msg ->
+    | PartMsgFromSearch msg ->
         let (part, partCmd) = Part.State.update msg model.Part
-        { model with Part = part }, Cmd.map PartHasBeenClicked partCmd
+        { model with Part = part }, Cmd.map PartMsgFromSearch partCmd
+    | ClearSearchResult -> { model with ResultFromSearch = [] ;
+                                        SearchBar =
+                                            { model.SearchBar with Text = "" } }, []
             

@@ -10,6 +10,7 @@ open Types
 open Fable.React
 open App.State
 open Global
+open InstructionSearch
 
 importAll "../sass/main.sass"
 
@@ -31,6 +32,11 @@ let chooseSideMenuHref name =
     | "Category" -> Global.Part
     | _ -> Global.InstructionSearch
 
+let clearIfSearchButton dispatch name =
+    match name with
+    | "Search Instruction" ->  InstructionSearch.State.ClearSearchResult |> (InstructionSearchMsg >> dispatch)
+    | _ -> ()
+
 let menuButton model dispatch name =
     Html.div
         [
@@ -48,6 +54,7 @@ let menuButton model dispatch name =
                                     style.fontSize 25
                                     style.border("2px", borderStyle.groove , "black")
                                 ]
+                            prop.onClick (fun _ -> clearIfSearchButton dispatch name)
                             prop.children
                                 [
                                     str name
@@ -105,9 +112,9 @@ let navbar model dispatch =
 let bodyCols model dispatch =
     let pageHtml =
         match model.CurrentPage with
-            | Instruction -> Instruction.View.root model.Instruction (InstructionMsg >> dispatch)
+            | Instruction -> Instruction.View.root model.InstructionSearch.Instruction (InstructionMsg >> dispatch)
             | InstructionSearch -> InstructionSearch.View.root model.InstructionSearch (InstructionSearchMsg >> dispatch)
-            | Part -> Part.View.root model.Part (PartMsg >> dispatch)
+            | Part -> Part.View.root model.InstructionSearch.Part (State.PartMsgFromSearch >> InstructionSearchMsg >> dispatch)
 
     Html.div
         [

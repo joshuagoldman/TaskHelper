@@ -1,8 +1,9 @@
 module Part.Logic
 
 open State
+open Part.Types
 
-let go2PreviousOrNext ( model : Part.Types.Model ) dispatch buttonName =
+let go2PreviousOrNext ( modData : Data.partData ) dispatch buttonName =
 
     let partSequence =
         Data.allData
@@ -44,7 +45,10 @@ let go2PreviousOrNext ( model : Part.Types.Model ) dispatch buttonName =
                                   |> MakeButtonVisible
                                   |> dispatch
 
-            | lastPos when pos = lastPos && buttonName = "NextButton" -> ()
+            | lastPos when pos = lastPos && buttonName = ""  ->
+                (false, "NextButton")
+                |> MakeButtonVisible
+                |> dispatch
                 
 
             | _ when pos = 1 && buttonName = "PreviousButton"  ->
@@ -58,13 +62,16 @@ let go2PreviousOrNext ( model : Part.Types.Model ) dispatch buttonName =
                                  |> MakeButtonVisible
                                  |> dispatch
 
-             | _ when pos = 0 && buttonName = "PreviousButton" -> ()
+             | _ when pos = 0 && buttonName = "" ->
+                (false, "PreviousButton")
+                |> MakeButtonVisible
+                |> dispatch
 
              | _ -> nextOrPrevious pos
 
     let result = 
         partSequence
-        |> Seq.tryFind (fun (data,_) -> data.Title = model.Data.Title)
+        |> Seq.tryFind (fun (data,_) -> modData.Title = data.Title)
                         |> function
                             | res when res = None -> ()
                             | res ->  res.Value
@@ -73,8 +80,8 @@ let go2PreviousOrNext ( model : Part.Types.Model ) dispatch buttonName =
     result
 
 
-let whichNavigationButton buttonName =
+let whichNavigationButton model buttonName =
     match buttonName with
-    | "PreviousButton" -> -1
-    | "NextButton" -> 1
-    | _ -> 0
+    | "PreviousButton" -> model.PreviousButton
+    | "NextButton" -> model.NextButton
+    | _ -> model.PreviousButton

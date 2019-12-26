@@ -83,4 +83,4 @@ let ``go2PreviousOrNextTest`` () =
         result
 
     Seq.zip allCases [0..allCases |> Seq.length |> fun x -> x - 1]
-    |> Seq.map (fun (case,pos) -> testing case.Model case.Button pos) 
+    |> Seq.map (fun (case,pos) -> testing case.Model.Data case.Button pos) 

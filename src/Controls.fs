@@ -2,6 +2,7 @@ module Controls
 
 open Fable.React
 open Fable.React.Props
+open Feliz
 
 type AppearanceAttributes =
     {
@@ -22,7 +23,7 @@ type AppearanceAttributes =
         SelectItems : seq<string>
         Picture : string
         MuteMusic : bool
-        Visible : string
+        Visible : IStyleAttribute
         BackgroundMusic : string
         Text : string
     }
@@ -68,7 +69,7 @@ let defaultAppearanceAttributes =
         SelectItems = [ "Select Music Genre" ; "Boogie Woogie" ; "Pop" ; "Classical"] ;
         Picture = ""
         MuteMusic = false
-        Visible = "hidden"
+        Visible = style.visibility.visible
         BackgroundMusic = ""
         Text = ""
     }
