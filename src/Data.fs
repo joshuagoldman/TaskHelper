@@ -1,5 +1,7 @@
 module Data
 
+open Fable.ReactServer
+
 type partData =
     {
         InstructionVideo : string
@@ -12,6 +14,8 @@ type InstructionData =
         Data : seq<partData>
         Title : string
     }
+
+
 
 let allData =
     seq

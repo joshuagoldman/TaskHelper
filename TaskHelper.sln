@@ -4,7 +4,7 @@ VisualStudioVersion = 16.0.29609.76
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "TaskHelper", "src\TaskHelper.fsproj", "{E5DEFC96-37CF-4844-9C9E-CFA0A9A8AED3}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TaskHelper.Tests", "TaskHelper.Tests\TaskHelper.Tests.fsproj", "{565F6F10-4831-43D3-A9C4-DA533884E6CA}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "TaskHelper.Tests", "TaskHelper.Tests\TaskHelper.Tests.fsproj", "{565F6F10-4831-43D3-A9C4-DA533884E6CA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
