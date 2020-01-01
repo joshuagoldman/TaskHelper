@@ -9,6 +9,8 @@ type Msg =
 
 type Model =
     {
+      Username : string
+      Password : string
       CurrentPage: Global.UserPage
       InstructionSearch: InstructionSearch.Types.Model
       Category : Category.Types.Model

@@ -26,7 +26,8 @@ let menuItem label page currentPage =
 let chooseSideMenuHref name =
     match name with
     | "Search Instruction" -> Global.InstructionSearch
-    | "Category" -> Global.Part
+    | "Search by Category" -> Global.Category
+    | "Current Part" -> Global.Part
     | _ -> Global.InstructionSearch
 
 let clearIfSearchButton dispatch name =
@@ -85,7 +86,8 @@ let sideMenu model dispatch =
             prop.children
                 [   
                     menuButton model dispatch "Search Instruction"
-                    menuButton model dispatch "Category"
+                    menuButton model dispatch "Search by Category"
+                    menuButton model dispatch "Current Part"
                 ]
         ]
 
@@ -118,6 +120,10 @@ let bodyCols model dispatch =
 
                 InstructionSearch.View.root model dispatch
 
+            | Category ->
+
+                Category.View.root model dispatch
+
             | Part ->
                     Part.View.root model.Instruction.CurrPart ( Instruction.State.PartMsg >>
                                                                 InstructionMsg >>
@@ -134,7 +140,7 @@ let bodyCols model dispatch =
                             prop.className "column"
                             prop.style
                                 [
-                                    style.margin(20,20,100,5)
+                                    style.margin(20,20,400,5)
                                 ]
                             prop.children
                                 [
@@ -179,8 +185,8 @@ let root model dispatch =
             prop.style
                 [
                     style.backgroundImage "url(img/Beach_Img.jpg)"
-                    style.position.absolute
-                    style.backgroundSize.cover
+                    style.position.inheritFromParent
+                    style.backgroundSize "100% 100%"
 
 
                 ]

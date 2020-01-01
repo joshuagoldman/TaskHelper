@@ -17,6 +17,8 @@ let urlUpdate (result : UserPage option) model =
 
 let init() : Model * Cmd<Msg> =
     {
+        Username = ""
+        Password = ""
         CurrentPage = InstructionSearch
         InstructionSearch = InstructionSearch.State.init() |> fun (a,_) -> a
         Category = Category.State.init() |> fun (a,_) -> a
