@@ -93,7 +93,7 @@ let searchResult model dispatch result =
                                     style.opacity 0.9
                                     style.borderRadius 10
                                 ]
-                            prop.href (Global.toHashMain (choosePage result) )
+                            prop.href (Global.toHashUser (choosePage result) )
                             prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
                             prop.children
                                 [

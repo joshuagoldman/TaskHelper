@@ -1,4 +1,4 @@
-module Main.Types
+module User.Types
 
 open Global
 
@@ -9,6 +9,8 @@ type Msg =
 
 type Model =
     {
-      CurrentPage: Global.MainPage
+      CurrentPage: Global.UserPage
       InstructionSearch: InstructionSearch.Types.Model
+      UserName : string
+      Password : string
     }

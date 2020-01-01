@@ -1,4 +1,4 @@
-module Main.View
+module User.View
 
 open Elmish
 open Elmish.Navigation
@@ -43,7 +43,7 @@ let menuButton model dispatch name =
                     Html.a
                         [
                             prop.className "button"
-                            prop.href (toHashMain (chooseSideMenuHref name))
+                            prop.href (toHashUser (chooseSideMenuHref name))
                             prop.style
                                 [
                                     style.backgroundColor ""
@@ -112,7 +112,7 @@ let bodyCols model dispatch =
             | Instruction ->
 
                 Instruction.View.root model.InstructionSearch.Instruction ( InstructionSearch.State.InstructionMsgIS >>
-                                                                            Main.Types.InstructionSearchMsg >>
+                                                                            User.Types.InstructionSearchMsg >>
                                                                             dispatch)
             | InstructionSearch ->
 
@@ -179,9 +179,8 @@ let root model dispatch =
             prop.style
                 [
                     style.backgroundImage "url(img/Beach_Img.jpg)"
+                    style.position.absolute
                     style.backgroundSize.cover
-                    style.height 730
-                    style.width 1380
 
 
                 ]

@@ -1,15 +1,15 @@
 module Global
 
-type MainPage =
+type UserPage =
     | Part
     | Instruction
     | InstructionSearch
 
 type Page =
     | Login
-    | Main of MainPage
+    | User of UserPage
 
-let toHashMain page =
+let toHashUser page =
     match page with
     | Part -> "#part"
     | Instruction -> "#instruction"
@@ -18,5 +18,5 @@ let toHashMain page =
 let toHash page =
     match page with
     | Login -> "#login"
-    | Main mainPage -> toHashMain mainPage
+    | User userPage -> toHashUser userPage
 

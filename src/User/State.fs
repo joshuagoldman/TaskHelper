@@ -1,4 +1,4 @@
-module Main.State
+module User.State
 
 open Elmish
 open Elmish.Navigation
@@ -7,11 +7,11 @@ open Browser
 open Global
 open Types
 
-let urlUpdate (result : MainPage option) model =
+let urlUpdate (result : UserPage option) model =
     match result with
     | None ->
         console.error("Error parsing url")
-        model, Navigation.modifyUrl (toHashMain model.CurrentPage)
+        model, Navigation.modifyUrl (toHashUser model.CurrentPage)
     | Some page ->
         { model with CurrentPage = page }, []
 
@@ -19,9 +19,11 @@ let init() : Model * Cmd<Msg> =
     {
         CurrentPage = InstructionSearch
         InstructionSearch = InstructionSearch.State.init() |> fun (a,_) -> a
+        UserName = ""
+        Password = ""
     }, []
 
-let update msg model : Model * Cmd<Main.Types.Msg> =
+let update msg model : Model * Cmd<User.Types.Msg> =
     match msg with
     | PartMsg msg ->
         let (instructionSearch, instructionSearchCmd) = InstructionSearch.State.update msg model.InstructionSearch
