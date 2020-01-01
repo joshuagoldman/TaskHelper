@@ -9,5 +9,5 @@ type Msg =
 
 type Model =
     {
-        Instruction : Data.InstructionData
+        Blocks : seq<AppearanceAttributes>
     }

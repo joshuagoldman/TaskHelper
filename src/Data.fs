@@ -17,7 +17,7 @@ type InstructionData =
 
 
 
-let allData =
+let allData (userName : string ) =
     seq
         [
             {

@@ -15,7 +15,7 @@ let init () : Model * Cmd<Msg> =
         NextButton = defaultAppearanceAttributes
         PreviousButton = defaultAppearanceAttributes
         Go2Instruction = defaultAppearanceAttributes
-        Data = Data.allData |> Seq.item 0 |> fun x -> x.Data |> Seq.item 0 
+        Data = Data.allData "" |> Seq.item 0 |> fun x -> x.Data |> Seq.item 0 
     }, []
 
 let update msg model : Model * Cmd<Msg> =

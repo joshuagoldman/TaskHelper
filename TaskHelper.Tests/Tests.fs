@@ -66,7 +66,7 @@ let ``go2PreviousOrNextTest`` () =
 
 
     let dataCases =
-        Data.allData
+        Data.allData ""
         |> Seq.item 0
         |> fun x -> x.Data
         |> Seq.map (fun dt -> { testModel with Data = dt } )

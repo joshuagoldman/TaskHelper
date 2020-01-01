@@ -31,7 +31,8 @@ let chooseSideMenuHref name =
 
 let clearIfSearchButton dispatch name =
     match name with
-    | "Search Instruction" ->  InstructionSearch.State.ClearSearchResult |> (InstructionSearchMsg >> dispatch)
+    | "Search Instruction" ->  InstructionSearch.Types.ClearSearchResult
+                               |> (InstructionSearchMsg >> dispatch)
     | _ -> ()
 
 let menuButton model dispatch name =
@@ -111,17 +112,16 @@ let bodyCols model dispatch =
         match model.CurrentPage with
             | Instruction ->
 
-                Instruction.View.root model.InstructionSearch.Instruction ( InstructionSearch.State.InstructionMsgIS >>
-                                                                            User.Types.InstructionSearchMsg >>
-                                                                            dispatch)
+                Instruction.View.root model.Instruction ( InstructionMsg >> dispatch )
+
             | InstructionSearch ->
 
-                InstructionSearch.View.root model.InstructionSearch ( InstructionSearchMsg >>
-                                                                      dispatch)
+                InstructionSearch.View.root model dispatch
 
-            | Part -> Part.View.root model.InstructionSearch.Part ( InstructionSearch.State.PartMsgIS >>
-                                                                    InstructionSearchMsg >>
-                                                                    dispatch)
+            | Part ->
+                    Part.View.root model.Instruction.CurrPart ( Instruction.State.PartMsg >>
+                                                                InstructionMsg >>
+                                                                dispatch )
     
     Html.div
         [

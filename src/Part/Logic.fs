@@ -6,7 +6,7 @@ open Part.Types
 let go2PreviousOrNext ( modData : Data.partData ) dispatch buttonName =
 
     let partSequence =
-        Data.allData
+        Data.allData ""
         |> Seq.collect (fun instruction -> instruction.Data
                                            |> Seq.map (fun dt -> dt))
         |> fun sequence -> Seq.zip sequence [0..sequence |> Seq.length |> fun x -> x-1]

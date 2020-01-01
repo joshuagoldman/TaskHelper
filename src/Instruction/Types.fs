@@ -7,5 +7,6 @@ open Elmish
 
 type Model =
     {
-        Instruction : Data.InstructionData
+        CurrInstruction : Data.InstructionData
+        CurrPart : Part.Types.Model
     }

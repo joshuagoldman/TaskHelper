@@ -46,7 +46,8 @@ let searchBar model dispatch =
                 ]
             prop.type' "text"
             prop.placeholder "Text input"
-            prop.onTextChange (fun ev -> TextHasChanged ev |> dispatch)
+            prop.onTextChange (fun ev -> TextHasChanged ev |>
+                                         (User.Types.InstructionSearchMsg >> dispatch))
         ]
 
 let searchInfo info (keyWord : string) =
@@ -58,12 +59,15 @@ let go2PartOrInstruction dispatch result =
     match result with
     | Part (partModel, _) ->
         Part.State.NewPart2Show partModel
-        |> PartMsgIS
+        |> Instruction.State.PartMsg
+        |> User.Types.InstructionMsg
         |> dispatch
-        |> fun _ -> Part.Logic.go2PreviousOrNext partModel (PartMsgIS >> dispatch) "" 
+        |> fun _ -> Part.Logic.go2PreviousOrNext partModel (Instruction.State.PartMsg >>
+                                                            User.Types.InstructionMsg >>
+                                                            dispatch) "" 
     | Instruction (instructionModel, _) ->
         Instruction.State.NewInstruction2Show instructionModel
-        |> InstructionMsgIS
+        |> User.Types.InstructionMsg
         |> dispatch
 
 let WritePartOrInstruction result =
@@ -103,16 +107,16 @@ let searchResult model dispatch result =
                 ]
         ]
 
-let getSearchResults model dispatch =
+let getSearchResults ( model : User.Types.Model ) dispatch =
     let instructionResults =
-        allData
+        allData ""
         |> Seq.map (fun instruction -> Instruction(instruction, []))
     let partResults =
-        allData
+        allData ""
         |> Seq.collect (fun instruction -> instruction.Data
                                            |> Seq.map (fun part -> Part(part, [])))
     Seq.append instructionResults partResults
-    |> Seq.filter (fun info -> searchInfo info (model.SearchBar.Text.ToLower()))
+    |> Seq.filter (fun info -> searchInfo info (model.InstructionSearch.SearchBar.Text.ToLower()))
     |> function
        | res when res |> Seq.length <> 0 ->
             res
@@ -130,14 +134,14 @@ let getSearchResults model dispatch =
                             ]
                         prop.children
                             [
-                                str ( if model.SearchBar.Text = ""
+                                str ( if model.InstructionSearch.SearchBar.Text = ""
                                       then ""
                                       else "No results found" ) 
                             ]
                     ]
             ]
 
-let root model dispatch =
+let root ( model : User.Types.Model ) dispatch =
     let searchResults = getSearchResults model dispatch
 
     let searchBarList = 

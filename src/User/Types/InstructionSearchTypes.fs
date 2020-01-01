@@ -6,6 +6,10 @@ open Elmish
 open Types
 open Data
 
+type Msg =
+    | TextHasChanged of string
+    | ClearSearchResult
+
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.State.Msg>
     | Part of Data.partData * Cmd<Part.State.Msg>
@@ -13,9 +17,6 @@ type SearchResult =
 type Model =
     {
        SearchBar : AppearanceAttributes
-       allInstructions : seq<Instruction.Types.Model>
        ResultFromSearch : seq<SearchResult>
-       Instruction: Instruction.Types.Model
-       Part : Part.Types.Model
     }
 
