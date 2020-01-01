@@ -24,11 +24,15 @@
     <Compile Include="InstructionSearch\Types.fs" />
     <Compile Include="InstructionSearch\State.fs" />
     <Compile Include="InstructionSearch\View.fs" />
+    <Compile Include="Main\Types.fs" />
+    <Compile Include="Main\State.fs" />
+    <Compile Include="Main\App.fs" />
+    <Compile Include="Login\Types.fs" />
+    <Compile Include="Login\State.fs" />
+    <Compile Include="Login\Logic.fs" />
+    <Compile Include="Login\View.fs" />
     <!-- Navbar -->
     <!-- App -->
-    <Compile Include="Types.fs" />
-    <Compile Include="State.fs" />
-    <Compile Include="App.fs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Fable.Core" Version="3.1.4" />

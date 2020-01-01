@@ -58,12 +58,12 @@ let go2PartOrInstruction dispatch result =
     match result with
     | Part (partModel, _) ->
         Part.State.NewPart2Show partModel
-        |> PartMsgFromSearch
+        |> PartMsgIS
         |> dispatch
-        |> fun _ -> Part.Logic.go2PreviousOrNext partModel (PartMsgFromSearch >> dispatch) "" 
+        |> fun _ -> Part.Logic.go2PreviousOrNext partModel (PartMsgIS >> dispatch) "" 
     | Instruction (instructionModel, _) ->
         Instruction.State.NewInstruction2Show instructionModel
-        |> InstructionHasBeenClicked
+        |> InstructionMsgIS
         |> dispatch
 
 let WritePartOrInstruction result =
@@ -93,7 +93,7 @@ let searchResult model dispatch result =
                                     style.opacity 0.9
                                     style.borderRadius 10
                                 ]
-                            prop.href (Global.toHash (choosePage result) )
+                            prop.href (Global.toHashMain (choosePage result) )
                             prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
                             prop.children
                                 [

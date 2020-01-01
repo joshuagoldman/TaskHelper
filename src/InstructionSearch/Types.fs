@@ -13,8 +13,9 @@ type SearchResult =
 type Model =
     {
        SearchBar : AppearanceAttributes
+       allInstructions : seq<Instruction.Types.Model>
        ResultFromSearch : seq<SearchResult>
-       Instruction : Instruction.Types.Model
-       Part : Part.Types.Model 
+       Instruction: Instruction.Types.Model
+       Part : Part.Types.Model
     }
 

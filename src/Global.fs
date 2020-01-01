@@ -1,12 +1,22 @@
 module Global
 
-type Page =
+type MainPage =
     | Part
     | Instruction
     | InstructionSearch
 
-let toHash page =
+type Page =
+    | Login
+    | Main of MainPage
+
+let toHashMain page =
     match page with
     | Part -> "#part"
     | Instruction -> "#instruction"
     | InstructionSearch -> "#search"
+
+let toHash page =
+    match page with
+    | Login -> "#login"
+    | Main mainPage -> toHashMain mainPage
+

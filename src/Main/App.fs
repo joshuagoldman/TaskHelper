@@ -1,4 +1,4 @@
-module App.View
+module Main.View
 
 open Elmish
 open Elmish.Navigation
@@ -6,13 +6,10 @@ open Elmish.UrlParser
 open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
+open Browser.Types
 open Types
 open Fable.React
-open App.State
 open Global
-open InstructionSearch
-
-importAll "../sass/main.sass"
 
 open Fable.React
 open Fable.React.Props
@@ -46,7 +43,7 @@ let menuButton model dispatch name =
                     Html.a
                         [
                             prop.className "button"
-                            prop.href (toHash (chooseSideMenuHref name))
+                            prop.href (toHashMain (chooseSideMenuHref name))
                             prop.style
                                 [
                                     style.backgroundColor ""
@@ -110,12 +107,22 @@ let navbar model dispatch =
         ]
 
 let bodyCols model dispatch =
-    let pageHtml =
+    let pageHtml model =
         match model.CurrentPage with
-            | Instruction -> Instruction.View.root model.InstructionSearch.Instruction (InstructionMsg >> dispatch)
-            | InstructionSearch -> InstructionSearch.View.root model.InstructionSearch (InstructionSearchMsg >> dispatch)
-            | Part -> Part.View.root model.InstructionSearch.Part (State.PartMsgFromSearch >> InstructionSearchMsg >> dispatch)
+            | Instruction ->
 
+                Instruction.View.root model.InstructionSearch.Instruction ( InstructionSearch.State.InstructionMsgIS >>
+                                                                            Main.Types.InstructionSearchMsg >>
+                                                                            dispatch)
+            | InstructionSearch ->
+
+                InstructionSearch.View.root model.InstructionSearch ( InstructionSearchMsg >>
+                                                                      dispatch)
+
+            | Part -> Part.View.root model.InstructionSearch.Part ( InstructionSearch.State.PartMsgIS >>
+                                                                    InstructionSearchMsg >>
+                                                                    dispatch)
+    
     Html.div
         [
             prop.className "columns"
@@ -147,7 +154,7 @@ let bodyCols model dispatch =
                                 ]
                             prop.children
                                 [
-                                    pageHtml
+                                    pageHtml model
                                 ]
                         ] 
                 ]
@@ -185,15 +192,4 @@ let root model dispatch =
                 ] 
         ]
 
-open Elmish.React
-open Elmish.Debug
-open Elmish.HMR
 
-// App
-Program.mkProgram init update root
-|> Program.toNavigable (parseHash pageParser) urlUpdate
-#if DEBUG
-|> Program.withDebugger
-#endif
-|> Program.withReactSynchronous "elmish-app"
-|> Program.run
