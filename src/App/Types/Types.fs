@@ -6,6 +6,7 @@ open Elmish
 
 type Msg =
     | UserMsg of User.Types.Msg
+    | LoginMsg of Login.Types.Msg
 
 type Model =
     {

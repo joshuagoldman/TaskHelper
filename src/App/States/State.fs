@@ -8,7 +8,7 @@ open Elmish.Navigation
 open Elmish.UrlParser
 open Browser
 open Global
-open Types
+open App.Types
 open Browser
 
 let urlUpdate (result : Page option) model =
@@ -52,4 +52,7 @@ let update msg model : Model * Cmd<App.Types.Msg> =
     | UserMsg msg ->
         let (userModel, userModelCmd) = User.State.update msg model.User
         { model with User = userModel }, Cmd.map UserMsg userModelCmd
+    | LoginMsg msg ->
+        let (login, loginCmd) = Login.State.update msg model.Login
+        { model with Login = login }, Cmd.map LoginMsg loginCmd
 

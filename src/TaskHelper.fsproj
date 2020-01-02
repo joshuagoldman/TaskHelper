@@ -26,15 +26,14 @@
     <Compile Include="User\Views\CategoryView.fs" />
     <Compile Include="User\Views\InstructionSearchView.fs" />
     <Compile Include="User\Views\View.fs" />
-    <!-- Home -->
-    <Compile Include="Login\Types.fs" />
-    <Compile Include="Login\State.fs" />
-    <Compile Include="Login\Logic.fs" />
-    <Compile Include="Login\View.fs" />
-    <Compile Include="App\Types.fs" />
-    <Compile Include="App\State.fs" />
+    <Compile Include="App\Types\LoginTypes.fs" />
+    <Compile Include="App\Types\Types.fs" />
+    <Compile Include="App\States\LoginState.fs" />
+    <Compile Include="App\States\State.fs" />
     <Compile Include="App\Logic.fs" />
-    <Compile Include="App\View.fs" />
+    <!-- Home -->
+    <Compile Include="App\Views\LoginView.fs" />
+    <Compile Include="App\Views\View.fs" />
     <!-- Navbar -->
     <!-- App -->
   </ItemGroup>

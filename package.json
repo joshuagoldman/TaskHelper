@@ -10,6 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "express": "^4.17.1",
+    "express-generator": "^4.16.1",
     "react": "^16.7.0",
     "react-dom": "^16.7.0",
     "remotedev": "^0.2.7"

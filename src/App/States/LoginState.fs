@@ -26,4 +26,6 @@ let update msg model : Model * Cmd<Login.Types.Msg> =
     match msg with
     | LoginButtonClicked (usrName,passWord) ->
         { model with Username = usrName ; Password = passWord}, []
+    | UsernameCHanged usrName -> { model with Username = usrName }, []
+    | PasswordChanged passWord -> { model with Password = passWord }, []
 

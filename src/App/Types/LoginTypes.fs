@@ -6,6 +6,8 @@ open Elmish
 
 type Msg =
     | LoginButtonClicked of string * string
+    | UsernameCHanged of string
+    | PasswordChanged of string
 
 type Model =
     {

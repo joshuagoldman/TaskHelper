@@ -1,7 +1,6 @@
-module App.View
+module Login.View
 
 open Feliz
-open State
 open Elmish
 open Elmish.Navigation
 open Elmish.UrlParser
@@ -9,22 +8,51 @@ open Types
 open Global
 
 //Fable.Core.JsInterop.importAll "../sass/main.sass"
+let loginButton model dispatch =
+    Html.a
+        [
+            prop.className "button"
+            prop.style
+                [
+                    style.backgroundColor.blue
+                    style.fontStyle.italic
+                    style.color.black
+                    style.fontWeight.bold
+                    style.fontSize 25
+                    style.opacity 0.9
+                    style.borderRadius 10
+                    style.width 200
+                    style.left 200
+                    style.margin(40,400,400,400)
+                ]
+            prop.href (Global.toHashUser UserPage.InstructionSearch )
+            prop.onClick (fun _ -> Logic.loadClientData)
+            prop.children
+                [
+                    Fable.React.Helpers.str "Login"
+                ]
+        ]
 
-let loginText model dispatch name =
+let loginText model dispatch txtType =
     Html.div
         [
             prop.className "field"
+            prop.onTextChange (fun txt -> Logic.loginInfoChanged dispatch txt txtType)
             prop.children
                 [
                     Html.div
                         [
                             prop.className "control has-icons-left has-icons-right"
+                            prop.style
+                                [
+                                    style.margin(20,400,0,400)
+                                ]
                             prop.children
                                 [
                                     Html.input
                                         [
                                             prop.className "input is-success"
-                                            prop.type' "text"
+                                            prop.type' txtType
                                             prop.placeholder "Text input"
                                         ]
                                     Html.span
@@ -55,11 +83,9 @@ let loginLabel model dispatch name =
                             prop.className "label"
                             prop.style
                                 [
-                                    style.margin 100
                                     style.justifyContent.center
                                     style.display.flex
                                     style.fontSize 30.1
-                                    //style.color.white
                                 ]
                             prop.children
                                 [
@@ -70,51 +96,26 @@ let loginLabel model dispatch name =
                 ]
         ]
 
-let logInRoot model dispatch =
+let root model dispatch =
     Html.div
         [
-            prop.className "rows"
+            prop.style
+                [
+                    style.backgroundImage "url(img/Beach_Img.jpg)"
+                    style.backgroundSize "100% 100%"
+                ]
             prop.children
                 [
                     Html.div
                         [
-                            prop.className "row"
                             prop.children
                                 [
-                                    loginLabel model dispatch "Username"
-                                    loginText model dispatch "Username"
+                                    loginLabel model dispatch "User name"
+                                    loginText model dispatch "text"
                                     loginLabel model dispatch "Password"
-                                    loginText model dispatch "Password"
-                                ]
-                        ]
-
-                    Html.div
-                        [
-                            prop.className "row"
-                            prop.children
-                                [
-                                    
+                                    loginText model dispatch "password"
+                                    loginButton model dispatch
                                 ]
                         ]
                 ]
         ]
-
-let root model dispatch =
-    match model.CurrentPage with
-    | User msg ->
-        User.View.root model.User ( UserMsg >>
-                                    dispatch)
-    | Login -> Login.View.root model.Login dispatch
-
-open Elmish.React
-open Elmish.Debug
-open Elmish.HMR
-
-// App
-Program.mkProgram init update root
-|> Program.toNavigable (parseHash pageParser) urlUpdate
-#if DEBUG
-|> Program.withDebugger
-#endif
-|> Program.withReactSynchronous "elmish-app"
-|> Program.run
