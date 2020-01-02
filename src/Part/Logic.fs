@@ -85,3 +85,4 @@ let whichNavigationButton model buttonName =
     | "PreviousButton" -> model.PreviousButton
     | "NextButton" -> model.NextButton
     | _ -> model.PreviousButton
+

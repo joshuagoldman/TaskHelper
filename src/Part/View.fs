@@ -40,20 +40,56 @@ let textArea (model : Part.Types.Model) dispatch =
                 ]
         ]
 
-let navigationButton ( model : Part.Types.Model ) dispatch buttonName =
-    Html.a
+let goToInstructionButton ( model : Part.Types.Model ) dispatch =
+    Html.div
         [
-            prop.className "button"
-            prop.onClick (fun _ -> go2PreviousOrNext model.Data dispatch buttonName)
+            prop.className "column"
             prop.style
                 [
-                    whichNavigationButton model buttonName
-                    |> fun x -> x.Visible
+                    style.margin(200,0,0,0)
                 ]
             prop.children
                 [
-                    str (buttonName.Replace("Button", ""))
+                    Html.a
+                        [
+                            prop.className "button"
+                            prop.href (Global.toHashUser Global.Instruction )
+                            prop.children
+                                [
+                                    str "Go To Instruction"
+                                ]
+                        ]  
                 ]
+        ]
+
+let navigationButton ( model : Part.Types.Model )
+                     dispatch
+                     buttonName =
+    Html.div
+        [
+            prop.className "column"
+            prop.style
+                [
+                    style.margin(200,0,0,0)
+                ]
+            prop.children
+                [
+                    Html.a
+                        [
+                            prop.className "button"
+                            prop.onClick (fun _ -> go2PreviousOrNext model.Data dispatch buttonName)
+                            prop.style
+                                [
+                                    whichNavigationButton model buttonName
+                                    |> fun x -> x.Visible
+                                ]
+                            prop.children
+                                [
+                                    str (buttonName.Replace("Button", ""))
+                                ]
+                        ]
+                ]
+
         ]
 
 let navigationButtons model dispatch =
@@ -63,6 +99,7 @@ let navigationButtons model dispatch =
             prop.children
                 [
                     navigationButton model dispatch "PreviousButton"
+                    goToInstructionButton model dispatch
                     navigationButton model dispatch "NextButton"
                     
                 ]
