@@ -6,6 +6,13 @@ open Part
 open Part.State
 open Part.Types
 open Part.Logic
+open Thoth.Json
+open FSharp.Data
+
+type Example =
+    {
+        test : string
+    }
 
 [<Fact>]
 let ``go2PreviousOrNextTest`` () =
@@ -83,4 +90,46 @@ let ``go2PreviousOrNextTest`` () =
         result
 
     Seq.zip allCases [0..allCases |> Seq.length |> fun x -> x - 1]
-    |> Seq.map (fun (case,pos) -> testing case.Model.Data case.Button pos) 
+    |> Seq.map (fun (case,pos) -> testing case.Model.Data case.Button pos)
+
+
+[<Fact>]
+let ``TestJasonDecoder`` () =
+    let jsonString =
+        "[
+            {
+                \"Title\":\"example\",
+                \"Data\":
+                    [
+                        {
+                            \"InstructionVideo\":\"\",
+                            \"InstructionTxt\":\"\",
+                            \"Title\":\"exempel\"
+                        },
+                        {
+                            \"InstructionVideo\":\"\",
+                            \"InstructionTxt\":\"\",
+                            \"Title\":\"exempel\"
+                        },
+                    ]
+            },
+
+            {
+                \"Title\":\"example\",
+                \"Data\":
+                    [
+                        {
+                            \"InstructionVideo\":\"\",
+                            \"InstructionTxt\":\"\",
+                            \"Title\":\"exempel\"
+                        },
+                        {
+                            \"InstructionVideo\":\"\",
+                            \"InstructionTxt\":\"\",
+                            \"Title\":\"exempel\"
+                        },
+                    ]
+            },
+        ]"
+
+    Assert.True(true)

@@ -2,11 +2,12 @@ module User.State
 
 open Elmish
 open Elmish.Navigation
-open Elmish.UrlParser
+open Fable.SimpleHttp
 open Browser
 open Global
 open Data
 open Types
+open Fable.React
 
 let urlUpdate (result : UserPage option) model =
     match result with
@@ -22,8 +23,18 @@ let initInstruction =
             allData "" |> Seq.item 0
         ]
 
+let (|HttpOk|HttpError|) status =
+    match status with
+    | 200 -> HttpOk
+    | _ -> HttpError
+
 let loadInstructionItems = async {
         do! Async.Sleep 1000
+        //let! (statusCode, responseText) = Http.get "http://localhost:3001/"
+        //match statusCode with
+        //| HttpOk ->
+        //    
+        //| HttpError -> 
         return LoadedInstructions (Finished (Ok initInstruction))
     }
 

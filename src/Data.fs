@@ -2,6 +2,7 @@ module Data
 
 open Fable.ReactServer
 open Elmish
+open Thoth.Json
 
 type partData =
     {
@@ -15,6 +16,27 @@ type InstructionData =
         Data : seq<partData>
         Title : string
     }
+
+let PartDecoder : Decoder<partData> = 
+        Decode.object (fun fields -> {
+            InstructionVideo = fields.Required.At ["InstructionVideo"] Decode.string
+
+            InstructionTxt = fields.Required.At ["InstructionTxt"] Decode.string
+            Title = fields.Required.At ["Title"] Decode.string
+        })
+
+let PartlistDecoder =
+    Decode.array PartDecoder
+
+let InstructionDecoder : Decoder<InstructionData> =
+    Decode.object (fun fields -> {
+        Data = fields.Required.At ["Data"] PartlistDecoder
+        Title = fields.Required.At ["Title"] Decode.string
+    })
+
+let parseItems (json : string ) =
+    Decode.list InstructionDecoder
+    |> fun x -> Decode.fromString x json
 
 module Cmd =
     let fromAsync ( operation : Async<'msg> ) : Cmd<'msg> =

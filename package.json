@@ -4,14 +4,20 @@
   "description": "Simple Fable App",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "webpack-dev-server"
+    "dev": "concurrently \"npm run server\" \"npm start\"",
+    "start": "webpack-dev-server",
+    "server": "nodemon server"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "concurrently": "^5.0.2",
+    "cookie-parser": "^1.4.4",
     "express": "^4.17.1",
     "express-generator": "^4.16.1",
+    "nodemon": "^2.0.2",
+    "pg": "^7.17.0",
     "react": "^16.7.0",
     "react-dom": "^16.7.0",
     "remotedev": "^0.2.7"
