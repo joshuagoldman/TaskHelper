@@ -34,7 +34,7 @@ let InstructionDecoder : Decoder<InstructionData> =
         Title = fields.Required.At ["Title"] Decode.string
     })
 
-let parseItems (json : string ) =
+let parseInstructionItems (json : string ) =
     Decode.list InstructionDecoder
     |> fun x -> Decode.fromString x json
 

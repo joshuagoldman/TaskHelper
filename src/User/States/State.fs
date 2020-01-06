@@ -8,6 +8,7 @@ open Global
 open Data
 open Types
 open Fable.React
+open Browser
 
 let urlUpdate (result : UserPage option) model =
     match result with
@@ -23,19 +24,29 @@ let initInstruction =
             allData "" |> Seq.item 0
         ]
 
-let (|HttpOk|HttpError|) status =
-    match status with
-    | 200 -> HttpOk
-    | _ -> HttpError
+let jsonDecoding jsonString =
+    let decodingObj = Data.parseInstructionItems jsonString
+
+    match decodingObj with
+    | Ok result ->
+        LoadedInstructions (Finished (Ok (result |> List.toSeq)))
+    | Error result ->
+        LoadedInstructions (Finished (Error result))
 
 let loadInstructionItems = async {
-        do! Async.Sleep 1000
-        //let! (statusCode, responseText) = Http.get "http://localhost:3001/"
-        //match statusCode with
-        //| HttpOk ->
-        //    
-        //| HttpError -> 
-        return LoadedInstructions (Finished (Ok initInstruction))
+        do! Async.Sleep 3000
+        let! response = 
+            Http.request "http://localhost:3001/api/instructions"
+            |> Http.method GET
+            |> Http.header (Headers.contentType "application/json")
+            |> Http.send
+        match response.statusCode with
+        | 200 ->
+            return jsonDecoding response.responseText
+            
+        | _ ->
+            return LoadedInstructions (Finished (Error ("Could not get api, status code: " +
+                                                        (response.statusCode |> string))))  
     }
 
 let init() : Model * Cmd<Msg> =
@@ -45,8 +56,8 @@ let init() : Model * Cmd<Msg> =
         CurrentPage = InstructionSearch
         InstructionSearch = InstructionSearch.State.init() |> fun (a,_) -> a
         Category = Category.State.init() |> fun (a,_) -> a
-        UserData =
-            Data.HasNostStartedYet 
+        UserData = Data.HasNostStartedYet
+        NewAdd = NewAdd.State.init() |> fun(a,_) -> a
         Instruction = Instruction.State.init() |> fun (a,b) -> a
     }, Cmd.ofMsg (LoadedInstructions Started)
 
@@ -66,4 +77,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with InstructionSearch = instructionSearch }, Cmd.map InstructionSearchMsg instructionSearchCmd
     | CategorySearchMsg msg ->
         let (category, categoryCmd) = Category.State.update msg model.Category
-        { model with Category = category }, Cmd.map CategorySearchMsg categoryCmd 
+        { model with Category = category }, Cmd.map CategorySearchMsg categoryCmd
+    | NewAddMsg msg ->
+        let (newAdd, newAddCmd) = NewAdd.State.update msg model.NewAdd
+        { model with NewAdd = newAdd }, Cmd.map NewAddMsg newAddCmd

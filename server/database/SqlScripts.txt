@@ -1,0 +1,79 @@
+CREATE TABLE users (
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    user_name VARCHAR(50) NOT NULL,
+    password VARCHAR(50) NOT NULL
+);
+
+UPDATE instructions
+SET
+    id = 2
+WHERE
+    instruction_id = 2
+
+INSERT INTO users ( id, user_name, password )
+VALUES ( 1, 'joshuagoldman', 'sisma');
+
+INSERT INTO users ( id, user_name, password )
+VALUES ( 2, 'admin', 'admin');
+
+CREATE TABLE instructions (
+    id BIGSERIAL NOT NULL,
+    instruction_id BIGSERIAL NOT NULL PRIMARY KEY,
+    title VARCHAR(50) NOT NULL
+);
+
+INSERT INTO instructions ( id, instruction_id, title )
+VALUES ( 1, 1, 'Example Instruction');
+
+INSERT INTO instructions ( id, instruction_id, title )
+VALUES ( 1, 2, 'Admin Example Instruction');
+
+CREATE TABLE parts (
+    instruction_id BIGSERIAL NOT NULL,
+    instruction_video VARCHAR(50),
+    instruction_txt VARCHAR(50),
+    part_title VARCHAR(50)
+);
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 1, 'Videos/Video.mp4', 'Example Text 1', 'Example Part 1');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 1, 'Videos/Video.mp4', 'Example Text 2', 'Example Part 2');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 1, 'Videos/Video.mp4', 'Example Text 3', 'Example Part 3');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 1, 'Videos/Video.mp4', 'Example Text 4', 'Example Part 4');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 1, 'Videos/Video.mp4', 'Example Text 5', 'Example Part 5');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 1');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 2');
+
+select array_to_json(array_agg(row_to_json(t)))
+from (
+  select user_name, password,
+    (
+      select array_to_json(array_agg(row_to_json(d)))
+      from (
+        select title,
+            (
+                select array_to_json(array_agg(row_to_json(e)))
+                from(
+                    select instruction_Video, instruction_txt, part_title
+                    from parts
+                    where parts.instruction_id = instructions.instruction_id
+                ) e
+            ) as prts 
+        from instructions
+        where instructions.id = users.id
+      ) d
+    ) as instructions
+  from users
+) t

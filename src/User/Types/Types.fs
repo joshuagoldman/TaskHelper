@@ -5,9 +5,11 @@ open Data
 
 type Msg =
     | LoadedInstructions of AsyncOperationEvent<Result<seq<InstructionData>, string>>
+    | UserDataMsg of string 
     | InstructionMsg of Instruction.State.Msg
     | InstructionSearchMsg of InstructionSearch.Types.Msg
     | CategorySearchMsg of Category.Types.Msg
+    | NewAddMsg of NewAdd.Types.Msg
 
 type Model =
     {
@@ -15,6 +17,7 @@ type Model =
       Password : string
       CurrentPage: Global.UserPage
       InstructionSearch: InstructionSearch.Types.Model
+      NewAdd : NewAdd.Types.Model
       Category : Category.Types.Model
       UserData : Data.Deferred<Result<seq<InstructionData>, string>>
       Instruction: Instruction.Types.Model

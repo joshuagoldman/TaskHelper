@@ -5,6 +5,7 @@ type UserPage =
     | Instruction
     | InstructionSearch
     | Category
+    | NewAdd
 
 type Page =
     | Login
@@ -16,6 +17,7 @@ let toHashUser page =
     | Instruction -> "#instruction"
     | InstructionSearch -> "#search"
     | Category -> "#category"
+    | NewAdd -> "#newAdd"
 
 let toHash page =
     match page with

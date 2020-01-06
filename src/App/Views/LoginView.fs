@@ -6,8 +6,8 @@ open Elmish.Navigation
 open Elmish.UrlParser
 open Types
 open Global
+open Data
 
-//Fable.Core.JsInterop.importAll "../sass/main.sass"
 let loginButton model dispatch =
     Html.a
         [
@@ -25,8 +25,9 @@ let loginButton model dispatch =
                     style.left 200
                     style.margin(40,400,400,400)
                 ]
-            prop.href (Global.toHashUser UserPage.InstructionSearch )
-            prop.onClick (fun _ -> Logic.loadClientData)
+            //prop.href (Global.toHashUser UserPage.InstructionSearch )
+            prop.onClick (fun _ -> User.Types.LoadedInstructions Started |>
+                                   (App.Types.UserMsg >> dispatch))
             prop.children
                 [
                     Fable.React.Helpers.str "Login"
@@ -96,7 +97,42 @@ let loginLabel model dispatch name =
                 ]
         ]
 
-let root model dispatch =
+let getUserDataUpdate ( userData : Data.Deferred<Result<seq<InstructionData>, string>> ) =
+    match userData with
+    | HasNostStartedYet -> ""
+    | InProgress -> "Loading User Data"
+    | Resolved response ->
+        match response with
+        | Ok result ->
+            "received query with " +
+            (result |> Seq.length |> string) +
+            "instructions"
+        | Error err -> err
+    
+
+let loginTxtArea ( model : App.Types.Model ) dispatch =
+
+    Html.div
+        [
+            prop.className "textarea"
+            prop.style
+                [
+                    style.backgroundColor.transparent
+                    style.color.white
+                    style.justifyContent.center
+                    style.display.flex
+                    style.fontSize 20.1
+                    style.borderStyle.none
+                    style.boxShadow.none
+                ]
+            prop.children
+                [
+                    Fable.React.Helpers.str (getUserDataUpdate model.User.UserData)
+                ]
+        ]
+
+
+let root ( model : App.Types.Model ) dispatch =
     Html.div
         [
             prop.style
@@ -114,6 +150,7 @@ let root model dispatch =
                                     loginText model dispatch "text"
                                     loginLabel model dispatch "Password"
                                     loginText model dispatch "password"
+                                    loginTxtArea model dispatch
                                     loginButton model dispatch
                                 ]
                         ]

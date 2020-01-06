@@ -1,20 +1,20 @@
 var express = require('express');
-var Instructions = require('../model/instructions');
+var Users = require('../model/users');
 
 var router = express.Router();
 
 router.get('/', function(req,res) {
-    Instructions.retrievAll(function (err,instructions) {
+    Users.retrievAll(function (err,users) {
         if(err)
             return res.json(err);
-        return res.json(instructions);
+        return res.json(users);
     });
 });
 
 router.post('/', function(req,res) {
     var Instruction = req.body;
 
-    Instructions.insert(Instruction, function (res,result) {
+    Users.insert(Instruction, function (res,result) {
         if(err)
             return res.json(err)
         return res.json(result);

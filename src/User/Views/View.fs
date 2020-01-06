@@ -28,6 +28,7 @@ let chooseSideMenuHref name =
     | "Search Instruction" -> Global.InstructionSearch
     | "Search by Category" -> Global.Category
     | "Current Part" -> Global.Part
+    | "Upload/add to instruction" -> Global.NewAdd
     | _ -> Global.InstructionSearch
 
 let clearIfSearchButton dispatch name =
@@ -88,6 +89,7 @@ let sideMenu model dispatch =
                     menuButton model dispatch "Search Instruction"
                     menuButton model dispatch "Search by Category"
                     menuButton model dispatch "Current Part"
+                    menuButton model dispatch "Upload/add to instruction"
                 ]
         ]
 
@@ -113,21 +115,21 @@ let bodyCols model dispatch =
     let pageHtml model =
         match model.CurrentPage with
             | Instruction ->
-
                 Instruction.View.root model.Instruction ( InstructionMsg >> dispatch )
 
             | InstructionSearch ->
-
                 InstructionSearch.View.root model dispatch
 
             | Category ->
-
                 Category.View.root model dispatch
 
             | Part ->
                     Part.View.root model.Instruction.CurrPart ( Instruction.State.PartMsg >>
                                                                 InstructionMsg >>
                                                                 dispatch )
+
+            | NewAdd ->
+                NewAdd.View.root model dispatch
     
     Html.div
         [
