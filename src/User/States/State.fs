@@ -9,6 +9,7 @@ open Data
 open Types
 open Fable.React
 open Browser
+open Thoth.Json
 
 let urlUpdate (result : UserPage option) model =
     match result with
@@ -25,13 +26,14 @@ let initInstruction =
         ]
 
 let jsonDecoding jsonString =
-    let decodingObj = Data.parseInstructionItems jsonString
+    let decodingObj = Data.parseUserData jsonString
 
     match decodingObj with
     | Ok result ->
-        LoadedInstructions (Finished (Ok (result |> List.toSeq)))
+        LoadedInstructions (Finished (Ok (result)))
     | Error result ->
         LoadedInstructions (Finished (Error result))
+
 
 let loadInstructionItems = async {
         do! Async.Sleep 3000
@@ -42,7 +44,8 @@ let loadInstructionItems = async {
             |> Http.send
         match response.statusCode with
         | 200 ->
-            return jsonDecoding response.responseText
+            return jsonDecoding (response.responseText
+                                 |> fun x -> x.Replace( """[{"array_to_json":""", ""))
             
         | _ ->
             return LoadedInstructions (Finished (Error ("Could not get api, status code: " +
@@ -53,6 +56,7 @@ let init() : Model * Cmd<Msg> =
     {
         Username = ""
         Password = ""
+        Id = 0
         CurrentPage = InstructionSearch
         InstructionSearch = InstructionSearch.State.init() |> fun (a,_) -> a
         Category = Category.State.init() |> fun (a,_) -> a

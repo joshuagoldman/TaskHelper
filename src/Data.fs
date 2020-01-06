@@ -17,26 +17,39 @@ type InstructionData =
         Title : string
     }
 
+type UserData =
+    {
+        Id : int
+        Instructions : seq<InstructionData>
+    }
+
 let PartDecoder : Decoder<partData> = 
         Decode.object (fun fields -> {
-            InstructionVideo = fields.Required.At ["InstructionVideo"] Decode.string
-
-            InstructionTxt = fields.Required.At ["InstructionTxt"] Decode.string
-            Title = fields.Required.At ["Title"] Decode.string
+            InstructionVideo = fields.Required.At ["instruction_Video"] Decode.string
+            InstructionTxt = fields.Required.At ["instruction_txt"] Decode.string
+            Title = fields.Required.At ["part_title"] Decode.string
         })
 
-let PartlistDecoder =
+let PartArrayDecoder =
     Decode.array PartDecoder
 
-let InstructionDecoder : Decoder<InstructionData> =
+let InstructionDecoder : Decoder<InstructionData> = 
     Decode.object (fun fields -> {
-        Data = fields.Required.At ["Data"] PartlistDecoder
-        Title = fields.Required.At ["Title"] Decode.string
+        Data = fields.Required.At ["parts"] PartArrayDecoder
+        Title = fields.Required.At ["title"] Decode.string
     })
 
-let parseInstructionItems (json : string ) =
-    Decode.list InstructionDecoder
-    |> fun x -> Decode.fromString x json
+let InstructionArrayDecoder =
+    Decode.array InstructionDecoder
+
+let UserDataDecoder : Decoder<UserData> =
+    Decode.object (fun fields -> {
+        Id = fields.Required.At ["id"] Decode.int
+        Instructions = fields.Required.At ["instructions"] InstructionArrayDecoder
+    })
+
+let parseUserData (json : string ) =
+    Decode.fromString UserDataDecoder json
 
 module Cmd =
     let fromAsync ( operation : Async<'msg> ) : Cmd<'msg> =

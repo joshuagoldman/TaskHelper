@@ -97,7 +97,7 @@ let loginLabel model dispatch name =
                 ]
         ]
 
-let getUserDataUpdate ( userData : Data.Deferred<Result<seq<InstructionData>, string>> ) =
+let getUserDataUpdate ( userData : Data.Deferred<Result<UserData, string>> ) =
     match userData with
     | HasNostStartedYet -> ""
     | InProgress -> "Loading User Data"
@@ -105,7 +105,7 @@ let getUserDataUpdate ( userData : Data.Deferred<Result<seq<InstructionData>, st
         match response with
         | Ok result ->
             "received query with " +
-            (result |> Seq.length |> string) +
+            (result.Instructions |> Seq.length |> string) +
             "instructions"
         | Error err -> err
     
@@ -124,6 +124,7 @@ let loginTxtArea ( model : App.Types.Model ) dispatch =
                     style.fontSize 20.1
                     style.borderStyle.none
                     style.boxShadow.none
+                    style.overflow.scroll
                 ]
             prop.children
                 [
