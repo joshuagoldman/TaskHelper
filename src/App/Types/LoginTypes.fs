@@ -4,10 +4,15 @@ open Controls
 open Data
 open Elmish
 
+type LoginAttempt =
+    | Success 
+    | Failed
+
 type Msg =
     | LoginButtonClicked of string * string
     | UsernameCHanged of string
     | PasswordChanged of string
+    | LoginAttemptMsg of LoginAttempt 
 
 type Model =
     {

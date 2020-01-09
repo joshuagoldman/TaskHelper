@@ -28,4 +28,5 @@ let update msg model : Model * Cmd<Login.Types.Msg> =
         { model with Username = usrName ; Password = passWord}, []
     | UsernameCHanged usrName -> { model with Username = usrName }, []
     | PasswordChanged passWord -> { model with Password = passWord }, []
+    | LoginAttemptMsg result ->
 

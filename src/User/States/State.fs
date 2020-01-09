@@ -19,43 +19,9 @@ let urlUpdate (result : UserPage option) model =
     | Some page ->
         { model with CurrentPage = page }, []
 
-let initInstruction =
-    seq
-        [
-            allData "" |> Seq.item 0
-        ]
-
-let jsonDecoding jsonString =
-    let decodingObj = Data.parseUserData jsonString
-
-    match decodingObj with
-    | Ok result ->
-        LoadedInstructions (Finished (Ok (result)))
-    | Error result ->
-        LoadedInstructions (Finished (Error result))
-
-
-let loadInstructionItems = async {
-        do! Async.Sleep 3000
-        let! response = 
-            Http.request "http://localhost:3001/api/instructions"
-            |> Http.method GET
-            |> Http.header (Headers.contentType "application/json")
-            |> Http.send
-        match response.statusCode with
-        | 200 ->
-            return jsonDecoding (response.responseText
-                                 |> fun x -> x.Replace( """[{"array_to_json":""", ""))
-            
-        | _ ->
-            return LoadedInstructions (Finished (Error ("Could not get api, status code: " +
-                                                        (response.statusCode |> string))))  
-    }
-
 let init() : Model * Cmd<Msg> =
     {
-        Username = ""
-        Password = ""
+        CurrUser = HasNostStartedYet
         Id = 0
         CurrentPage = InstructionSearch
         InstructionSearch = InstructionSearch.State.init() |> fun (a,_) -> a
@@ -68,11 +34,17 @@ let init() : Model * Cmd<Msg> =
 let update msg model : Model * Cmd<User.Types.Msg> =
     match msg with
     | LoadedInstructions Started ->
-        { model with UserData = InProgress }, Cmd.fromAsync loadInstructionItems
+        { model with UserData = InProgress }, Cmd.fromAsync User.Logic.loadInstructionItems
     | LoadedInstructions (Finished (Error error)) ->
         { model with UserData = Resolved ( Error error)}, Cmd.none
     | LoadedInstructions (Finished (Ok items)) ->
         { model with UserData = Resolved ( Ok items)}, Cmd.none
+    | LoadedUsers Started ->
+        { model with UserData = InProgress }, Cmd.fromAsync User.Logic.loadUserItems
+    | LoadedUsers (Finished (Error error)) ->
+        { model with UserData = Resolved ( Error error)}, Cmd.none
+    | LoadedUsers (Finished (Ok items)) ->
+        { model with CurrUser = Resolved ( Ok items)}, Cmd.none
     | InstructionMsg msg ->
         let (instruction, instructionCmd) = Instruction.State.update msg model.Instruction
         { model with Instruction = instruction}, Cmd.map InstructionMsg instructionCmd
@@ -85,3 +57,5 @@ let update msg model : Model * Cmd<User.Types.Msg> =
     | NewAddMsg msg ->
         let (newAdd, newAddCmd) = NewAdd.State.update msg model.NewAdd
         { model with NewAdd = newAdd }, Cmd.map NewAddMsg newAddCmd
+    | LoginTimedOutMsg ->
+        { model with CurrUser = HasNostStartedYet }, []

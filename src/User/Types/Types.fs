@@ -4,7 +4,10 @@ open Global
 open Data
 
 type Msg =
+    | LoginAttemptMsg of string * string
+    | LoginTimedOutMsg 
     | LoadedInstructions of AsyncOperationEvent<Result<UserData, string>>
+    | LoadedUsers of AsyncOperationEvent<Result<seq<LoginInfo>, string>>
     | UserDataMsg of string 
     | InstructionMsg of Instruction.State.Msg
     | InstructionSearchMsg of InstructionSearch.Types.Msg
@@ -13,8 +16,7 @@ type Msg =
 
 type Model =
     {
-      Username : string
-      Password : string
+      CurrUser : Data.Deferred<Result<seq<LoginInfo>, string>>
       Id : int
       CurrentPage: Global.UserPage
       InstructionSearch: InstructionSearch.Types.Model

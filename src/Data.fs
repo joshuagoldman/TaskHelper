@@ -4,6 +4,22 @@ open Fable.ReactServer
 open Elmish
 open Thoth.Json
 
+type UserInfo =
+    | Exists of string
+    | NoUser
+
+type LoginInfo =
+    {
+        Username : UserInfo
+        Password : UserInfo
+    }
+
+type LoginInfo4Decoding =
+    {
+        Username : string
+        Password : string
+    }
+
 type partData =
     {
         InstructionVideo : string
@@ -25,7 +41,7 @@ type UserData =
 
 let PartDecoder : Decoder<partData> = 
         Decode.object (fun fields -> {
-            InstructionVideo = fields.Required.At ["instruction_Video"] Decode.string
+            InstructionVideo = fields.Required.At ["instruction_video"] Decode.string
             InstructionTxt = fields.Required.At ["instruction_txt"] Decode.string
             Title = fields.Required.At ["part_title"] Decode.string
         })
@@ -48,8 +64,22 @@ let UserDataDecoder : Decoder<UserData> =
         Instructions = fields.Required.At ["instructions"] InstructionArrayDecoder
     })
 
+let UserDataArrayDecoder =
+    Decode.array UserDataDecoder
+
 let parseUserData (json : string ) =
-    Decode.fromString UserDataDecoder json
+    Decode.fromString UserDataArrayDecoder json
+
+let LoginInfoDecoder : Decoder<LoginInfo4Decoding> =
+    Decode.object (fun fields -> {
+        Username = fields.Required.At ["user_name"] Decode.string
+        Password = fields.Required.At ["password"] Decode.string
+    })
+
+let LoginInfoArrayDecoder json =
+    Decode.fromString (Decode.array LoginInfoDecoder) json
+
+   
 
 module Cmd =
     let fromAsync ( operation : Async<'msg> ) : Cmd<'msg> =

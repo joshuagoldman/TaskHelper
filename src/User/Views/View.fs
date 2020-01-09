@@ -179,11 +179,21 @@ let body model dispatch =
                 ]
         ]
 
+let sleepAndLogout model dispatch =
+    async {
+        do! Async.Sleep 10000
+        User.Types.LoginTimedOutMsg |>
+        (UserMsg >> dispatch)
+        prop.href (Global.toHash Page.Login )
+        |> ignore
+    } 
+
 let root model dispatch =
 
     Html.div
         [
             prop.className "rows"
+            prop.onMouseMove (fun _ -> )
             prop.style
                 [
                     style.backgroundImage "url(img/Beach_Img.jpg)"

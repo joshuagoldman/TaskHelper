@@ -8,6 +8,15 @@ open Types
 open Global
 open Data
 
+let loginAttempt ( model : App.Types.Model ) dispatch =
+    (model.User.Username, model.User.Password)
+    match model.User.Username with
+    | User.Types.Exists usr ->
+        match model.User.Password with
+        | User.Types.Exists passwrd -> 
+        |
+            
+
 let loginButton model dispatch =
     Html.a
         [
@@ -26,7 +35,7 @@ let loginButton model dispatch =
                     style.margin(40,400,400,400)
                 ]
             //prop.href (Global.toHashUser UserPage.InstructionSearch )
-            prop.onClick (fun _ -> User.Types.LoadedInstructions Started |>
+            prop.onClick (fun _ -> User.Types.LoginAttemptMsg (model.Username, model.Password) |>
                                    (App.Types.UserMsg >> dispatch))
             prop.children
                 [
@@ -106,8 +115,9 @@ let getUserDataUpdate ( userData : Data.Deferred<Result<UserData, string>> ) =
         | Ok result ->
             "received query with " +
             (result.Instructions |> Seq.length |> string) +
-            "instructions"
-        | Error err -> err
+            " instructions :)"
+
+        | Error err -> err 
     
 
 let loginTxtArea ( model : App.Types.Model ) dispatch =
@@ -124,7 +134,7 @@ let loginTxtArea ( model : App.Types.Model ) dispatch =
                     style.fontSize 20.1
                     style.borderStyle.none
                     style.boxShadow.none
-                    style.overflow.scroll
+                    style.overflow.auto
                 ]
             prop.children
                 [

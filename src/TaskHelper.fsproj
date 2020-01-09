@@ -21,11 +21,11 @@
     <Compile Include="User\Types\InstructionSearchTypes.fs" />
     <Compile Include="User\Types\CategoryTypes.fs" />
     <Compile Include="User\Types\Types.fs" />
+    <Compile Include="User\Logic.fs" />
     <Compile Include="User\States\NewAddState.fs" />
     <Compile Include="User\States\InstructionSearchState.fs" />
     <Compile Include="User\States\CategoryState.fs" />
     <Compile Include="User\States\State.fs" />
-    <Compile Include="User\Logic.fs" />
     <Compile Include="User\Views\NewAddView.fs" />
     <Compile Include="User\Views\CategoryView.fs" />
     <Compile Include="User\Views\InstructionSearchView.fs" />
