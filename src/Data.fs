@@ -5,8 +5,8 @@ open Elmish
 open Thoth.Json
 
 type UserInfo =
-    | Exists of string
-    | NoUser
+    | Valid of string
+    | Invalid
 
 type LoginInfo =
     {
@@ -106,7 +106,7 @@ type Deferred<'t> =
     | Resolved of 't
 
 type AsyncOperationEvent<'t> =
-    | Started
+    | Started 
     | Finished of 't
 
 let allData (userName : string ) =

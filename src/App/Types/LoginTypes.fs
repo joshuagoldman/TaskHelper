@@ -10,14 +10,10 @@ type LoginAttempt =
 
 type Msg =
     | LoginButtonClicked of string * string
-    | UsernameCHanged of string
-    | PasswordChanged of string
-    | LoginAttemptMsg of LoginAttempt 
+
 
 type Model =
     {
-        Username : string
-        Password : string
         UsernameLabel : AppearanceAttributes
         TextInput : AppearanceAttributes
         LoginButton : AppearanceAttributes

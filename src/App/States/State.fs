@@ -18,7 +18,7 @@ let urlUpdate (result : Page option) model =
         model, Navigation.modifyUrl (toHash model.CurrentPage)
     | Some page ->
         match page with
-        | Login -> { model with CurrentPage = Login }, []
+        | Login -> { model with User = User.State.init() |> fun (a,_) -> a}, []
         | User userPage ->
             let userPageOption = Some(userPage)
             let (user, userCmd) = User.State.urlUpdate userPageOption model.User

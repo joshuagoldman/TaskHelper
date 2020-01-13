@@ -13,8 +13,6 @@ open Browser
 
 let init() : Model * Cmd<Login.Types.Msg> =
     {
-        Username = ""
-        Password = ""
         UsernameLabel = { defaultAppearanceAttributes with Text = "UsernameLabel" }
         TextInput = defaultAppearanceAttributes
         LoginButton = { defaultAppearanceAttributes with Text = "LoginButton" }
@@ -24,9 +22,5 @@ let init() : Model * Cmd<Login.Types.Msg> =
 
 let update msg model : Model * Cmd<Login.Types.Msg> =
     match msg with
-    | LoginButtonClicked (usrName,passWord) ->
-        { model with Username = usrName ; Password = passWord}, []
-    | UsernameCHanged usrName -> { model with Username = usrName }, []
-    | PasswordChanged passWord -> { model with Password = passWord }, []
-    | LoginAttemptMsg result ->
+    | _ -> model, []
 

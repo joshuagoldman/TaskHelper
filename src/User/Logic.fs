@@ -17,6 +17,7 @@ open Fable.React
 open Browser
 open Thoth.Json
 open Fable.SimpleHttp
+open Data
 
 let go2PartOrInstruction dispatch result =
     match result with
@@ -64,7 +65,7 @@ let initInstruction =
         ]
 
 let jsonDecodingInstructions jsonString =
-    let decodingObj = Data.parseUserData jsonString
+    let decodingObj = parseUserData jsonString
 
     match decodingObj with
     | Ok result ->
@@ -73,12 +74,12 @@ let jsonDecodingInstructions jsonString =
         LoadedInstructions (Finished (Error result))
 
 let jsonDecodingUsers jsonString =
-    let decodingObj = Data.LoginInfoArrayDecoder jsonString
+    let decodingObj = LoginInfoArrayDecoder jsonString
 
     match decodingObj with
     | Ok result ->
         result
-        |> Array.map (fun o -> { Username = Exists o.Username ; Password = Exists o.Password} : LoginInfo )
+        |> Array.map (fun o -> { Username = Valid o.Username ; Password = Valid o.Password} : LoginInfo )
         |> fun arr -> arr |> Array.toSeq |> (Ok >> Finished >> LoadedUsers)
     | Error result ->
         LoadedUsers (Finished (Error result))
@@ -114,7 +115,69 @@ let loadUserItems = async {
         return jsonDecodingUsers (response.responseText)
         
     | _ ->
-        return LoadedInstructions (Finished (Error ("Could not get api, status code: " +
-                                                    (response.statusCode |> string))))  
+        return LoadedUsers (Finished (Error ("Could not get api, status code: " +
+                                                    (response.statusCode |> string))))
 }
 
+let getUserDataUpdate ( userData : Data.Deferred<Result<Data.UserData, string>> ) =
+    match userData with
+    | Data.HasNostStartedYet -> "" |> User.Types.LoginMessages 
+    | Data.InProgress -> "Loading User Data" |> User.Types.LoginMessages 
+    | Data.Resolved response ->
+        match response with
+        | Ok result ->
+            "received query with " +
+            (result.Instructions |> Seq.length |> string) +
+            " instructions :)" |> User.Types.LoginMessages 
+
+        | Error err -> err |> User.Types.LoginMessages
+
+
+let message4Dispatch value =
+    value |> LoginMessages
+
+let loginAttempt model ( status : Data.Deferred<Result<seq<LoginInfo>, string>> ) =
+    match status with
+    | HasNostStartedYet -> 
+        User.Types.LoadedUsers Started
+    | InProgress ->
+        "loading all users" |> User.Types.LoginMessages
+    | Resolved response ->
+        match response with
+        | Ok result ->
+            result
+            |> Seq.map (fun usrCompare ->
+                             match usrCompare.Username with
+                             | Valid usrNameCompare ->
+                                match usrCompare.Password with
+                                | Valid passwordCompare ->
+                                    match model.UserFromLogin.Username with
+                                    | Valid usrName ->
+                                        match usrName with
+                                        | usrNameCompare ->
+                                            match model.UserFromLogin.Password with
+                                            | Valid password ->
+                                                match password with
+                                                | passwordCompare ->
+                                                    (User.Types.LoadedInstructions Started,true)
+                                                | _ ->
+                                                    ("Wrong password for the given user name :'("
+                                                    |> message4Dispatch, true)
+                                            | _ ->
+                                                ("Ivalid password chosen"                                                 |> message4Dispatch, true)
+                                        | _ ->  ("Could not find a matching user name :'("
+                                                 |> message4Dispatch, true)
+                                    | Invalid -> ("Ivalid user name chosen"
+                                                 |> message4Dispatch, true)
+                                | Invalid -> (""
+                                             |> message4Dispatch, true)
+                             | Invalid -> (""
+                                                 |> message4Dispatch, true))
+            |> Seq.tryFind (fun info -> info |> fun (msg, isMessageSignificant) -> isMessageSignificant)
+            |> function
+               | res when res = None ->
+                    res.Value |> fun (msg,_) -> msg
+               | _ -> "No valid user names or passwords were found in the database :'("
+                        |> message4Dispatch
+        | Error err -> err
+                       |> User.Types.LoginMessages

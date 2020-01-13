@@ -13,10 +13,15 @@ type Msg =
     | InstructionSearchMsg of InstructionSearch.Types.Msg
     | CategorySearchMsg of Category.Types.Msg
     | NewAddMsg of NewAdd.Types.Msg
+    | LoginMessages of string
+    | UserNameInputChangedMsg of string
+    | PasswordInputChangedMsg of string
 
 type Model =
     {
       CurrUser : Data.Deferred<Result<seq<LoginInfo>, string>>
+      UserFromLogin : LoginInfo
+      LoginMessage : string
       Id : int
       CurrentPage: Global.UserPage
       InstructionSearch: InstructionSearch.Types.Model

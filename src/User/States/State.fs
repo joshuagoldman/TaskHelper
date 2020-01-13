@@ -23,28 +23,45 @@ let init() : Model * Cmd<Msg> =
     {
         CurrUser = HasNostStartedYet
         Id = 0
+        LoginMessage = "Wilkommen"
+        UserFromLogin =
+            {
+                Username = Invalid
+                Password = Invalid
+            }
         CurrentPage = InstructionSearch
         InstructionSearch = InstructionSearch.State.init() |> fun (a,_) -> a
         Category = Category.State.init() |> fun (a,_) -> a
         UserData = Data.HasNostStartedYet
         NewAdd = NewAdd.State.init() |> fun(a,_) -> a
         Instruction = Instruction.State.init() |> fun (a,b) -> a
-    }, Cmd.ofMsg (LoadedInstructions Started)
+    }, []
 
 let update msg model : Model * Cmd<User.Types.Msg> =
     match msg with
     | LoadedInstructions Started ->
-        { model with UserData = InProgress }, Cmd.fromAsync User.Logic.loadInstructionItems
+        { model with UserData = InProgress }, Cmd.batch
+                                                [   Cmd.ofMsg (Logic.getUserDataUpdate InProgress)
+                                                    Cmd.fromAsync User.Logic.loadInstructionItems
+                                                  ]
     | LoadedInstructions (Finished (Error error)) ->
-        { model with UserData = Resolved ( Error error)}, Cmd.none
+        { model with UserData = Resolved ( Error error)}, Cmd.ofMsg (Logic.getUserDataUpdate
+                                                                            (Resolved ( Error error)))
     | LoadedInstructions (Finished (Ok items)) ->
-        { model with UserData = Resolved ( Ok items)}, Cmd.none
+        { model with UserData = Resolved ( Ok items)}, Cmd.ofMsg (Logic.getUserDataUpdate
+                                                                            (Resolved ( Ok items)))
     | LoadedUsers Started ->
-        { model with UserData = InProgress }, Cmd.fromAsync User.Logic.loadUserItems
+        { model with CurrUser = InProgress } , Cmd.batch
+                                                [ Cmd.ofMsg (Logic.loginAttempt model InProgress)
+                                                  Cmd.fromAsync User.Logic.loadUserItems
+                                                  ]
+                                                        
     | LoadedUsers (Finished (Error error)) ->
-        { model with UserData = Resolved ( Error error)}, Cmd.none
+        { model with CurrUser = Resolved ( Error error)}, Cmd.ofMsg (Logic.loginAttempt model
+                                                                                        (Resolved ( Error error)))
     | LoadedUsers (Finished (Ok items)) ->
-        { model with CurrUser = Resolved ( Ok items)}, Cmd.none
+        { model with CurrUser = Resolved ( Ok items)}, Cmd.ofMsg (Logic.loginAttempt model
+                                                                                     (Resolved ( Ok items)))
     | InstructionMsg msg ->
         let (instruction, instructionCmd) = Instruction.State.update msg model.Instruction
         { model with Instruction = instruction}, Cmd.map InstructionMsg instructionCmd
@@ -59,3 +76,9 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with NewAdd = newAdd }, Cmd.map NewAddMsg newAddCmd
     | LoginTimedOutMsg ->
         { model with CurrUser = HasNostStartedYet }, []
+    | LoginMessages msg ->
+        { model with LoginMessage = msg}, []
+    | UserNameInputChangedMsg usrName -> { model with UserFromLogin =
+                                                        { model.UserFromLogin with Username = Valid usrName } }, []
+    | PasswordInputChangedMsg passwrd ->  { model with UserFromLogin =
+                                                        { model.UserFromLogin with Password = Valid passwrd } }, []

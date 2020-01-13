@@ -2,6 +2,7 @@ module Login.Logic
 
 open Feliz
 open Types
+open Data
 
 let decideMargin name =
     match name with
@@ -15,9 +16,12 @@ let decideMargin name =
 
 let loginInfoChanged dispatch txt txtType =
     match txtType with
-    | "password" -> txt |> (PasswordChanged >> App.Types.LoginMsg >> dispatch)
-    | "text" -> txt |> (UsernameCHanged >> App.Types.LoginMsg >> dispatch)
-    | _  -> txt |> (UsernameCHanged >> App.Types.LoginMsg >> dispatch)
+    | "password" -> txt |> (User.Types.PasswordInputChangedMsg >> App.Types.UserMsg >> dispatch)
+    | "text" -> txt |> (User.Types.UserNameInputChangedMsg >> App.Types.UserMsg >> dispatch)
+    | _  -> txt |> (User.Types.PasswordInputChangedMsg >> App.Types.UserMsg >> dispatch)
 
 let loadClientData =
     "" |> fun _ -> ()
+
+
+

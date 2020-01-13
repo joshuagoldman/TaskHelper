@@ -8,16 +8,7 @@ open Types
 open Global
 open Data
 
-let loginAttempt ( model : App.Types.Model ) dispatch =
-    (model.User.Username, model.User.Password)
-    match model.User.Username with
-    | User.Types.Exists usr ->
-        match model.User.Password with
-        | User.Types.Exists passwrd -> 
-        |
-            
-
-let loginButton model dispatch =
+let loginButton ( model : App.Types.Model ) dispatch =
     Html.a
         [
             prop.className "button"
@@ -34,9 +25,8 @@ let loginButton model dispatch =
                     style.left 200
                     style.margin(40,400,400,400)
                 ]
-            //prop.href (Global.toHashUser UserPage.InstructionSearch )
-            prop.onClick (fun _ -> User.Types.LoginAttemptMsg (model.Username, model.Password) |>
-                                   (App.Types.UserMsg >> dispatch))
+            prop.onClick (fun _ ->  User.Logic.loginAttempt model.User HasNostStartedYet |>
+                                    (App.Types.UserMsg >> dispatch))
             prop.children
                 [
                     Fable.React.Helpers.str "Login"
@@ -105,19 +95,6 @@ let loginLabel model dispatch name =
 
                 ]
         ]
-
-let getUserDataUpdate ( userData : Data.Deferred<Result<UserData, string>> ) =
-    match userData with
-    | HasNostStartedYet -> ""
-    | InProgress -> "Loading User Data"
-    | Resolved response ->
-        match response with
-        | Ok result ->
-            "received query with " +
-            (result.Instructions |> Seq.length |> string) +
-            " instructions :)"
-
-        | Error err -> err 
     
 
 let loginTxtArea ( model : App.Types.Model ) dispatch =
@@ -138,7 +115,7 @@ let loginTxtArea ( model : App.Types.Model ) dispatch =
                 ]
             prop.children
                 [
-                    Fable.React.Helpers.str (getUserDataUpdate model.User.UserData)
+                    Fable.React.Helpers.str model.User.LoginMessage
                 ]
         ]
 
