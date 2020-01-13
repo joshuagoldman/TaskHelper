@@ -170,14 +170,20 @@ let loginAttempt model ( status : Data.Deferred<Result<seq<LoginInfo>, string>> 
                                     | Invalid -> ("Ivalid user name chosen"
                                                  |> message4Dispatch, true)
                                 | Invalid -> (""
-                                             |> message4Dispatch, true)
+                                             |> message4Dispatch, false)
                              | Invalid -> (""
-                                                 |> message4Dispatch, true))
-            |> Seq.tryFind (fun info -> info |> fun (msg, isMessageSignificant) -> isMessageSignificant)
+                                           |> message4Dispatch, false))
+            |> Seq.tryFind (fun info -> info |> fun (_, isMessageSignificant) -> isMessageSignificant)
             |> function
-               | res when res = None ->
+               | res when res <> None ->
                     res.Value |> fun (msg,_) -> msg
-               | _ -> "No valid user names or passwords were found in the database :'("
-                        |> message4Dispatch
+               | _ -> "No valid user names or passwords were found in the database :'(" +
+                      ".\nAll user names are:" +
+                      (result
+                      |> Seq.map (fun lgin -> match lgin.Username with
+                                              | Valid str -> "\n" + str
+                                              | Invalid -> "\n")
+                      |> String.concat ",")
+                      |> message4Dispatch
         | Error err -> err
                        |> User.Types.LoginMessages
