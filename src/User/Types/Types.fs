@@ -5,7 +5,7 @@ open Data
 
 type Msg =
     | LoginAttemptMsg of string * string
-    | LoginTimedOutMsg 
+    | Logout of string
     | LoadedInstructions of AsyncOperationEvent<Result<UserData, string>>
     | LoadedUsers of AsyncOperationEvent<Result<seq<LoginInfo>, string>>
     | UserDataMsg of string 
@@ -16,11 +16,12 @@ type Msg =
     | LoginMessages of string
     | UserNameInputChangedMsg of string
     | PasswordInputChangedMsg of string
-
+    | LoginSuceeded
+    | NewUserId of int
 type Model =
     {
-      CurrUser : Data.Deferred<Result<seq<LoginInfo>, string>>
-      UserFromLogin : LoginInfo
+      AllUsers : Data.Deferred<Result<seq<LoginInfo>, string>>
+      UserFromLogin : ValidationLoginInfo
       LoginMessage : string
       Id : int
       CurrentPage: Global.UserPage

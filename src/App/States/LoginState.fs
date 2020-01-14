@@ -10,6 +10,7 @@ open Browser
 open Global
 open Types
 open Browser
+open Data
 
 let init() : Model * Cmd<Login.Types.Msg> =
     {

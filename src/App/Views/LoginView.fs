@@ -8,6 +8,7 @@ open Types
 open Global
 open Data
 
+
 let loginButton ( model : App.Types.Model ) dispatch =
     Html.a
         [
@@ -25,8 +26,10 @@ let loginButton ( model : App.Types.Model ) dispatch =
                     style.left 200
                     style.margin(40,400,400,400)
                 ]
-            prop.onClick (fun _ ->  User.Logic.loginAttempt model.User HasNostStartedYet |>
-                                    (App.Types.UserMsg >> dispatch))
+            prop.href ( App.Types.LoginToUser Started |> dispatch
+                        toHash model.CurrentPage )
+            prop.onClick (fun _ ->  User.Logic.loginAttempt model.User HasNostStartedYet
+                                    |> Seq.iter (fun msg -> msg |> (App.Types.UserMsg >> dispatch)))
             prop.children
                 [
                     Fable.React.Helpers.str "Login"
@@ -37,7 +40,7 @@ let loginText model dispatch txtType =
     Html.div
         [
             prop.className "field"
-            prop.onTextChange (fun txt -> Logic.loginInfoChanged dispatch txt txtType)
+            prop.onTextChange (fun txt -> App.Logic.loginInfoChanged dispatch txt txtType)
             prop.children
                 [
                     Html.div

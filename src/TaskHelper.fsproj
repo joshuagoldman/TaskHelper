@@ -32,12 +32,12 @@
     <Compile Include="User\Views\View.fs" />
     <Compile Include="App\Types\LoginTypes.fs" />
     <Compile Include="App\Types\Types.fs" />
+    <Compile Include="App\Logic.fs" />
     <Compile Include="App\States\LoginState.fs" />
     <Compile Include="App\States\State.fs" />
-    <Compile Include="App\Logic.fs" />
-    <!-- Home -->
     <Compile Include="App\Views\LoginView.fs" />
     <Compile Include="App\Views\View.fs" />
+    <!-- Home -->
     <!-- Navbar -->
     <!-- App -->
   </ItemGroup>

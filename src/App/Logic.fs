@@ -1,8 +1,9 @@
-module Login.Logic
+module App.Logic
 
 open Feliz
-open Types
+open App.Types
 open Data
+open Global
 
 let decideMargin name =
     match name with
@@ -22,6 +23,29 @@ let loginInfoChanged dispatch txt txtType =
 
 let loadClientData =
     "" |> fun _ -> ()
+
+let loginToUserIfSuccess ( model : App.Types.Model ) =
+    async {
+        do! Async.Sleep 2000
+        let page =
+            match model.User.UserData with
+            | Resolved response ->
+                match response with
+                | Ok _ -> User(UserPage.InstructionSearch)
+                | Error _ -> Page.Login
+            | _ -> Page.Login
+
+        return (page |> Finished |> LoginToUser)
+
+
+    }
+
+let sleepAndLogout =
+    async {
+        do! Async.Sleep 3000
+        return "You have been logged out due to inactivity ;)" |>
+        Finished |> App.Types.InactivityMsg
+    } 
 
 
 

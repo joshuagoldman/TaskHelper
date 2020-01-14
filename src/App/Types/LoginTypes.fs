@@ -9,7 +9,7 @@ type LoginAttempt =
     | Failed
 
 type Msg =
-    | LoginButtonClicked of string * string
+   | Msg
 
 
 type Model =

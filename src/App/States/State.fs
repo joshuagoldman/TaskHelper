@@ -10,6 +10,7 @@ open Browser
 open Global
 open App.Types
 open Browser
+open Data
 
 let urlUpdate (result : Page option) model =
     match result with
@@ -55,4 +56,10 @@ let update msg model : Model * Cmd<App.Types.Msg> =
     | LoginMsg msg ->
         let (login, loginCmd) = Login.State.update msg model.Login
         { model with Login = login }, Cmd.map LoginMsg loginCmd
+    | LoginToUser Started -> model,  Cmd.fromAsync (Logic.loginToUserIfSuccess model)
+    | LoginToUser ( Finished page) ->
+        { model with CurrentPage = page}, []
+    | InactivityMsg Started -> model, Cmd.fromAsync Logic.sleepAndLogout
+    | InactivityMsg (Finished msg) -> model,  Cmd.ofMsg (msg |>
+                                                         (User.Types.LoginMessages >> App.Types.UserMsg))
 

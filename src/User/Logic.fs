@@ -64,12 +64,39 @@ let initInstruction =
             allData "" |> Seq.item 0
         ]
 
-let jsonDecodingInstructions jsonString =
+let getUserData result ( model : User.Types.Model ) =
+    result
+    |> Seq.tryFind (fun user -> user.Id = model.Id  )
+    |> function
+       | res when res <> None -> res.Value
+       | _ ->
+            {
+                Id = 0
+                Instructions =
+                    seq
+                        [
+                            {
+                                Title = ""
+                                Data =
+                                    seq
+                                        [
+                                            {
+                                                InstructionTxt = ""
+                                                InstructionVideo = ""
+                                                Title = ""
+                                            }
+                                        ]
+                            }
+                        ]
+
+            }
+
+let jsonDecodingInstructions jsonString model =
     let decodingObj = parseUserData jsonString
 
     match decodingObj with
     | Ok result ->
-        LoadedInstructions (Finished (Ok (result.[0])))
+        LoadedInstructions (Finished (Ok (getUserData result model)))
     | Error result ->
         LoadedInstructions (Finished (Error result))
 
@@ -79,13 +106,13 @@ let jsonDecodingUsers jsonString =
     match decodingObj with
     | Ok result ->
         result
-        |> Array.map (fun o -> { Username = Valid o.Username ; Password = Valid o.Password} : LoginInfo )
+        |> Array.map (fun o -> { Username = o.Username ; Password = o.Password ; Id = o.Id} : LoginInfo )
         |> fun arr -> arr |> Array.toSeq |> (Ok >> Finished >> LoadedUsers)
     | Error result ->
         LoadedUsers (Finished (Error result))
 
 
-let loadInstructionItems = async {
+let loadInstructionItems model = async {
         do! Async.Sleep 3000
         let! response = 
             Http.request "http://localhost:3001/api/instructions"
@@ -96,7 +123,7 @@ let loadInstructionItems = async {
         | 200 ->
             return jsonDecodingInstructions (response.responseText
                                             |> fun x -> x.Replace( """[{"array_to_json":""", "")
-                                            |> fun x -> x.Substring(0, x.LastIndexOf("}]")))
+                                            |> fun x -> x.Substring(0, x.LastIndexOf("}]"))) model
             
         | _ ->
             return LoadedInstructions (Finished (Error ("Could not get api, status code: " +
@@ -128,7 +155,7 @@ let getUserDataUpdate ( userData : Data.Deferred<Result<Data.UserData, string>> 
         | Ok result ->
             "received query with " +
             (result.Instructions |> Seq.length |> string) +
-            " instructions :)" |> User.Types.LoginMessages 
+            " instructions :)" |> User.Types.LoginMessages
 
         | Error err -> err |> User.Types.LoginMessages
 
@@ -136,54 +163,47 @@ let getUserDataUpdate ( userData : Data.Deferred<Result<Data.UserData, string>> 
 let message4Dispatch value =
     value |> LoginMessages
 
-let loginAttempt model ( status : Data.Deferred<Result<seq<LoginInfo>, string>> ) =
+let existOrNot compareVal result =
+     match compareVal with
+     | Valid str ->
+         result
+         |> Seq.tryFind (fun usrName -> usrName.Username = str)
+         |> function
+            | res when res <> None ->
+                     Some res.Value
+            | _ -> None
+     | Invalid ->
+         None
+
+let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<seq<LoginInfo>, string>> ) =
     match status with
-    | HasNostStartedYet -> 
-        User.Types.LoadedUsers Started
-    | InProgress ->
-        "loading all users" |> User.Types.LoginMessages
+    | HasNostStartedYet -> seq[User.Types.LoadedUsers Started]
+        
+    | InProgress -> seq["loading all users" |> User.Types.LoginMessages]
+        
     | Resolved response ->
         match response with
         | Ok result ->
-            result
-            |> Seq.map (fun usrCompare ->
-                             match usrCompare.Username with
-                             | Valid usrNameCompare ->
-                                match usrCompare.Password with
-                                | Valid passwordCompare ->
-                                    match model.UserFromLogin.Username with
-                                    | Valid usrName ->
-                                        match usrName with
-                                        | usrNameCompare ->
-                                            match model.UserFromLogin.Password with
-                                            | Valid password ->
-                                                match password with
-                                                | passwordCompare ->
-                                                    (User.Types.LoadedInstructions Started,true)
-                                                | _ ->
-                                                    ("Wrong password for the given user name :'("
-                                                    |> message4Dispatch, true)
-                                            | _ ->
-                                                ("Ivalid password chosen"                                                 |> message4Dispatch, true)
-                                        | _ ->  ("Could not find a matching user name :'("
-                                                 |> message4Dispatch, true)
-                                    | Invalid -> ("Ivalid user name chosen"
-                                                 |> message4Dispatch, true)
-                                | Invalid -> (""
-                                             |> message4Dispatch, false)
-                             | Invalid -> (""
-                                           |> message4Dispatch, false))
-            |> Seq.tryFind (fun info -> info |> fun (_, isMessageSignificant) -> isMessageSignificant)
+            let usernameMatchExists = existOrNot model.UserFromLogin.Username result
+              
+            ()
             |> function
-               | res when res <> None ->
-                    res.Value |> fun (msg,_) -> msg
-               | _ -> "No valid user names or passwords were found in the database :'(" +
-                      ".\nAll user names are:" +
-                      (result
-                      |> Seq.map (fun lgin -> match lgin.Username with
-                                              | Valid str -> "\n" + str
-                                              | Invalid -> "\n")
-                      |> String.concat ",")
-                      |> message4Dispatch
-        | Error err -> err
-                       |> User.Types.LoginMessages
+               | _ when usernameMatchExists <> None ->
+                    match model.UserFromLogin.Password with
+                    | Valid password ->
+                        password
+                        |> function
+                           | _ when password = usernameMatchExists.Value.Password ->
+                                seq
+                                    [
+                                        usernameMatchExists.Value.Id |> NewUserId
+                                        User.Types.LoadedInstructions Started
+                                    ]
+                           | _ -> seq["Wrong password for the given user name" |> LoginMessages]
+                    | _ ->seq[ "The password provided is invalid" |> LoginMessages]
+               | _ -> seq["The user name provided is invalid" |> LoginMessages]
+                        
+                        
+                        
+        | Error err -> seq[err|> User.Types.LoginMessages]
+

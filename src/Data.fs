@@ -4,20 +4,21 @@ open Fable.ReactServer
 open Elmish
 open Thoth.Json
 
-type UserInfo =
+type Validity =
     | Valid of string
     | Invalid
 
-type LoginInfo =
+type ValidationLoginInfo =
     {
-        Username : UserInfo
-        Password : UserInfo
+        Username : Validity
+        Password : Validity
     }
 
-type LoginInfo4Decoding =
+type LoginInfo =
     {
         Username : string
         Password : string
+        Id : int
     }
 
 type partData =
@@ -70,10 +71,11 @@ let UserDataArrayDecoder =
 let parseUserData (json : string ) =
     Decode.fromString UserDataArrayDecoder json
 
-let LoginInfoDecoder : Decoder<LoginInfo4Decoding> =
+let LoginInfoDecoder : Decoder<LoginInfo> =
     Decode.object (fun fields -> {
         Username = fields.Required.At ["user_name"] Decode.string
         Password = fields.Required.At ["password"] Decode.string
+        Id = fields.Required.At ["id"] Decode.int
     })
 
 let LoginInfoArrayDecoder json =
