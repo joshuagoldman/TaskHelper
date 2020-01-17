@@ -7,6 +7,7 @@ open Elmish
 
 type Model =
     {
-        CurrInstruction : Data.InstructionData
+        InstructionErrorMessage : AppearanceAttributes
+        CurrInstruction : Result<Data.InstructionData,string>
         CurrPart : Part.Types.Model
     }

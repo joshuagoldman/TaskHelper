@@ -12,11 +12,11 @@ type Msg =
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.State.Msg>
-    | Part of Data.partData * Cmd<Part.State.Msg>
+    | Part of Data.partData * Cmd<Part.State.Msg> * Data.InstructionData * Cmd<Instruction.State.Msg>
 
 type Model =
     {
        SearchBar : AppearanceAttributes
-       ResultFromSearch : seq<SearchResult>
+       ResultFromSearch : seq<Result<SearchResult,string>>
     }
 

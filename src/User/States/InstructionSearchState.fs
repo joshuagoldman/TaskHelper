@@ -9,8 +9,7 @@ let init() : InstructionSearch.Types.Model * Cmd<Msg> =
      SearchBar =  defaultAppearanceAttributes
      ResultFromSearch =
         seq [
-                Instruction(Instruction.State.init() |> fun (a,b) -> a.CurrInstruction, b)
-                Part(Part.State.init() |> fun (a,b) -> a.Data, b)
+                Error ""
             ]
   }, []
 

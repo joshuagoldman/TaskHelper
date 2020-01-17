@@ -6,25 +6,29 @@ open Elmish
 open Feliz
 
 type Msg =
-    | NewPart2Show of Data.partData
+    | NewPart2Show of Data.partData * Data.InstructionData
     | MakeButtonVisible of bool * string
-    | ExampleMsg of string
+    | SendErrorMessage of string
 
 let init () : Model * Cmd<Msg> =
     {
         NextButton = defaultAppearanceAttributes
         PreviousButton = defaultAppearanceAttributes
         Go2Instruction = defaultAppearanceAttributes
-        Data = Data.allData "" |> Seq.item 0 |> fun x -> x.Data |> Seq.item 0 
+        Data = Error "No part is given"
+        Instruction = Error "No Part is given" 
     }, []
 
 let update msg model : Model * Cmd<Msg> =
     match msg with
-    | NewPart2Show data -> { model with Data = data ;
-                                        NextButton =
-                                            { model.NextButton with Visible = style.visibility.visible } ;
-                                        PreviousButton =
-                                            { model.PreviousButton with Visible = style.visibility.visible }} , []
+    | NewPart2Show (data, instruction) ->
+            { model with Data = Ok data ;
+                         NextButton =
+                             { model.NextButton with Visible = style.visibility.visible } ;
+                         PreviousButton =
+                             { model.PreviousButton with Visible = style.visibility.visible }
+                         Instruction = Ok instruction }, [] 
+
     | MakeButtonVisible (isVisible,buttonChoice) ->
         match buttonChoice with
         | "NextButton" ->
@@ -42,6 +46,7 @@ let update msg model : Model * Cmd<Msg> =
 
         | _ -> model, []
 
-    | ExampleMsg str -> { model with Data =
-                                        { model.Data with Title = str }}, []
+    | SendErrorMessage msg ->
+        { model with Data = Ok (Data.errorPart) ; Instruction = Ok (Data.errorInstruction) }, []
+                        
 

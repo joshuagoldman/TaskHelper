@@ -5,8 +5,14 @@ open Fable.React.Props
 open Feliz
 open State
 open Logic
+open Browser
 
 let instrVideo (model : Part.Types.Model) dispatch =
+    let instructionVideo =
+        match model.Data with
+        | Ok result ->result.InstructionVideo
+        | Error err -> err
+
     video
         [
             Style
@@ -19,13 +25,18 @@ let instrVideo (model : Part.Types.Model) dispatch =
         [
             source
                 [
-                    Src model.Data.InstructionVideo
+                    Src instructionVideo
                     Type "video/mp4"
                 ]
             str "Your browser does not support the video"
         ]
 
 let textArea (model : Part.Types.Model) dispatch =
+    let instructionText =
+        match model.Data with
+        | Ok result ->result.InstructionTxt
+        | Error err -> err
+
     Html.div
         [
             prop.style
@@ -36,7 +47,7 @@ let textArea (model : Part.Types.Model) dispatch =
 
             prop.children
                 [
-                    str model.Data.InstructionTxt
+                    str instructionText
                 ]
         ]
 
@@ -63,8 +74,10 @@ let goToInstructionButton ( model : Part.Types.Model ) dispatch =
         ]
 
 let navigationButton ( model : Part.Types.Model )
-                     dispatch
-                     buttonName =
+                       dispatch
+                       buttonName =
+
+
     Html.div
         [
             prop.className "column"
@@ -77,7 +90,10 @@ let navigationButton ( model : Part.Types.Model )
                     Html.a
                         [
                             prop.className "button"
-                            prop.onClick (fun _ -> go2PreviousOrNext model.Data dispatch buttonName)
+                            prop.onClick (fun _ -> Logic.checkInstructionAvailability
+                                                         model
+                                                         dispatch
+                                                         buttonName)
                             prop.style
                                 [
                                     whichNavigationButton model buttonName

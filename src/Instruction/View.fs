@@ -17,5 +17,8 @@ let simpleButton txt action dispatch =
 let root model dispatch =
   Html.div
     [
-        
+        prop.children
+            [
+                str model.InstructionErrorMessage.Text
+            ]
     ]

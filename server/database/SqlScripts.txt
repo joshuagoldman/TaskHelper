@@ -56,6 +56,12 @@ VALUES ( 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 1')
 INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
 VALUES ( 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 2');
 
+UPDATE instructions
+SET
+    instruction_txt = 'Admin Example Text 2'
+WHERE
+    part_title = ' Admin Example Part 2'
+
 select array_to_json(array_agg(row_to_json(t)))
 from (
   select user_name, password,

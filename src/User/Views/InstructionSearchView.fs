@@ -10,6 +10,7 @@ open State
 open System
 open Data
 open User.Logic
+open Browser
 
 let searchBarName model dispatch =
     Html.div
@@ -51,7 +52,12 @@ let searchBar model dispatch =
                                          (User.Types.InstructionSearchMsg >> dispatch))
         ]
 
-let searchResult model dispatch result =
+let sss ( model : User.Types.Model )  =
+    match model.Instruction.CurrPart.Data with
+    | Ok res -> res.Title
+    | Error err -> err
+
+let searchResult ( model : User.Types.Model ) dispatch result =
     Html.div
         [
             prop.className "row"
@@ -68,8 +74,10 @@ let searchResult model dispatch result =
                                     style.opacity 0.9
                                     style.borderRadius 10
                                 ]
-                            prop.href (Global.toHashUser (choosePage result) )
+
                             prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
+                            prop.href ( console.log("current part is: " + (sss model))
+                                        Global.toHashUser (choosePage result) )
                             prop.children
                                 [
                                     str (WritePartOrInstruction result)
@@ -78,32 +86,46 @@ let searchResult model dispatch result =
                 ]
         ]
 
-let getSearchResults ( model : User.Types.Model ) dispatch =
-    Seq.append instructionResults partResults
-    |> Seq.filter (fun info -> searchInfo info (model.InstructionSearch.SearchBar.Text.ToLower()))
-    |> function
-       | res when res |> Seq.length <> 0 ->
-            res
-            |> Seq.map (fun result -> searchResult model dispatch result)
-            |> Seq.toList
-       | _ ->
+let SearchResultErrorComponent ( model : User.Types.Model ) message =
+    [
+        Html.div
             [
-                Html.div
+                prop.style
                     [
-                        prop.style
-                            [
-                                style.color.white
-                                style.fontSize 25
-                                style.margin(5,5,5,50)
-                            ]
-                        prop.children
-                            [
-                                str ( if model.InstructionSearch.SearchBar.Text = ""
-                                      then ""
-                                      else "No results found" ) 
-                            ]
+                        style.color.white
+                        style.fontSize 25
+                        style.margin(5,5,5,50)
+                    ]
+                prop.children
+                    [
+                        str ( if model.InstructionSearch.SearchBar.Text = ""
+                              then ""
+                              else message ) 
                     ]
             ]
+    ]
+
+let getSearchResults ( model : User.Types.Model ) dispatch =
+    let status = loadData model.UserData
+    match status with
+    | Ok result ->
+        result.Instructions
+        |> Seq.map (fun instr -> Instruction (instr,[]))
+        |> Seq.append (result.Instructions
+                       |> Seq.collect (fun instr -> instr.Data
+                                                    |> Seq.map (fun part -> Part(part, [], instr, []) )))
+        |> Seq.filter (fun info -> searchInfo info (model.InstructionSearch.SearchBar.Text.ToLower()))
+        |> function
+           | res when res |> Seq.length <> 0 ->
+                res
+                |> Seq.map (fun result -> searchResult model dispatch result)
+                |> Seq.toList
+           | _ -> SearchResultErrorComponent model ("No search results found")
+
+    | Error err ->
+        SearchResultErrorComponent model err
+     
+
 
 let root ( model : User.Types.Model ) dispatch =
     let searchResults = getSearchResults model dispatch

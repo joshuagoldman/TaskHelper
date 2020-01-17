@@ -4,6 +4,7 @@ open Feliz
 open App.Types
 open Data
 open Global
+open Browser
 
 let decideMargin name =
     match name with
@@ -15,37 +16,24 @@ let decideMargin name =
     | _ -> style.margin 20
 
 
-let loginInfoChanged dispatch txt txtType =
+let loginInfoChanged ( dispatch : Msg -> unit ) txt txtType =
     match txtType with
-    | "password" -> txt |> (User.Types.PasswordInputChangedMsg >> App.Types.UserMsg >> dispatch)
-    | "text" -> txt |> (User.Types.UserNameInputChangedMsg >> App.Types.UserMsg >> dispatch)
+    | "password" ->
+        txt |> (User.Types.PasswordInputChangedMsg >> App.Types.UserMsg >> dispatch)
+    | "text" ->
+        txt |> (User.Types.UserNameInputChangedMsg >> App.Types.UserMsg >> dispatch)
     | _  -> txt |> (User.Types.PasswordInputChangedMsg >> App.Types.UserMsg >> dispatch)
 
-let loadClientData =
-    "" |> fun _ -> ()
-
-let loginToUserIfSuccess ( model : App.Types.Model ) =
-    async {
-        do! Async.Sleep 2000
+let loginToUserIfSuccess ( model : App.Types.Model ) = 
         let page =
             match model.User.UserData with
             | Resolved response ->
                 match response with
-                | Ok _ -> User(UserPage.InstructionSearch)
-                | Error _ -> Page.Login
-            | _ -> Page.Login
+                | Ok _ ->  User(UserPage.InstructionSearch) |> Finished |> LoginToUser
+                | Error _ -> Page.Login |> Finished |> LoginToUser
+            | _ -> Page.Login |> Finished |> LoginToUser
 
-        return (page |> Finished |> LoginToUser)
-
-
-    }
-
-let sleepAndLogout =
-    async {
-        do! Async.Sleep 3000
-        return "You have been logged out due to inactivity ;)" |>
-        Finished |> App.Types.InactivityMsg
-    } 
+        page
 
 
 

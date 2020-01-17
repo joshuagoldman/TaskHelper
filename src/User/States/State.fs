@@ -10,6 +10,7 @@ open Types
 open Fable.React
 open Browser
 open Thoth.Json
+open Logic
 
 let urlUpdate (result : UserPage option) model =
     match result with
@@ -17,6 +18,7 @@ let urlUpdate (result : UserPage option) model =
         console.error("Error parsing url")
         model, Navigation.modifyUrl (toHashUser model.CurrentPage)
     | Some page ->
+        console.log("Dis is urlUpdat (the user update function). the user page here is changed to: " + (toHashUser page))
         { model with CurrentPage = page }, []
 
 let init() : Model * Cmd<Msg> =
@@ -37,24 +39,36 @@ let init() : Model * Cmd<Msg> =
         Instruction = Instruction.State.init() |> fun (a,b) -> a
     }, []
 
+let matchValidity validityObject =
+    match validityObject with
+    | Valid str -> str
+    | Invalid -> "Invalid"
+
 let update msg model : Model * Cmd<User.Types.Msg> =
     match msg with
     | LoadedInstructions Started ->
         { model with UserData = InProgress }, Cmd.batch
-                                                [   Cmd.ofMsg (Logic.getUserDataUpdate InProgress)
-                                                    Cmd.fromAsync (User.Logic.loadInstructionItems model)
-                                                  ]
+                                                    (Logic.getUserDataUpdate InProgress
+                                                    |> Seq.map (fun msg -> Cmd.ofMsg msg)
+                                                    |> Seq.append [Cmd.fromAsync (Logic.loadInstructionItems model)])
+                                                    
     | LoadedInstructions (Finished (Error error)) ->
-        { model with UserData = Resolved ( Error error)}, Cmd.ofMsg (Logic.getUserDataUpdate
-                                                                            (Resolved ( Error error)))
+        { model with UserData = Resolved ( Error error)}, Cmd.batch
+                                                                (Logic.getUserDataUpdate
+                                                                            (Resolved ( Error error))
+                                                                |> Seq.map (fun msg -> Cmd.ofMsg msg))
     | LoadedInstructions (Finished (Ok items)) ->
         { model with UserData = Resolved ( Ok items)}, Cmd.batch
-                                                        [
-                                                            Cmd.ofMsg (Logic.getUserDataUpdate
-                                                                            (Resolved ( Ok items)))
-                                                            Cmd.ofMsg LoginSuceeded
-                                                        ]
+                                                            (Logic.getUserDataUpdate (Resolved ( Ok items))
+                                                            |> Seq.map (fun msg -> Cmd.ofMsg msg)
+                                                            |> Seq.append [Cmd.ofMsg LoginSuceeded])
+                                                        
+                                                            
+                                                        
     | LoadedUsers Started ->
+        console.log("This is from user update function, UserLogin username and password her is: " +
+                     matchValidity model.UserFromLogin.Username +
+                     "    " + matchValidity model.UserFromLogin.Password)
         { model with AllUsers = InProgress } , Cmd.batch
                                                     (Logic.loginAttempt model InProgress
                                                     |> Seq.map (fun msg -> Cmd.ofMsg msg )
@@ -66,6 +80,9 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                                 (Logic.loginAttempt model (Resolved ( Error error))
                                                                 |> Seq.map (fun msg -> Cmd.ofMsg msg ))
     | LoadedUsers (Finished (Ok items)) ->
+        console.log("This is from user update function, UserLogin username and password her is: " +
+                     matchValidity model.UserFromLogin.Username +
+                     "    " + matchValidity model.UserFromLogin.Password)
         { model with AllUsers = Resolved ( Ok items)}, Cmd.batch
                                                             (Logic.loginAttempt model (Resolved ( Ok items))
                                                             |> Seq.map (fun msg -> Cmd.ofMsg msg ))
@@ -82,15 +99,28 @@ let update msg model : Model * Cmd<User.Types.Msg> =
     | NewAddMsg msg ->
         let (newAdd, newAddCmd) = NewAdd.State.update msg model.NewAdd
         { model with NewAdd = newAdd }, Cmd.map NewAddMsg newAddCmd
-    | Logout msg  ->
-        let newModel = init() |> fun (a,b) -> a
-        { newModel with LoginMessage = msg}, []
     | LoginMessages msg ->
         { model with LoginMessage = msg}, []
-    | UserNameInputChangedMsg usrName -> { model with UserFromLogin =
-                                                        { model.UserFromLogin with Username = Valid usrName } }, []
-    | PasswordInputChangedMsg passwrd ->  { model with UserFromLogin =
-                                                        { model.UserFromLogin with Password = Valid passwrd } }, []
+    | UserNameInputChangedMsg usrName ->
+        let newModel = 
+            { model with UserFromLogin =
+                          { model.UserFromLogin with Username =
+                                                      validateLoginInfo usrName } }, []
+        console.log("This is message from update function, password given here is: " +
+                     (newModel |> fun  (a,b) -> match a.UserFromLogin.Username with
+                                                | Valid str -> str
+                                                | Invalid -> "Invalid"))
+        newModel
+    | PasswordInputChangedMsg passwrd ->
+        let newModel = 
+            { model with UserFromLogin =
+                          { model.UserFromLogin with Password =
+                                                      validateLoginInfo passwrd } }, []
+        console.log("This is message from update function, password given here is: " +
+                     (newModel |> fun  (a,b) -> match a.UserFromLogin.Password with
+                                                | Valid str -> str
+                                                | Invalid -> "Invalid"))
+        newModel
     | LoginSuceeded ->
         { model with CurrentPage = UserPage.InstructionSearch}, []
     | NewUserId id ->

@@ -21,48 +21,78 @@ open Data
 
 let go2PartOrInstruction dispatch result =
     match result with
-    | InstructionSearch.Types.Part (partModel, _) ->
-        Part.State.NewPart2Show partModel
+    | InstructionSearch.Types.Part (partModel, _, instruction, _) ->
+        console.log ("you have chosen a part named: " + partModel.Title)
+        console.log ("you have chosen a instruction (with part) named: " + instruction.Title)
+        Part.State.NewPart2Show (partModel,instruction)
         |> Instruction.State.PartMsg
         |> User.Types.InstructionMsg
         |> dispatch
-        |> fun _ -> Part.Logic.go2PreviousOrNext partModel (Instruction.State.PartMsg >>
-                                                            User.Types.InstructionMsg >>
-                                                            dispatch) "" 
-    | InstructionSearch.Types.Instruction (instructionModel, _) ->
-        Instruction.State.NewInstruction2Show instructionModel
+        |> fun _ ->
+            Part.Logic.go2PreviousOrNext instruction partModel.Title (Instruction.State.PartMsg >>
+                                                                      User.Types.InstructionMsg >>
+                                                                      dispatch) ""
+        
+            
+            
+    | InstructionSearch.Types.Instruction (instruction, _) ->
+        console.log ("you have chosen a instruction (only) named: " + instruction.Title)
+        Instruction.State.NewInstruction2Show instruction
         |> User.Types.InstructionMsg
         |> dispatch
 
 let WritePartOrInstruction result =
     match result with
-    | InstructionSearch.Types.Part (instruction, _) -> instruction.Title
-    | InstructionSearch.Types.Instruction (data, _) -> data.Title
+    | InstructionSearch.Types.Part (partData, _, _, _) -> partData.Title
+    | InstructionSearch.Types.Instruction (instruction, _) -> instruction.Title
 
 let choosePage page =
     match page with
-    | InstructionSearch.Types.Part (_,_) -> Global.Part
-    | InstructionSearch.Types.Instruction (_,_) -> Global.Instruction
+    | InstructionSearch.Types.Part (_, _, _, _) ->
+                console.log("part chosen to hashs to is: part")
+                Global.Part
+    | InstructionSearch.Types.Instruction (_,_) ->
+                console.log("part chosen to hash to is: instruction")
+                Global.Instruction
 
 let searchInfo info (keyWord : string) =
     match info with
-    | InstructionSearch.Types.Instruction (model, _) -> model.Title.ToLower().Contains keyWord && keyWord <> ""
-    | InstructionSearch.Types.Part (model, _) -> model.Title.ToLower().Contains keyWord && keyWord <> ""
+    | InstructionSearch.Types.Instruction (instruction, _) -> instruction.Title.ToLower().Contains keyWord && keyWord <> ""
+    | InstructionSearch.Types.Part (partData, _, _, _) -> partData.Title.ToLower().Contains keyWord && keyWord <> ""
 
-let instructionResults =
-    allData ""
-    |> Seq.map (fun instruction -> InstructionSearch.Types.Instruction(instruction, []))
-let partResults =
-    allData ""
-    |> Seq.collect (fun instruction -> instruction.Data
-                                       |> Seq.map (fun part -> InstructionSearch.Types.Part(part, [])))
+let loadInitData data =
 
+    let initInstruction =
+        data.Instructions |> Seq.item 0
 
-let initInstruction =
+    let initPart =
+        data.Instructions
+        |> Seq.item 0
+        |> fun x -> x.Data
+        |> Seq.item 0
     seq
         [
-            allData "" |> Seq.item 0
+            (initInstruction |>
+             (Instruction.State.NewInstruction2Show >> User.Types.InstructionMsg))
+            ((initPart,initInstruction) |>
+             (Part.State.NewPart2Show >>
+              Instruction.State.PartMsg >>
+              User.Types.InstructionMsg))
         ]
+
+                       
+
+
+let loadData ( status : Data.Deferred<Result<UserData,string>> ) =
+    match status with
+    | HasNostStartedYet -> "No data has been loaded to user, which is in fact strange" |> Error
+        
+    | InProgress -> "Data is still loading..." |> Error
+        
+    | Resolved response ->
+        match response with
+        | Ok result -> Ok result                
+        | Error err -> err |> Error
 
 let getUserData result ( model : User.Types.Model ) =
     result
@@ -148,24 +178,36 @@ let loadUserItems = async {
 
 let getUserDataUpdate ( userData : Data.Deferred<Result<Data.UserData, string>> ) =
     match userData with
-    | Data.HasNostStartedYet -> "" |> User.Types.LoginMessages 
-    | Data.InProgress -> "Loading User Data" |> User.Types.LoginMessages 
+    | Data.HasNostStartedYet -> seq["" |> User.Types.LoginMessages] 
+    | Data.InProgress -> seq["Loading User Data" |> User.Types.LoginMessages] 
     | Data.Resolved response ->
         match response with
         | Ok result ->
-            "received query with " +
-            (result.Instructions |> Seq.length |> string) +
-            " instructions :)" |> User.Types.LoginMessages
+            let successMessage =
+                seq
+                    [
+                        ("received query with " +
+                         (result.Instructions |> Seq.length |> string) +
+                         " instructions :)" |> User.Types.LoginMessages)
+                    ]
+            successMessage
+            |> Seq.append (loadInitData result)
 
-        | Error err -> err |> User.Types.LoginMessages
+            
 
+        | Error err ->seq[ err |> User.Types.LoginMessages]
 
-let message4Dispatch value =
-    value |> LoginMessages
+let existOrNotNoResult info =
+    match info with
+    | Valid str ->
+        console.log ("username is: " + str)
+    | Invalid ->
+        console.log ("username was invalid")
 
 let existOrNot compareVal result =
      match compareVal with
      | Valid str ->
+         console.log ("username is: " + str)
          result
          |> Seq.tryFind (fun usrName -> usrName.Username = str)
          |> function
@@ -173,17 +215,27 @@ let existOrNot compareVal result =
                      Some res.Value
             | _ -> None
      | Invalid ->
+         console.log ("username was invalid")
          None
 
 let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<seq<LoginInfo>, string>> ) =
     match status with
-    | HasNostStartedYet -> seq[User.Types.LoadedUsers Started]
+    | HasNostStartedYet ->
+        console.log "you entered HasNotStartedYet at funtion 'loginAttempt'"
+        existOrNotNoResult model.UserFromLogin.Username
+        seq[User.Types.LoadedUsers Started]
         
-    | InProgress -> seq["loading all users" |> User.Types.LoginMessages]
+        
+    | InProgress ->
+        console.log "you entered InProgress at funtion 'loginAttempt'"
+        existOrNotNoResult model.UserFromLogin.Username 
+        seq["loading all users" |> User.Types.LoginMessages]
         
     | Resolved response ->
+        console.log "you entered Resolved at funtion 'loginAttempt'"
         match response with
         | Ok result ->
+
             let usernameMatchExists = existOrNot model.UserFromLogin.Username result
               
             ()
@@ -200,10 +252,20 @@ let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<se
                                         User.Types.LoadedInstructions Started
                                     ]
                            | _ -> seq["Wrong password for the given user name" |> LoginMessages]
-                    | _ ->seq[ "The password provided is invalid" |> LoginMessages]
+                    | _ -> seq[ "The password provided is invalid" |> LoginMessages]
                | _ -> seq["The user name provided is invalid" |> LoginMessages]
                         
                         
                         
         | Error err -> seq[err|> User.Types.LoginMessages]
+
+let validateLoginInfo info =
+    info
+    |> function
+       | _ when info = "" ->
+            console.log "loginInfo input is not valid"
+            Invalid
+       | _ ->
+            console.log ("loginInfo is indeed valid, and is:" + info)
+            Valid info
 

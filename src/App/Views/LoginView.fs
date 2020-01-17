@@ -7,8 +7,8 @@ open Elmish.UrlParser
 open Types
 open Global
 open Data
-
-
+open Browser
+   
 let loginButton ( model : App.Types.Model ) dispatch =
     Html.a
         [
@@ -26,10 +26,12 @@ let loginButton ( model : App.Types.Model ) dispatch =
                     style.left 200
                     style.margin(40,400,400,400)
                 ]
-            prop.href ( App.Types.LoginToUser Started |> dispatch
-                        toHash model.CurrentPage )
+
             prop.onClick (fun _ ->  User.Logic.loginAttempt model.User HasNostStartedYet
-                                    |> Seq.iter (fun msg -> msg |> (App.Types.UserMsg >> dispatch)))
+                                    |> Seq.iter (fun msg -> msg |> (App.Types.UserMsg >> dispatch))
+                                    |> fun _ -> App.Types.LoginToUser Started |> dispatch)
+
+            prop.href ( toHash model.CurrentPage)
             prop.children
                 [
                     Fable.React.Helpers.str "Login"
@@ -40,7 +42,8 @@ let loginText model dispatch txtType =
     Html.div
         [
             prop.className "field"
-            prop.onTextChange (fun txt -> App.Logic.loginInfoChanged dispatch txt txtType)
+            prop.onChange (fun txt ->
+                                    App.Logic.loginInfoChanged dispatch txt txtType)
             prop.children
                 [
                     Html.div

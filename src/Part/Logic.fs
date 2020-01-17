@@ -2,15 +2,18 @@ module Part.Logic
 
 open State
 open Part.Types
+open Fable.Core
+open Browser
 
-let go2PreviousOrNext ( modData : Data.partData ) dispatch buttonName =
+let go2PreviousOrNext ( instruction : Data.InstructionData )
+                        partTitle
+                        dispatch
+                        buttonName =
+
 
     let partSequence =
-        Data.allData ""
-        |> Seq.collect (fun instruction -> instruction.Data
-                                           |> Seq.map (fun dt -> dt))
+        instruction.Data
         |> fun sequence -> Seq.zip sequence [0..sequence |> Seq.length |> fun x -> x-1]
-
 
     let nextOrPrevious pos =
         let nextPrevious =
@@ -22,7 +25,7 @@ let go2PreviousOrNext ( modData : Data.partData ) dispatch buttonName =
         partSequence
         |> Seq.item (pos + nextPrevious)
         |> fun (data,_) ->
-              data
+              (data,instruction)
               |> NewPart2Show
               |> dispatch
               |> fun _ -> (true, buttonName)
@@ -38,7 +41,7 @@ let go2PreviousOrNext ( modData : Data.partData ) dispatch buttonName =
                 partSequence
                 |> Seq.item lastPos
                 |> fun (data,_) ->
-                      data
+                      (data,instruction)
                       |> NewPart2Show
                       |> dispatch
                       |> fun _ -> (false, buttonName)
@@ -55,7 +58,7 @@ let go2PreviousOrNext ( modData : Data.partData ) dispatch buttonName =
                 partSequence
                 |> Seq.item 0
                 |> fun (data,_) ->
-                      data
+                      (data,instruction)
                       |> NewPart2Show
                       |> dispatch
                       |>fun _ -> (false, buttonName)
@@ -71,13 +74,16 @@ let go2PreviousOrNext ( modData : Data.partData ) dispatch buttonName =
 
     let result = 
         partSequence
-        |> Seq.tryFind (fun (data,_) -> modData.Title = data.Title)
+        |> Seq.tryFind (fun (data,_) -> partTitle = data.Title)
                         |> function
                             | res when res = None -> ()
                             | res ->  res.Value
-                                      |> fun (_,pos) -> partPositionChoices pos
+                                        |> fun (_,pos) ->
+                                                console.log("Next position will be" + (pos + 1 |> string))
+                                                partPositionChoices pos
 
     result
+
 
 
 let whichNavigationButton model buttonName =
@@ -85,4 +91,14 @@ let whichNavigationButton model buttonName =
     | "PreviousButton" -> model.PreviousButton
     | "NextButton" -> model.NextButton
     | _ -> model.PreviousButton
+
+let checkInstructionAvailability model dispatch buttonName =
+    match model.Instruction with
+    | Ok instruction ->
+        match model.Data with
+        | Ok part ->
+            go2PreviousOrNext instruction (part.Title) dispatch buttonName
+        | Error err -> err |> (Part.State.SendErrorMessage >> dispatch)
+    | Error err ->
+        err |> (Part.State.SendErrorMessage >> dispatch)
 

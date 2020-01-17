@@ -7,8 +7,7 @@ open Elmish
 type Msg =
     | UserMsg of User.Types.Msg
     | LoginMsg of Login.Types.Msg
-    | LoginToUser of AsyncOperationEvent<Global.Page>
-    | InactivityMsg of AsyncOperationEvent<string>
+    | LoginToUser of AsyncOperationEvent<Global.Page>  
 
 type Model =
     {

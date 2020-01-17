@@ -8,5 +8,6 @@ type Model =
         NextButton : AppearanceAttributes
         PreviousButton : AppearanceAttributes
         Go2Instruction : AppearanceAttributes
-        Data : partData
+        Data : Result<partData,string>
+        Instruction : Result<InstructionData,string>
     }
