@@ -3,6 +3,7 @@ module Data
 open Fable.ReactServer
 open Elmish
 open Thoth.Json
+open Fable.Core.JsInterop
 
 type Validity =
     | Valid of string

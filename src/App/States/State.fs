@@ -21,10 +21,16 @@ let urlUpdate (result : Page option) model =
     | Some page ->
         match page with
         | Login ->
-            console.log("page changed too: " + (toHash page) )
+            console.log("page changed to: ")
+            console.log((toHash page))
+            console.log("model is: ")
+            console.log(model)
             model, []
         | User userPage ->
-            console.log("Dis is urlUpdat (the main update function). the user page here is changed to: " + (toHashUser userPage))
+            console.log("Dis is urlUpdat (the main update function). the user page here is changed to: ")
+            console.log(toHashUser userPage)
+            console.log("model is: ")
+            console.log(model)
             let userPageOption = Some(userPage)
             let (user, _) = User.State.urlUpdate userPageOption model.User
             { model with CurrentPage = result.Value ;
@@ -50,6 +56,7 @@ let pageParser: Parser<Page->Page,Page> =
         User(InstructionSearch) |> fun a -> map a  (s "search")
         User(Instruction) |> fun a -> map a  (s "instruction")
         User(Category) |> fun a -> map a (s "category")
+        User(NewAdd) |> fun a -> map a (s "newAdd")
     ]
 
 let matchValidity validityObject =

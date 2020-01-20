@@ -18,12 +18,11 @@ open Browser
 open Thoth.Json
 open Fable.SimpleHttp
 open Data
+open Elmish
 
 let go2PartOrInstruction dispatch result =
     match result with
     | InstructionSearch.Types.Part (partModel, _, instruction, _) ->
-        console.log ("you have chosen a part named: " + partModel.Title)
-        console.log ("you have chosen a instruction (with part) named: " + instruction.Title)
         Part.State.NewPart2Show (partModel,instruction)
         |> Instruction.State.PartMsg
         |> User.Types.InstructionMsg
@@ -36,7 +35,6 @@ let go2PartOrInstruction dispatch result =
             
             
     | InstructionSearch.Types.Instruction (instruction, _) ->
-        console.log ("you have chosen a instruction (only) named: " + instruction.Title)
         Instruction.State.NewInstruction2Show instruction
         |> User.Types.InstructionMsg
         |> dispatch
@@ -49,10 +47,8 @@ let WritePartOrInstruction result =
 let choosePage page =
     match page with
     | InstructionSearch.Types.Part (_, _, _, _) ->
-                console.log("part chosen to hashs to is: part")
                 Global.Part
     | InstructionSearch.Types.Instruction (_,_) ->
-                console.log("part chosen to hash to is: instruction")
                 Global.Instruction
 
 let searchInfo info (keyWord : string) =
@@ -85,7 +81,7 @@ let loadInitData data =
 
 let loadData ( status : Data.Deferred<Result<UserData,string>> ) =
     match status with
-    | HasNostStartedYet -> "No data has been loaded to user, which is in fact strange" |> Error
+    | HasNostStartedYet -> "No data has been loaded to user" |> Error
         
     | InProgress -> "Data is still loading..." |> Error
         
@@ -160,6 +156,134 @@ let loadInstructionItems model = async {
                                                         (response.statusCode |> string))))  
     }
 
+let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Name : string |}) = async{
+        do! Async.Sleep 3000
+        let! response = 
+            Http.request ("http://localhost:8081/" + info.Path)
+            |> Http.method POST
+            |> Http.content (BodyContent.Form info.Data)
+            |> Http.header (Headers.contentType info.CntType)
+            |> Http.send
+
+        match response.statusCode with
+        | 200 ->
+            return (
+                info.Name + " was succesfully loaded"
+                |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+            )
+        | _ ->
+            return (
+                "saving file " +
+                 info.Name +
+                 " failed with status code: "
+                 + (response.statusCode |> string)
+                 |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+            )
+    }
+
+let saveUserData formDt names fileTypes = 
+    let cntTypes = seq["application/" ; ""]
+    let paths = seq["Instructions" ; "Videos"]
+
+    fileTypes
+    |> Seq.exists (fun fileType -> fileType = "" || fileType = "")
+    |> function
+        | res when res = true ->
+                Seq.zip fileTypes names
+                |> Seq.filter (fun (fileType,_) -> fileType <> "" || fileType <> "")
+                |> Seq.map (fun (_,name) ->
+                                        "file " +
+                                        name +
+                                        " and")
+                |> function
+                    | res when (res |> Seq.length > 1) ->
+                        res
+                        |> String.concat "ssss"
+                        |> fun x -> x.Substring (0, x.LastIndexOf("and"))
+                        |> fun x -> (x + "have forbidden format")
+                        |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+                        |> fun x ->
+                                Cmd.batch
+                                    (seq[x]
+                                    |> Seq.map (fun msg -> Cmd.ofMsg msg))
+                    | res when (res |> Seq.length = 1) ->
+                        res
+                        |> String.concat "ssss"
+                        |> fun x -> x.Substring (0, x.LastIndexOf("and"))
+                        |> fun x -> (x + "has a forbidden format")
+                        |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+                        |> fun x ->
+                                Cmd.batch
+                                    (seq[x]
+                                    |> Seq.map (fun msg -> Cmd.ofMsg msg))
+                    | _ -> 
+                            "I dunno wat kind of error dis is man"
+                            |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+                            |> fun x ->
+                                    Cmd.batch
+                                        (seq[x]
+                                        |> Seq.map (fun msg -> Cmd.ofMsg msg))
+                                    
+
+        | _ ->
+            let postInfo =
+                Seq.zip formDt [0..formDt |> Seq.length |> fun x -> x - 1]
+                |> Seq.map (fun (data, pos) -> {|
+                                                    Data = data
+                                                    CntType = cntTypes |> Seq.item pos
+                                                    Path = paths |> Seq.item pos
+                                                    Name = names |> Seq.item pos
+                                                |})
+            
+            postInfo
+            |> Seq.map (fun info -> saveInto info)
+            |> fun x -> Cmd.batch
+                            ( x
+                              |> Seq.map (fun msgAsync -> Cmd.fromAsync msgAsync)
+                            )
+
+
+
+                
+   
+
+
+let SaveNewInstruction ( model : User.Types.Model ) ( status : Data.Deferred<Result<UserData, string>> ) =
+    match status with
+    | HasNostStartedYet ->
+        seq[NewAdd.Types.CreateNewDataMsg Started]
+        
+        
+    | InProgress ->
+        seq["Sending files to server..." |> User.Types.LoginMessages]
+        
+    | Resolved response ->
+        match response with
+        | Ok result ->
+
+            let usernameMatchExists = existOrNot model.UserFromLogin.Username result
+              
+            ()
+            |> function
+               | _ when usernameMatchExists <> None ->
+                    match model.UserFromLogin.Password with
+                    | Valid password ->
+                        password
+                        |> function
+                           | _ when password = usernameMatchExists.Value.Password ->
+                                seq
+                                    [
+                                        usernameMatchExists.Value.Id |> NewUserId
+                                        User.Types.LoadedInstructions Started
+                                    ]
+                           | _ -> seq["Wrong password for the given user name" |> LoginMessages]
+                    | _ -> seq[ "The password provided is invalid" |> LoginMessages]
+               | _ -> seq["The user name provided is invalid" |> LoginMessages]
+                        
+                        
+                        
+        | Error err -> seq[err|> User.Types.LoginMessages]
+
 let loadUserItems = async {
     do! Async.Sleep 3000
     let! response = 
@@ -197,17 +321,9 @@ let getUserDataUpdate ( userData : Data.Deferred<Result<Data.UserData, string>> 
 
         | Error err ->seq[ err |> User.Types.LoginMessages]
 
-let existOrNotNoResult info =
-    match info with
-    | Valid str ->
-        console.log ("username is: " + str)
-    | Invalid ->
-        console.log ("username was invalid")
-
 let existOrNot compareVal result =
      match compareVal with
      | Valid str ->
-         console.log ("username is: " + str)
          result
          |> Seq.tryFind (fun usrName -> usrName.Username = str)
          |> function
@@ -215,24 +331,18 @@ let existOrNot compareVal result =
                      Some res.Value
             | _ -> None
      | Invalid ->
-         console.log ("username was invalid")
          None
 
 let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<seq<LoginInfo>, string>> ) =
     match status with
     | HasNostStartedYet ->
-        console.log "you entered HasNotStartedYet at funtion 'loginAttempt'"
-        existOrNotNoResult model.UserFromLogin.Username
         seq[User.Types.LoadedUsers Started]
         
         
     | InProgress ->
-        console.log "you entered InProgress at funtion 'loginAttempt'"
-        existOrNotNoResult model.UserFromLogin.Username 
         seq["loading all users" |> User.Types.LoginMessages]
         
     | Resolved response ->
-        console.log "you entered Resolved at funtion 'loginAttempt'"
         match response with
         | Ok result ->
 
@@ -263,9 +373,7 @@ let validateLoginInfo info =
     info
     |> function
        | _ when info = "" ->
-            console.log "loginInfo input is not valid"
             Invalid
        | _ ->
-            console.log ("loginInfo is indeed valid, and is:" + info)
             Valid info
 

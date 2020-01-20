@@ -1,122 +1,87 @@
 module NewAdd.View
 
-open Fable.Core
 open Fable.React
 open Fable.React.Props
-open Feliz
-open Browser.Event
-open Browser.WebStorage
 open Browser
+open Feliz
+open Fable.ReactServer
+open Fable.Core.JsInterop
+open Fable.Import
+open Fable.Core
 
-let fileHanflingEventHandler ( filelist : Browser.Types.FileList)  =
-    ignore |> fun _ -> ()
+let fileHandle (ev : Types.Event) model dispatch =
+    let files = (ev.target?files : Types.FileList)
+    console.log(files)
 
-let fileUploadSpan model dispatch =
-    [
-        Html.span
-            [
-                prop.className "file-icon"
-                prop.children
-                    [
-                        Html.i
-                            [
-                                prop.className "fas fa-upload"
-                            ]
+    let reader = FileReader.Create()
+    reader.onload <- (fun e ->
+        console.log(e.target?result))
+    reader.readAsDataURL(files.[0])
+
+    let mutable formData = FormData.Create()
+
+    seq[0..files.length - 1]
+    |> Seq.map (fun pos -> files.[pos])
+    |> Seq.iter (fun file -> formData.append ("resume", file))
+
+    console.log(formData.values)
+
+    User.Logic.saveUserData formData
+    |> ignore
+
+    
+
+let alternative model dispatch =
+    
+    Html.div[
+        prop.className "file has-name"
+        prop.children[
+            Html.label[
+                prop.className "file-label"
+                prop.children[
+                    Html.input[
+                        prop.className "file-input"
+                        prop.type'.file
+                        prop.name "resume"
+                        prop.multiple true
+                        prop.onChange (fun ev -> fileHandle (ev : Types.Event) model dispatch)
                     ]
-            ]
-        Html.span
-            [
-                prop.className "file-icon"
-                prop.children
-                    [
-                        Html.i
-                            [
-                                prop.className "file-label"
-                                prop.children
-                                    [
-                                        str "choose files"
+                    Html.span[
+                        prop.className "file-cta"
+                        prop.children[
+                            Html.span[
+                                prop.className "file-icon"
+                                prop.children[
+                                    Html.i[
+                                        prop.className "fas fa-upload"
                                     ]
-                            ]
-                    ]
-            ]  
-    ]
-
-let fileUploadInputCta model dispatch =
-    [
-        Html.input
-            [
-                prop.className "file-input"
-                prop.type'.file
-                prop.name "resume"
-            ]
-        Html.span
-            [
-                prop.className "file-cta"
-                prop.children
-                    (fileUploadSpan model dispatch)
-            ]
-    ]
-
-
-let fileUploadLabel model dispatch =
-    Html.label
-        [
-            prop.className "file-label"
-            prop.children
-                ( fileUploadInputCta model dispatch )
-        ]
-
-let fileUpload model dispatch =
-    Html.div
-        [
-            prop.className "file"
-            prop.children
-                [
-                    fileUploadLabel model dispatch
-                ]
-        ]
-
-let selectMode model dispatch =
-    Html.div
-        [
-            prop.className "field"
-            prop.children
-                [
-                    Html.div
-                        [
-                            prop.className "control"
-                            prop.children
-                                [
-                                    Html.div
-                                        [
-                                            prop.className "select is-primary"
-                                            prop.children
-                                                [
-                                                    Html.select
-                                                        [
-                                                            Html.option
-                                                                [
-                                                                    str "New"
-                                                                ]
-                                                            Html.option
-                                                                [
-                                                                    str "Add"
-                                                                ]
-                                                        ]
-                                                ]
-                                        ]
                                 ]
+                            ]
+                            Html.span[
+                                prop.className "file-label"
+                                prop.children[
+                                    str "Choose files..."
+                                ]
+                            ]
+                            Html.span[
+                                prop.className "file-name"
+                                prop.children[
+                                    str "No file uplaoded"
+                                ]
+                            ]
                         ]
+                    ]
                 ]
+            ]
         ]
+    ]
 
 let root model dispatch =
   Html.div
     [
-        prop.className ""
         prop.children
             [
-                selectMode model dispatch
+                alternative model dispatch
             ]
     ]
 

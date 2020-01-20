@@ -18,7 +18,7 @@ let urlUpdate (result : UserPage option) model =
         console.error("Error parsing url")
         model, Navigation.modifyUrl (toHashUser model.CurrentPage)
     | Some page ->
-        console.log("Dis is urlUpdat (the user update function). the user page here is changed to: " + (toHashUser page))
+        console.log((toHashUser page))
         { model with CurrentPage = page }, []
 
 let init() : Model * Cmd<Msg> =
@@ -66,9 +66,6 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                             
                                                         
     | LoadedUsers Started ->
-        console.log("This is from user update function, UserLogin username and password her is: " +
-                     matchValidity model.UserFromLogin.Username +
-                     "    " + matchValidity model.UserFromLogin.Password)
         { model with AllUsers = InProgress } , Cmd.batch
                                                     (Logic.loginAttempt model InProgress
                                                     |> Seq.map (fun msg -> Cmd.ofMsg msg )
@@ -80,9 +77,6 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                                 (Logic.loginAttempt model (Resolved ( Error error))
                                                                 |> Seq.map (fun msg -> Cmd.ofMsg msg ))
     | LoadedUsers (Finished (Ok items)) ->
-        console.log("This is from user update function, UserLogin username and password her is: " +
-                     matchValidity model.UserFromLogin.Username +
-                     "    " + matchValidity model.UserFromLogin.Password)
         { model with AllUsers = Resolved ( Ok items)}, Cmd.batch
                                                             (Logic.loginAttempt model (Resolved ( Ok items))
                                                             |> Seq.map (fun msg -> Cmd.ofMsg msg ))
@@ -106,20 +100,12 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             { model with UserFromLogin =
                           { model.UserFromLogin with Username =
                                                       validateLoginInfo usrName } }, []
-        console.log("This is message from update function, password given here is: " +
-                     (newModel |> fun  (a,b) -> match a.UserFromLogin.Username with
-                                                | Valid str -> str
-                                                | Invalid -> "Invalid"))
         newModel
     | PasswordInputChangedMsg passwrd ->
         let newModel = 
             { model with UserFromLogin =
                           { model.UserFromLogin with Password =
                                                       validateLoginInfo passwrd } }, []
-        console.log("This is message from update function, password given here is: " +
-                     (newModel |> fun  (a,b) -> match a.UserFromLogin.Password with
-                                                | Valid str -> str
-                                                | Invalid -> "Invalid"))
         newModel
     | LoginSuceeded ->
         { model with CurrentPage = UserPage.InstructionSearch}, []

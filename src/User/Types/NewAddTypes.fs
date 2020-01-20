@@ -8,8 +8,8 @@ open Data
 open Browser
 
 type Msg =
-    | StoreNewPartMsg of Browser.Types.File * InstructionData
-    | AddNewPartMsg of Browser.Types.File * InstructionData
+    | NewAddMsg of string
+    | CreateNewDataMsg of AsyncOperationEvent<Result<Data.UserData, string>>
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.State.Msg>
@@ -17,9 +17,8 @@ type SearchResult =
 
 type Model =
     {
-       NewAddDropDown : AppearanceAttributes
-       VideoUpload : AppearanceAttributes
-       NewAddButton : AppearanceAttributes
-       AddText : AppearanceAttributes
+       NewInstructionData : Result<UserData,string>
+       NewAddMessages : string
+       LoadIcon : AppearanceAttributes
     }
 

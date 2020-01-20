@@ -56,7 +56,7 @@ VALUES ( 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 1')
 INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
 VALUES ( 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 2');
 
-UPDATE instructions
+UPDATE parts
 SET
     instruction_txt = 'Admin Example Text 2'
 WHERE
@@ -83,3 +83,10 @@ from (
     ) as instructions
   from users
 ) t
+
+
+INSERT INTO instructions ( id, instruction_id, title )
+VALUES ( id, instructionId, instruction.Title);
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( instructionId, instruction.InstructionVideo, 'Example Text 3', 'Example Part 3');

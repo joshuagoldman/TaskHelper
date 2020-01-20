@@ -79,7 +79,6 @@ let go2PreviousOrNext ( instruction : Data.InstructionData )
                             | res when res = None -> ()
                             | res ->  res.Value
                                         |> fun (_,pos) ->
-                                                console.log("Next position will be" + (pos + 1 |> string))
                                                 partPositionChoices pos
 
     result

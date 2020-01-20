@@ -22,6 +22,20 @@ from (
   from users
 ) t`
 
+var Part = {
+    InstructionVideo : "",
+    InstructionTxt : "",
+    TItle : ""
+}
+
+var instruction = {
+    Data : [
+        Part
+    ],
+    Title : ""
+}
+
+
 class Instructions {
     static retrievAll (callback) {
         db.query(getQuery, function (err,res) {
@@ -31,13 +45,14 @@ class Instructions {
         });
     }
 
-    static insert (instruction, callback) {
-        db.query(``, function (err,res) {
+    static insert (postQuery, callback) {
+        db.query(postQuery, function (err,res) {
             if(err.error)
                 return callback(err)
             return callback(res)
         });
     }
 }
+
 
 module.exports = Instructions

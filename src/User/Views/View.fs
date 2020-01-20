@@ -125,7 +125,6 @@ let bodyCols model dispatch =
                 Category.View.root model dispatch
 
             | Part ->
-                    console.log("The user view has been chosen to Part")
                     Part.View.root model.Instruction.CurrPart ( Instruction.State.PartMsg >>
                                                                 InstructionMsg >>
                                                                 dispatch )

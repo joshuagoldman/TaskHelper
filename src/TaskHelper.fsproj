@@ -6,6 +6,7 @@
   <ItemGroup>
     <!-- Global to the app -->
     <Compile Include="Data.fs" />
+    <Compile Include="TaskHelperApi.fs" />
     <Compile Include="Controls.fs" />
     <Compile Include="Global.fs" />
     <Compile Include="Part\Types.fs" />

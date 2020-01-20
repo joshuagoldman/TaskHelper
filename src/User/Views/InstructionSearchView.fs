@@ -76,8 +76,7 @@ let searchResult ( model : User.Types.Model ) dispatch result =
                                 ]
 
                             prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
-                            prop.href ( console.log("current part is: " + (sss model))
-                                        Global.toHashUser (choosePage result) )
+                            prop.href ( Global.toHashUser (choosePage result) )
                             prop.children
                                 [
                                     str (WritePartOrInstruction result)
