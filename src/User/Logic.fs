@@ -157,7 +157,7 @@ let loadInstructionItems model = async {
     }
 
 let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Name : string |}) = async{
-        do! Async.Sleep 3000
+        do! Async.Sleep 10000
         let! response = 
             Http.request ("http://localhost:8081/" + info.Path)
             |> Http.method POST
@@ -169,7 +169,7 @@ let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Nam
         | 200 ->
             return (
                 info.Name + " was succesfully loaded"
-                |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+                |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
             )
         | _ ->
             return (
@@ -177,15 +177,12 @@ let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Nam
                  info.Name +
                  " failed with status code: "
                  + (response.statusCode |> string)
-                 |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+                 |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
             )
     }
 
-let saveUserData formDt names fileTypes = 
-    let cntTypes = seq["application/" ; ""]
-    let paths = seq["Instructions" ; "Videos"]
-
-    fileTypes
+let shiputsnik formDt name filetype =
+    fileType = ""
     |> Seq.exists (fun fileType -> fileType = "" || fileType = "")
     |> function
         | res when res = true ->
@@ -201,7 +198,7 @@ let saveUserData formDt names fileTypes =
                         |> String.concat "ssss"
                         |> fun x -> x.Substring (0, x.LastIndexOf("and"))
                         |> fun x -> (x + "have forbidden format")
-                        |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+                        |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
                         |> fun x ->
                                 Cmd.batch
                                     (seq[x]
@@ -211,14 +208,14 @@ let saveUserData formDt names fileTypes =
                         |> String.concat "ssss"
                         |> fun x -> x.Substring (0, x.LastIndexOf("and"))
                         |> fun x -> (x + "has a forbidden format")
-                        |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+                        |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
                         |> fun x ->
                                 Cmd.batch
                                     (seq[x]
                                     |> Seq.map (fun msg -> Cmd.ofMsg msg))
                     | _ -> 
                             "I dunno wat kind of error dis is man"
-                            |> NewAdd.Types.NewAddMsg |> User.Types.NewAddMsg
+                            |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
                             |> fun x ->
                                     Cmd.batch
                                         (seq[x]
@@ -242,47 +239,90 @@ let saveUserData formDt names fileTypes =
                               |> Seq.map (fun msgAsync -> Cmd.fromAsync msgAsync)
                             )
 
+let saveUserData formDt names fileTypes = 
+    let cntTypes = seq["application/" ; ""]
+    let paths = seq["Instructions" ; "Videos"]
 
+    let formDtExtract =
+        formDt
+        |> Seq.map (fun data ->
+            match data with
+            | NewAdd.Types.Video videoFormData -> videoFormData
+            | NewAdd.Types.InstructionTxt instructionFormData -> instructionFormData)
 
-                
-   
+    fileTypes
+    |> Seq.exists (fun fileType -> fileType = "" || fileType = "")
+    |> function
+        | res when res = true ->
+                Seq.zip fileTypes names
+                |> Seq.filter (fun (fileType,_) -> fileType <> "" || fileType <> "")
+                |> Seq.map (fun (_,name) ->
+                                        "file " +
+                                        name +
+                                        " and")
+                |> function
+                    | res when (res |> Seq.length > 1) ->
+                        res
+                        |> String.concat "ssss"
+                        |> fun x -> x.Substring (0, x.LastIndexOf("and"))
+                        |> fun x -> (x + "have forbidden format")
+                        |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
+                        |> fun x ->
+                                Cmd.batch
+                                    (seq[x]
+                                    |> Seq.map (fun msg -> Cmd.ofMsg msg))
+                    | res when (res |> Seq.length = 1) ->
+                        res
+                        |> String.concat "ssss"
+                        |> fun x -> x.Substring (0, x.LastIndexOf("and"))
+                        |> fun x -> (x + "has a forbidden format")
+                        |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
+                        |> fun x ->
+                                Cmd.batch
+                                    (seq[x]
+                                    |> Seq.map (fun msg -> Cmd.ofMsg msg))
+                    | _ -> 
+                            "I dunno wat kind of error dis is man"
+                            |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
+                            |> fun x ->
+                                    Cmd.batch
+                                        (seq[x]
+                                        |> Seq.map (fun msg -> Cmd.ofMsg msg))
+                                    
 
+        | _ ->
+            let postInfo =
+                Seq.zip formDt [0..formDt |> Seq.length |> fun x -> x - 1]
+                |> Seq.map (fun (data, pos) -> {|
+                                                    Data = data
+                                                    CntType = cntTypes |> Seq.item pos
+                                                    Path = paths |> Seq.item pos
+                                                    Name = names |> Seq.item pos
+                                                |})
+            
+            postInfo
+            |> Seq.map (fun info -> saveInto info)
+            |> fun x -> Cmd.batch
+                            ( x
+                              |> Seq.map (fun msgAsync -> Cmd.fromAsync msgAsync)
+                            )
 
-let SaveNewInstruction ( model : User.Types.Model ) ( status : Data.Deferred<Result<UserData, string>> ) =
+let SaveNewInstruction ( model : NewAdd.Types.Model )
+                       ( status : Data.Deferred<Result<Data.InstructionData,string>> ) =
     match status with
     | HasNostStartedYet ->
-        seq[NewAdd.Types.CreateNewDataMsg Started]
+        seq[(NewAdd.Types.CreateNewDataMsg Started |> User.Types.NewAddMsg)]
         
         
     | InProgress ->
-        seq["Sending files to server..." |> User.Types.LoginMessages]
+        seq["Sending files to server..." |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)]
         
     | Resolved response ->
         match response with
         | Ok result ->
-
-            let usernameMatchExists = existOrNot model.UserFromLogin.Username result
-              
-            ()
-            |> function
-               | _ when usernameMatchExists <> None ->
-                    match model.UserFromLogin.Password with
-                    | Valid password ->
-                        password
-                        |> function
-                           | _ when password = usernameMatchExists.Value.Password ->
-                                seq
-                                    [
-                                        usernameMatchExists.Value.Id |> NewUserId
-                                        User.Types.LoadedInstructions Started
-                                    ]
-                           | _ -> seq["Wrong password for the given user name" |> LoginMessages]
-                    | _ -> seq[ "The password provided is invalid" |> LoginMessages]
-               | _ -> seq["The user name provided is invalid" |> LoginMessages]
-                        
-                        
-                        
-        | Error err -> seq[err|> User.Types.LoginMessages]
+            result.Data
+            |> 
+        | Error err -> seq[err |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)]
 
 let loadUserItems = async {
     do! Async.Sleep 3000
@@ -359,6 +399,9 @@ let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<se
                                 seq
                                     [
                                         usernameMatchExists.Value.Id |> NewUserId
+                                        usernameMatchExists.Value.Id |> (Part.Types.NewUserIdMsg >>
+                                                                         Instruction.Types.PartMsg >>
+                                                                         User.Types.InstructionMsg) 
                                         User.Types.LoadedInstructions Started
                                     ]
                            | _ -> seq["Wrong password for the given user name" |> LoginMessages]

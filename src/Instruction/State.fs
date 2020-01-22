@@ -6,11 +6,6 @@ open Types
 open Part
 open Data
 
-type Msg =
-    | NewInstruction2Show of Data.InstructionData
-    | PartMsg of Part.State.Msg
-    | ErrorMsg of string
-
 let init () : Model * Cmd<Msg> =
 
     {

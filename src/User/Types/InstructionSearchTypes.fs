@@ -11,8 +11,8 @@ type Msg =
     | ClearSearchResult
 
 type SearchResult =
-    | Instruction of Data.InstructionData * Cmd<Instruction.State.Msg>
-    | Part of Data.partData * Cmd<Part.State.Msg> * Data.InstructionData * Cmd<Instruction.State.Msg>
+    | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
+    | Part of Data.partData * Cmd<Part.Types.Msg> * Data.InstructionData * Cmd<Instruction.Types.Msg>
 
 type Model =
     {

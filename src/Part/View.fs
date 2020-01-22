@@ -7,11 +7,37 @@ open State
 open Logic
 open Browser
 
-let instrVideo (model : Part.Types.Model) dispatch =
-    let instructionVideo =
+type MediaChoice =
+    | Video
+    | Txt
+
+let instructionVideo (model : Part.Types.Model) choice =
+    match model.UserId with
+    | Ok idResult ->
         match model.Data with
-        | Ok result ->result.InstructionVideo
-        | Error err -> err
+        | Ok dataResult ->
+            match choice with
+            | Video ->
+                (idResult |> string) + "_" + dataResult.InstructionVideo
+            | Txt ->
+                dataResult.InstructionTxt
+        | Error dataError -> dataError
+    | Error idError -> idError
+    
+    match model.Data with
+    | Ok resultInstruction ->
+        match model.UserId with
+        | Ok resultId ->
+            (resultId |> string) + resultInstruction.InstructionVideo
+        | Error errId -> result.InstructionVideo
+    | Error errInstruction -> errInstruction
+
+let userId (model : Part.Types.Model) =
+    match model.UserId with
+    | Ok result ->result |> string |> fun x -> x + "_"
+    | Error err -> err
+
+let instrVideo (model : Part.Types.Model) dispatch =
 
     video
         [
@@ -25,7 +51,7 @@ let instrVideo (model : Part.Types.Model) dispatch =
         [
             source
                 [
-                    Src instructionVideo
+                    Src  ((model userId) + instructionVideo model)
                     Type "video/mp4"
                 ]
             str "Your browser does not support the video"

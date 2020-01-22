@@ -33,5 +33,5 @@ let update msg model : NewAdd.Types.Model * Cmd<Msg>  =
                                                             (Logic.getUserDataUpdate (Resolved ( Ok items))
                                                             |> Seq.map (fun msg -> Cmd.ofMsg msg)
                                                             |> Seq.append [Cmd.ofMsg LoginSuceeded])
-    | NewAddMsg str ->
+    | NewAddInfoMsg str ->
         { model with  NewAddMessages = str }, []

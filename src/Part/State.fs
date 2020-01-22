@@ -5,18 +5,14 @@ open Types
 open Elmish
 open Feliz
 
-type Msg =
-    | NewPart2Show of Data.partData * Data.InstructionData
-    | MakeButtonVisible of bool * string
-    | SendErrorMessage of string
-
 let init () : Model * Cmd<Msg> =
     {
         NextButton = defaultAppearanceAttributes
         PreviousButton = defaultAppearanceAttributes
         Go2Instruction = defaultAppearanceAttributes
         Data = Error "No part is given"
-        Instruction = Error "No Part is given" 
+        Instruction = Error "No Part is given"
+        UserId = Error ""
     }, []
 
 let update msg model : Model * Cmd<Msg> =

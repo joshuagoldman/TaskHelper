@@ -8,7 +8,7 @@ type Msg =
     | LoadedInstructions of AsyncOperationEvent<Result<UserData, string>>
     | LoadedUsers of AsyncOperationEvent<Result<seq<LoginInfo>, string>>
     | UserDataMsg of string 
-    | InstructionMsg of Instruction.State.Msg
+    | InstructionMsg of Instruction.Types.Msg
     | InstructionSearchMsg of InstructionSearch.Types.Msg
     | CategorySearchMsg of Category.Types.Msg
     | NewAddMsg of NewAdd.Types.Msg

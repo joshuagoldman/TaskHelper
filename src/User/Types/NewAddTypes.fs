@@ -6,18 +6,23 @@ open Elmish
 open Types
 open Data
 open Browser
+open Browser.Blob
+
+type MediaChoiceFormData =
+    | Video of Types.FormData
+    | InstructionTxt of Types.FormData
 
 type Msg =
-    | NewAddMsg of string
+    | NewAddInfoMsg of string
     | CreateNewDataMsg of AsyncOperationEvent<Result<Data.UserData, string>>
 
 type SearchResult =
-    | Instruction of Data.InstructionData * Cmd<Instruction.State.Msg>
-    | Part of Data.partData * Cmd<Part.State.Msg>
+    | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
+    | Part of Data.partData * Cmd<Part.Types.Msg>
 
 type Model =
     {
-       NewInstructionData : Result<UserData,string>
+       NewInstructionData : Result<Data.InstructionData,string>
        NewAddMessages : string
        LoadIcon : AppearanceAttributes
     }
