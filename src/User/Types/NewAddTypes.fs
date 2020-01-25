@@ -9,8 +9,8 @@ open Browser
 open Browser.Blob
 
 type MediaChoiceFormData =
-    | Video of Types.FormData
-    | InstructionTxt of Types.FormData
+    | Video of Types.File
+    | InstructionTxt of Types.File
 
 type Msg =
     | NewAddInfoMsg of string

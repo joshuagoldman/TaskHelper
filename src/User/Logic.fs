@@ -23,19 +23,19 @@ open Elmish
 let go2PartOrInstruction dispatch result =
     match result with
     | InstructionSearch.Types.Part (partModel, _, instruction, _) ->
-        Part.State.NewPart2Show (partModel,instruction)
-        |> Instruction.State.PartMsg
+        Part.Types.NewPart2Show (partModel,instruction)
+        |> Instruction.Types.PartMsg
         |> User.Types.InstructionMsg
         |> dispatch
         |> fun _ ->
-            Part.Logic.go2PreviousOrNext instruction partModel.Title (Instruction.State.PartMsg >>
+            Part.Logic.go2PreviousOrNext instruction partModel.Title (Instruction.Types.PartMsg >>
                                                                       User.Types.InstructionMsg >>
                                                                       dispatch) ""
         
             
             
     | InstructionSearch.Types.Instruction (instruction, _) ->
-        Instruction.State.NewInstruction2Show instruction
+        Instruction.Types.NewInstruction2Show instruction
         |> User.Types.InstructionMsg
         |> dispatch
 
@@ -69,10 +69,10 @@ let loadInitData data =
     seq
         [
             (initInstruction |>
-             (Instruction.State.NewInstruction2Show >> User.Types.InstructionMsg))
+             (Instruction.Types.NewInstruction2Show >> User.Types.InstructionMsg))
             ((initPart,initInstruction) |>
-             (Part.State.NewPart2Show >>
-              Instruction.State.PartMsg >>
+             (Part.Types.NewPart2Show >>
+              Instruction.Types.PartMsg >>
               User.Types.InstructionMsg))
         ]
 
@@ -181,131 +181,47 @@ let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Nam
             )
     }
 
-let shiputsnik formDt name filetype =
-    fileType = ""
-    |> Seq.exists (fun fileType -> fileType = "" || fileType = "")
+let checkfileTypeAndSave ( file : Types.File ) validType path =
+    validType
     |> function
-        | res when res = true ->
-                Seq.zip fileTypes names
-                |> Seq.filter (fun (fileType,_) -> fileType <> "" || fileType <> "")
-                |> Seq.map (fun (_,name) ->
-                                        "file " +
-                                        name +
-                                        " and")
-                |> function
-                    | res when (res |> Seq.length > 1) ->
-                        res
-                        |> String.concat "ssss"
-                        |> fun x -> x.Substring (0, x.LastIndexOf("and"))
-                        |> fun x -> (x + "have forbidden format")
-                        |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
-                        |> fun x ->
-                                Cmd.batch
-                                    (seq[x]
-                                    |> Seq.map (fun msg -> Cmd.ofMsg msg))
-                    | res when (res |> Seq.length = 1) ->
-                        res
-                        |> String.concat "ssss"
-                        |> fun x -> x.Substring (0, x.LastIndexOf("and"))
-                        |> fun x -> (x + "has a forbidden format")
-                        |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
-                        |> fun x ->
-                                Cmd.batch
-                                    (seq[x]
-                                    |> Seq.map (fun msg -> Cmd.ofMsg msg))
-                    | _ -> 
-                            "I dunno wat kind of error dis is man"
-                            |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
-                            |> fun x ->
-                                    Cmd.batch
-                                        (seq[x]
-                                        |> Seq.map (fun msg -> Cmd.ofMsg msg))
-                                    
-
-        | _ ->
-            let postInfo =
-                Seq.zip formDt [0..formDt |> Seq.length |> fun x -> x - 1]
-                |> Seq.map (fun (data, pos) -> {|
-                                                    Data = data
-                                                    CntType = cntTypes |> Seq.item pos
-                                                    Path = paths |> Seq.item pos
-                                                    Name = names |> Seq.item pos
-                                                |})
+        | _ when file.``type`` = validType ->
+            let fileInfo =
+                {| Data = (FormData.Create() |> fun frmData -> ("resume",file)
+                                                                |> frmData.append
+                                                                |> fun _ -> frmData)
+                   CntType = file.``type``
+                   Path = path
+                   Name = file.name
+                |}
+            saveInto fileInfo
+            |> fun asyncMsg -> Cmd.batch[
+                                Cmd.fromAsync asyncMsg
+                               ]
             
-            postInfo
-            |> Seq.map (fun info -> saveInto info)
-            |> fun x -> Cmd.batch
-                            ( x
-                              |> Seq.map (fun msgAsync -> Cmd.fromAsync msgAsync)
-                            )
+        | _ ->
+            ("file " +
+             file.name +
+             " is of type: " +
+             file.``type`` +
+             " which is invalid!")
+            |> NewAdd.Types.NewAddInfoMsg
+            |> User.Types.NewAddMsg
+            |> fun msg -> Cmd.batch[
+                            Cmd.ofMsg msg
+                          ]
 
-let saveUserData formDt names fileTypes = 
-    let cntTypes = seq["application/" ; ""]
-    let paths = seq["Instructions" ; "Videos"]
+let saveUserData file = 
 
     let formDtExtract =
-        formDt
+        file
         |> Seq.map (fun data ->
             match data with
-            | NewAdd.Types.Video videoFormData -> videoFormData
-            | NewAdd.Types.InstructionTxt instructionFormData -> instructionFormData)
+            | NewAdd.Types.Video videoFormData ->
+                    checkfileTypeAndSave videoFormData "" "Videos"
+            | NewAdd.Types.InstructionTxt instructionFormData ->
+                    checkfileTypeAndSave instructionFormData "" "Videos")
 
-    fileTypes
-    |> Seq.exists (fun fileType -> fileType = "" || fileType = "")
-    |> function
-        | res when res = true ->
-                Seq.zip fileTypes names
-                |> Seq.filter (fun (fileType,_) -> fileType <> "" || fileType <> "")
-                |> Seq.map (fun (_,name) ->
-                                        "file " +
-                                        name +
-                                        " and")
-                |> function
-                    | res when (res |> Seq.length > 1) ->
-                        res
-                        |> String.concat "ssss"
-                        |> fun x -> x.Substring (0, x.LastIndexOf("and"))
-                        |> fun x -> (x + "have forbidden format")
-                        |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
-                        |> fun x ->
-                                Cmd.batch
-                                    (seq[x]
-                                    |> Seq.map (fun msg -> Cmd.ofMsg msg))
-                    | res when (res |> Seq.length = 1) ->
-                        res
-                        |> String.concat "ssss"
-                        |> fun x -> x.Substring (0, x.LastIndexOf("and"))
-                        |> fun x -> (x + "has a forbidden format")
-                        |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
-                        |> fun x ->
-                                Cmd.batch
-                                    (seq[x]
-                                    |> Seq.map (fun msg -> Cmd.ofMsg msg))
-                    | _ -> 
-                            "I dunno wat kind of error dis is man"
-                            |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
-                            |> fun x ->
-                                    Cmd.batch
-                                        (seq[x]
-                                        |> Seq.map (fun msg -> Cmd.ofMsg msg))
-                                    
-
-        | _ ->
-            let postInfo =
-                Seq.zip formDt [0..formDt |> Seq.length |> fun x -> x - 1]
-                |> Seq.map (fun (data, pos) -> {|
-                                                    Data = data
-                                                    CntType = cntTypes |> Seq.item pos
-                                                    Path = paths |> Seq.item pos
-                                                    Name = names |> Seq.item pos
-                                                |})
-            
-            postInfo
-            |> Seq.map (fun info -> saveInto info)
-            |> fun x -> Cmd.batch
-                            ( x
-                              |> Seq.map (fun msgAsync -> Cmd.fromAsync msgAsync)
-                            )
+    formDtExtract
 
 let SaveNewInstruction ( model : NewAdd.Types.Model )
                        ( status : Data.Deferred<Result<Data.InstructionData,string>> ) =
