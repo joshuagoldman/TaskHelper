@@ -169,7 +169,7 @@ let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Nam
         | 200 ->
             return (
                 info.Name + " was succesfully loaded"
-                |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
+                |> NewAdd.Types.NewAddInfoMsg 
             )
         | _ ->
             return (
@@ -177,7 +177,7 @@ let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Nam
                  info.Name +
                  " failed with status code: "
                  + (response.statusCode |> string)
-                 |> NewAdd.Types.NewAddInfoMsg |> User.Types.NewAddMsg
+                 |> NewAdd.Types.NewAddInfoMsg 
             )
     }
 
@@ -205,7 +205,6 @@ let checkfileTypeAndSave ( file : Types.File ) validType path =
              file.``type`` +
              " which is invalid!")
             |> NewAdd.Types.NewAddInfoMsg
-            |> User.Types.NewAddMsg
             |> fun msg -> Cmd.batch[
                             Cmd.ofMsg msg
                           ]
@@ -223,22 +222,23 @@ let saveUserData file =
 
     formDtExtract
 
-let SaveNewInstruction ( model : NewAdd.Types.Model )
-                       ( status : Data.Deferred<Result<Data.InstructionData,string>> ) =
+let saveNewInstruction ( status : Deferred<Result<seq<NewAdd.Types.MediaChoiceFormData>,string>> ) =
     match status with
     | HasNostStartedYet ->
-        seq[(NewAdd.Types.CreateNewDataMsg Started |> User.Types.NewAddMsg)]
+        seq[NewAdd.Types.CreateNewDataMsg Started]
+        |> Seq.map (fun msg -> Cmd.ofMsg msg)
         
         
     | InProgress ->
-        seq["Sending files to server..." |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)]
-        
+        seq["Sending files to server..." |> NewAdd.Types.NewAddInfoMsg ]
+        |> Seq.map (fun msg -> Cmd.ofMsg msg)
+
     | Resolved response ->
         match response with
         | Ok result ->
-            result.Data
-            |> 
-        | Error err -> seq[err |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)]
+            saveUserData result
+        | Error err -> seq[err |> NewAdd.Types.NewAddInfoMsg]
+                       |> Seq.map (fun msg -> Cmd.ofMsg msg)
 
 let loadUserItems = async {
     do! Async.Sleep 3000
@@ -317,7 +317,7 @@ let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<se
                                         usernameMatchExists.Value.Id |> NewUserId
                                         usernameMatchExists.Value.Id |> (Part.Types.NewUserIdMsg >>
                                                                          Instruction.Types.PartMsg >>
-                                                                         User.Types.InstructionMsg) 
+                                                                         User.Types.InstructionMsg)
                                         User.Types.LoadedInstructions Started
                                     ]
                            | _ -> seq["Wrong password for the given user name" |> LoginMessages]
@@ -335,4 +335,12 @@ let validateLoginInfo info =
             Invalid
        | _ ->
             Valid info
+
+let createNewInstructionId id userData =
+    userData.Instructions
+    |> Seq.length
+    |> fun len -> (id |> string) + "_" + (len + 1 |> string)
+    |> NewAdd.Types.NewInstructionIdMsg
+    |> User.Types.NewAddMsg
+    |> Cmd.ofMsg
 

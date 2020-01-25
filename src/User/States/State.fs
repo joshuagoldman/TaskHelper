@@ -61,7 +61,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with UserData = Resolved ( Ok items)}, Cmd.batch
                                                             (Logic.getUserDataUpdate (Resolved ( Ok items))
                                                             |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                                                            |> Seq.append [Cmd.ofMsg LoginSuceeded])
+                                                            |> Seq.append [Cmd.ofMsg LoginSuceeded]
+                                                            |> Seq.append [ Logic.createNewInstructionId model.Id items])
                                                         
                                                             
                                                         

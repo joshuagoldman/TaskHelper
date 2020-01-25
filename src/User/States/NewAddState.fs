@@ -6,10 +6,11 @@ open Types
 open Part
 open Data
 open NewAdd.Types
+open User
 
 let init () : Model * Cmd<Msg> =
     {
-       NewInstructionData = Error "No Instruction files have been loaded..."
+       NewInstructionData = Deferred.HasNostStartedYet
        NewAddMessages = ""
        LoadIcon = defaultAppearanceAttributes
     }, []
@@ -18,20 +19,14 @@ let init () : Model * Cmd<Msg> =
 let update msg model : NewAdd.Types.Model * Cmd<Msg>  =
     match msg with
     | CreateNewDataMsg Started ->
-        { model with NewInstructionData = InProgress }, Cmd.batch
-                                                    (Logic.getUserDataUpdate InProgress
-                                                    |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                                                    |> Seq.append [Cmd.fromAsync (Logic.loadInstructionItems model)])
+        { model with NewInstructionData = InProgress },
+         Cmd.batch( User.Logic.saveNewInstruction InProgress)
                                                     
     | CreateNewDataMsg (Finished (Error error)) ->
-        { model with NewInstructionData = Resolved ( Error error)}, Cmd.batch
-                                                                (Logic.getUserDataUpdate
-                                                                            (Resolved ( Error error))
-                                                                |> Seq.map (fun msg -> Cmd.ofMsg msg))
+        { model with NewInstructionData = Resolved ( Error error)},
+         Cmd.batch( User.Logic.saveNewInstruction (Resolved (Error error)))
     | CreateNewDataMsg (Finished (Ok items)) ->
-        { model with NewInstructionData = Resolved ( Ok items)}, Cmd.batch
-                                                            (Logic.getUserDataUpdate (Resolved ( Ok items))
-                                                            |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                                                            |> Seq.append [Cmd.ofMsg LoginSuceeded])
+        { model with NewInstructionData = Resolved ( Ok items)},
+         Cmd.batch( User.Logic.saveNewInstruction (Resolved (Ok items)))
     | NewAddInfoMsg str ->
         { model with  NewAddMessages = str }, []
