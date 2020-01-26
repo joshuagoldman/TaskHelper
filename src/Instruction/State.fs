@@ -12,6 +12,7 @@ let init () : Model * Cmd<Msg> =
       InstructionErrorMessage = defaultAppearanceAttributes
       CurrInstruction = Error ""
       CurrPart = Part.State.init() |> fun (a,b) -> a
+      CurrPositions = None
     }, []
 
 

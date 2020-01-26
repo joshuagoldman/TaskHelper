@@ -97,7 +97,7 @@ let checkInstructionAvailability model dispatch buttonName =
         match model.Data with
         | Ok part ->
             go2PreviousOrNext instruction (part.Title) dispatch buttonName
-        | Error err -> err |> (Part.State.SendErrorMessage >> dispatch)
+        | Error err -> err |> (Part.Types.SendErrorMessage >> dispatch)
     | Error err ->
-        err |> (Part.State.SendErrorMessage >> dispatch)
+        err |> (Part.Types.SendErrorMessage >> dispatch)
 

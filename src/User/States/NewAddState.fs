@@ -10,23 +10,23 @@ open User
 
 let init () : Model * Cmd<Msg> =
     {
-       NewInstructionData = Deferred.HasNostStartedYet
+       NewInstructionData = Error ""
        NewAddMessages = ""
        LoadIcon = defaultAppearanceAttributes
+       NewInstructionId = None
     }, []
 
 
-let update msg model : NewAdd.Types.Model * Cmd<Msg>  =
+let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     match msg with
-    | CreateNewDataMsg Started ->
-        { model with NewInstructionData = InProgress },
-         Cmd.batch( User.Logic.saveNewInstruction InProgress)
-                                                    
-    | CreateNewDataMsg (Finished (Error error)) ->
-        { model with NewInstructionData = Resolved ( Error error)},
-         Cmd.batch( User.Logic.saveNewInstruction (Resolved (Error error)))
-    | CreateNewDataMsg (Finished (Ok items)) ->
-        { model with NewInstructionData = Resolved ( Ok items)},
-         Cmd.batch( User.Logic.saveNewInstruction (Resolved (Ok items)))
+    | CreateNewDataMsg ( Ok data ) ->
+        model,
+        Cmd.batch(
+           Logic.saveUserData data 
+        )
     | NewAddInfoMsg str ->
         { model with  NewAddMessages = str }, []
+    | NewInstructionIdMsg str ->
+        { model with NewInstructionId = Some str}, []
+    | PostInstruction files ->
+        model, Logic.createInstructionFromFile files model.NewInstructionId

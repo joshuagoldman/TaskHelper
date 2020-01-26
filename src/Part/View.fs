@@ -18,19 +18,11 @@ let instructionVideo (model : Part.Types.Model) choice =
         | Ok dataResult ->
             match choice with
             | Video ->
-                (idResult |> string) + "_" + dataResult.InstructionVideo
+                dataResult.InstructionVideo
             | Txt ->
                 dataResult.InstructionTxt
         | Error dataError -> dataError
     | Error idError -> idError
-    
-    match model.Data with
-    | Ok resultInstruction ->
-        match model.UserId with
-        | Ok resultId ->
-            (resultId |> string) + resultInstruction.InstructionVideo
-        | Error errId -> result.InstructionVideo
-    | Error errInstruction -> errInstruction
 
 let userId (model : Part.Types.Model) =
     match model.UserId with
@@ -51,7 +43,7 @@ let instrVideo (model : Part.Types.Model) dispatch =
         [
             source
                 [
-                    Src  ((model userId) + instructionVideo model)
+                    Src  (instructionVideo model Video)
                     Type "video/mp4"
                 ]
             str "Your browser does not support the video"

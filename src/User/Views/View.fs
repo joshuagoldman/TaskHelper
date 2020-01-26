@@ -125,7 +125,7 @@ let bodyCols model dispatch =
                 Category.View.root model dispatch
 
             | Part ->
-                    Part.View.root model.Instruction.CurrPart ( Instruction.State.PartMsg >>
+                    Part.View.root model.Instruction.CurrPart ( Instruction.Types.PartMsg >>
                                                                 InstructionMsg >>
                                                                 dispatch )
 

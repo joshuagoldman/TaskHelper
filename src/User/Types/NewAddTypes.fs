@@ -14,9 +14,9 @@ type MediaChoiceFormData =
 
 type Msg =
     | NewAddInfoMsg of string
-    | CreateNewDataMsg of AsyncOperationEvent<Result<seq<MediaChoiceFormData>,string>>
+    | CreateNewDataMsg of Result<seq<MediaChoiceFormData>,string>
     | NewInstructionIdMsg of string
-    | PostInstruction of AsyncOperationEvent<Result<Data.InstructionData,string>>
+    | PostInstruction of seq<MediaChoiceFormData>
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
@@ -24,9 +24,9 @@ type SearchResult =
 
 type Model =
     {
-       NewInstructionData : Data.Deferred<Result<seq<MediaChoiceFormData>,string>>
+       NewInstructionData : Result<seq<MediaChoiceFormData>,string>
        NewAddMessages : string
-       NewInstructionId : int
+       NewInstructionId : Option<string>
        LoadIcon : AppearanceAttributes
     }
 

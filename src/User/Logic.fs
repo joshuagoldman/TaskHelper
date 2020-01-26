@@ -156,6 +156,65 @@ let loadInstructionItems model = async {
                                                         (response.statusCode |> string))))  
     }
 
+type PostInstructionInfo =
+    abstract retrieveAll : unit -> string
+    abstract insert : string -> string
+
+let instructionToSql ( ids : string ) instruction =
+    let id =
+        ids.Substring(0,ids.LastIndexOf("_"))
+
+    let instructionId =
+        ids.Substring(ids.LastIndexOf("_"), ids |> String.length |> fun len-> len - 1)
+
+    let sqlInstructionVars =
+        seq[
+            id
+            instructionId
+            instruction.Title
+        ]
+    let instructionInsert =
+        String.Format(
+            "INSERT INTO instructions ( id, instruction_id, title )
+             VALUES ( {0}, {1}, {2});\n", sqlInstructionVars )
+
+    let partInsert =
+        instruction.Data
+        |> Seq.map (fun part ->
+              String.Format(
+                "INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+                VALUES ( {0}, {1}, {2}, {3});\n",
+                seq[instructionId ; part.InstructionVideo ; part.InstructionTxt ; part.Title]
+              ))
+        |> String.concat ""
+
+    instructionInsert + partInsert
+
+let postInstructionToDatabase ( status : Result<Data.InstructionData,string> ) ids =
+
+    let postObj = importAll<PostInstructionInfo> "../server/model/instructions"
+
+    let insertInstructionAsync sqlCommand = async{
+        let response = postObj.insert sqlCommand
+        do! Async.Sleep 4000
+        return(
+            response
+            |> NewAdd.Types.NewAddInfoMsg
+            |> Cmd.ofMsg
+        )
+    }
+    
+    match status with
+    | Ok result ->
+       let sqlCommand = instructionToSql ids result
+       Async.StartAsTask( insertInstructionAsync sqlCommand).Result
+
+
+    | Error err ->
+        err
+        |> NewAdd.Types.NewAddInfoMsg
+        |> Cmd.ofMsg
+
 let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Name : string |}) = async{
         do! Async.Sleep 10000
         let! response = 
@@ -168,18 +227,64 @@ let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Nam
         match response.statusCode with
         | 200 ->
             return (
-                info.Name + " was succesfully loaded"
-                |> NewAdd.Types.NewAddInfoMsg 
+                   info.Name + " was succesfully loaded"
+                   |> NewAdd.Types.NewAddInfoMsg
+                   |> Error
+                
             )
         | _ ->
             return (
-                "saving file " +
-                 info.Name +
-                 " failed with status code: "
-                 + (response.statusCode |> string)
-                 |> NewAdd.Types.NewAddInfoMsg 
+                    "saving file " +
+                     info.Name +
+                     " failed with status code: "
+                     + (response.statusCode |> string)
+                     |> NewAdd.Types.NewAddInfoMsg
+                     |> Ok
             )
     }
+
+let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) idString =
+
+
+    match idString with
+    | None ->
+        seq[
+            "" |> (NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)
+        ]
+        |> Seq.map (fun msg -> Cmd.ofMsg msg)
+        |> Cmd.batch
+    | Some id ->
+        let mutable videosSequence = seq[]
+        let mutable instructionSequence = seq[]
+
+        files
+        |> Seq.iter (fun mediaContent ->
+                            match mediaContent with
+                            | NewAdd.Types.Video f ->
+                                Seq.append videosSequence [f]
+                                |> ignore
+                            | NewAdd.Types.InstructionTxt f ->
+                                Seq.append instructionSequence [f]
+                                |> ignore)
+
+
+        Seq.zip videosSequence instructionSequence
+        |> Seq.map (fun (video,txt) ->
+                    {
+                        Title = ""
+                        InstructionVideo = id + video.name
+                        InstructionTxt = id + txt.name
+                    })
+        |> fun parts ->
+                {
+                    Title = ""
+                    Data = parts
+                }
+        |> Instruction.Types.NewInstruction2Show
+        |> User.Types.InstructionMsg
+        |> fun x -> seq[x]
+                    |> Seq.map (fun msg -> Cmd.ofMsg msg)
+                    |> Cmd.batch
 
 let checkfileTypeAndSave ( file : Types.File ) validType path =
     validType
@@ -193,10 +298,26 @@ let checkfileTypeAndSave ( file : Types.File ) validType path =
                    Path = path
                    Name = file.name
                 |}
-            saveInto fileInfo
-            |> fun asyncMsg -> Cmd.batch[
-                                Cmd.fromAsync asyncMsg
-                               ]
+            Async.StartAsTask(saveInto fileInfo).Result
+            |> fun res ->
+                match res with
+                | Ok msg ->
+                    msg
+                    |> User.Types.NewAddMsg
+                    |> fun x ->
+                        Cmd.batch[
+                            Cmd.ofMsg x
+                        ]
+                        |> Ok 
+                    
+                | Error msg ->
+                    msg
+                    |> User.Types.NewAddMsg
+                    |> fun x ->
+                        Cmd.batch[
+                            Cmd.ofMsg x
+                            ]
+                        |> Error
             
         | _ ->
             ("file " +
@@ -205,11 +326,28 @@ let checkfileTypeAndSave ( file : Types.File ) validType path =
              file.``type`` +
              " which is invalid!")
             |> NewAdd.Types.NewAddInfoMsg
+            |> User.Types.NewAddMsg
             |> fun msg -> Cmd.batch[
                             Cmd.ofMsg msg
                           ]
+                          |> Error
 
-let saveUserData file = 
+let saveUserData file =
+    let addPostMessageIfSuccess res =
+        match res with
+        | Ok msg ->
+              Cmd.batch[
+                  msg
+                  Cmd.ofMsg(
+                      file
+                      |> (NewAdd.Types.PostInstruction >>
+                          User.Types.NewAddMsg)
+                  )
+                ]
+        | Error msg ->
+            Cmd.batch[
+                msg
+              ]
 
     let formDtExtract =
         file
@@ -217,28 +355,13 @@ let saveUserData file =
             match data with
             | NewAdd.Types.Video videoFormData ->
                     checkfileTypeAndSave videoFormData "" "Videos"
+                    |> addPostMessageIfSuccess
+                                        
             | NewAdd.Types.InstructionTxt instructionFormData ->
-                    checkfileTypeAndSave instructionFormData "" "Videos")
+                    checkfileTypeAndSave instructionFormData "" "Instructions"
+                    |> addPostMessageIfSuccess )
 
     formDtExtract
-
-let saveNewInstruction ( status : Deferred<Result<seq<NewAdd.Types.MediaChoiceFormData>,string>> ) =
-    match status with
-    | HasNostStartedYet ->
-        seq[NewAdd.Types.CreateNewDataMsg Started]
-        |> Seq.map (fun msg -> Cmd.ofMsg msg)
-        
-        
-    | InProgress ->
-        seq["Sending files to server..." |> NewAdd.Types.NewAddInfoMsg ]
-        |> Seq.map (fun msg -> Cmd.ofMsg msg)
-
-    | Resolved response ->
-        match response with
-        | Ok result ->
-            saveUserData result
-        | Error err -> seq[err |> NewAdd.Types.NewAddInfoMsg]
-                       |> Seq.map (fun msg -> Cmd.ofMsg msg)
 
 let loadUserItems = async {
     do! Async.Sleep 3000
@@ -327,6 +450,7 @@ let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<se
                         
                         
         | Error err -> seq[err|> User.Types.LoginMessages]
+        
 
 let validateLoginInfo info =
     info

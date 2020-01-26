@@ -15,4 +15,5 @@ type Model =
         InstructionErrorMessage : AppearanceAttributes
         CurrInstruction : Result<Data.InstructionData,string>
         CurrPart : Part.Types.Model
+        CurrPositions : Option<seq<int>>
     }

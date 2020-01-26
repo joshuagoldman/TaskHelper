@@ -93,7 +93,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with Category = category }, Cmd.map CategorySearchMsg categoryCmd
     | NewAddMsg msg ->
         let (newAdd, newAddCmd) = NewAdd.State.update msg model.NewAdd
-        { model with NewAdd = newAdd }, Cmd.map NewAddMsg newAddCmd
+        { model with NewAdd = newAdd }, newAddCmd
     | LoginMessages msg ->
         { model with LoginMessage = msg}, []
     | UserNameInputChangedMsg usrName ->
