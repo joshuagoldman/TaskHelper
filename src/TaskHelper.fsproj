@@ -21,15 +21,12 @@
     <Compile Include="Instruction\View.fs" />
     <Compile Include="User\Types\NewAddTypes.fs" />
     <Compile Include="User\Types\InstructionSearchTypes.fs" />
-    <Compile Include="User\Types\CategoryTypes.fs" />
     <Compile Include="User\Types\Types.fs" />
     <Compile Include="User\Logic.fs" />
     <Compile Include="User\States\NewAddState.fs" />
     <Compile Include="User\States\InstructionSearchState.fs" />
-    <Compile Include="User\States\CategoryState.fs" />
     <Compile Include="User\States\State.fs" />
     <Compile Include="User\Views\NewAddView.fs" />
-    <Compile Include="User\Views\CategoryView.fs" />
     <Compile Include="User\Views\InstructionSearchView.fs" />
     <Compile Include="User\Views\View.fs" />
     <Compile Include="App\Types\LoginTypes.fs" />
@@ -46,7 +43,7 @@
   <ItemGroup>
     <PackageReference Include="Fable.Core" Version="3.1.4" />
     <PackageReference Include="Fable.Elmish" Version="3.0.6" />
-    <PackageReference Include="Fable.Elmish.Browser" Version="3.0.2" />
+    <PackageReference Include="Fable.Elmish.Browser" Version="3.0.4" />
     <PackageReference Include="Fable.Elmish.Debugger" Version="3.0.3" />
     <PackageReference Include="Fable.Elmish.HMR" Version="4.0.1" />
     <PackageReference Include="Fable.Elmish.React" Version="3.0.1" />

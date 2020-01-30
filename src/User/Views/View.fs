@@ -27,7 +27,7 @@ let menuItem label page currentPage =
 let chooseSideMenuHref name =
     match name with
     | "Search Instruction" -> Global.InstructionSearch
-    | "Search by Category" -> Global.Category
+    | "Current Instruction" -> Global.Instruction
     | "Current Part" -> Global.Part
     | "Upload/add to instruction" -> Global.NewAdd
     | _ -> Global.InstructionSearch
@@ -88,7 +88,7 @@ let sideMenu model dispatch =
             prop.children
                 [   
                     menuButton model dispatch "Search Instruction"
-                    menuButton model dispatch "Search by Category"
+                    menuButton model dispatch "Current Instruction"
                     menuButton model dispatch "Current Part"
                     menuButton model dispatch "Upload/add to instruction"
                 ]
@@ -121,9 +121,6 @@ let bodyCols model dispatch =
             | InstructionSearch ->
                 InstructionSearch.View.root model dispatch
 
-            | Category ->
-                Category.View.root model dispatch
-
             | Part ->
                     Part.View.root model.Instruction.CurrPart ( Instruction.Types.PartMsg >>
                                                                 InstructionMsg >>
@@ -132,42 +129,35 @@ let bodyCols model dispatch =
             | NewAdd ->
                 NewAdd.View.root model dispatch
     
-    Html.div
-        [
-            prop.className "columns"
-
-            prop.children
-                [
-                    Html.div
-                        [
-                            prop.className "column"
-                            prop.style
-                                [
-                                    style.margin(20,20,400,5)
-                                ]
-                            prop.children
-                                [
-                                    menuLabel model dispatch
-                                    sideMenu model dispatch
-                                ]
-                        ]
-                    Html.div
-                        [
-                            prop.className "column"
-                            prop.style
-                                [
-                                    style.margin(30,400,100,5)
-                                    style.backgroundColor.deepSkyBlue
-                                    style.borderRadius 20
-                                    style.opacity 0.9
-                                ]
-                            prop.children
-                                [
-                                    pageHtml model
-                                ]
-                        ] 
+    Html.div[
+        prop.className "columns"
+        prop.children[
+            Html.div[
+                prop.className "column is-one-quarter"
+                prop.style[
+                        style.margin(20,20,400,5)
                 ]
+                prop.children[
+                        menuLabel model dispatch
+                        sideMenu model dispatch
+                ]
+            ]
+            Html.div[
+                prop.className "column is-half is-mobile"
+                prop.style[
+                    style.backgroundColor.deepSkyBlue
+                    style.borderRadius 20
+                    style.opacity 0.9
+                ]
+                prop.children[
+                        pageHtml model
+                ]
+            ]
+            Html.div[
+                prop.className "column is-one-quarter"
+            ] 
         ]
+    ]
 
 let body model dispatch =
     Html.div

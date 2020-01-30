@@ -26,8 +26,6 @@ let fileHandle (ev : Types.Event) model dispatch =
 
     console.log(formData.values)
 
-    User.Logic.saveUserData formData
-    |> ignore
 
     
 

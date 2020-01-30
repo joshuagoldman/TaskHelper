@@ -156,10 +156,6 @@ let loadInstructionItems model = async {
                                                         (response.statusCode |> string))))  
     }
 
-type PostInstructionInfo =
-    abstract retrieveAll : unit -> string
-    abstract insert : string -> string
-
 let instructionToSql ( ids : string ) instruction =
     let id =
         ids.Substring(0,ids.LastIndexOf("_"))
@@ -190,24 +186,31 @@ let instructionToSql ( ids : string ) instruction =
 
     instructionInsert + partInsert
 
-let postInstructionToDatabase ( status : Result<Data.InstructionData,string> ) ids =
+type PostInstructionInfo =
+    abstract insert : string -> string -> string
 
-    let postObj = importAll<PostInstructionInfo> "../server/model/instructions"
+//[<Import("*", "../../server/model/instructions")>]
+//let postObj : PostInstructionInfo = jsNative
+
+let postInstructionToDatabase ( status : Result<Data.InstructionData,string> ) ids =
+ 
 
     let insertInstructionAsync sqlCommand = async{
-        let response = postObj.insert sqlCommand
+        //let response = postObj.insert sqlCommand ""
         do! Async.Sleep 4000
-        return(
-            response
-            |> NewAdd.Types.NewAddInfoMsg
-            |> Cmd.ofMsg
-        )
+        //return(
+        //    response
+        //    |> NewAdd.Types.NewAddInfoMsg
+        //    |> Cmd.ofMsg
+        return ("Loading User Data" |> NewAdd.Types.NewAddInfoMsg |> Cmd.ofMsg)
+        
     }
     
     match status with
     | Ok result ->
        let sqlCommand = instructionToSql ids result
-       Async.StartAsTask( insertInstructionAsync sqlCommand).Result
+       ( insertInstructionAsync sqlCommand)
+       |> Async.RunSynchronously
 
 
     | Error err ->
@@ -298,7 +301,8 @@ let checkfileTypeAndSave ( file : Types.File ) validType path =
                    Path = path
                    Name = file.name
                 |}
-            Async.StartAsTask(saveInto fileInfo).Result
+            saveInto fileInfo
+            |> Async.RunSynchronously
             |> fun res ->
                 match res with
                 | Ok msg ->

@@ -10,7 +10,6 @@ type Msg =
     | UserDataMsg of string 
     | InstructionMsg of Instruction.Types.Msg
     | InstructionSearchMsg of InstructionSearch.Types.Msg
-    | CategorySearchMsg of Category.Types.Msg
     | NewAddMsg of NewAdd.Types.Msg
     | LoginMessages of string
     | UserNameInputChangedMsg of string
@@ -27,7 +26,6 @@ type Model =
       CurrentPage: Global.UserPage
       InstructionSearch: InstructionSearch.Types.Model
       NewAdd : NewAdd.Types.Model
-      Category : Category.Types.Model
       UserData : Data.Deferred<Result<UserData, string>>
       Instruction: Instruction.Types.Model
     }

@@ -55,7 +55,6 @@ let pageParser: Parser<Page->Page,Page> =
         User(Part) |> fun a -> map a  (s "part")
         User(InstructionSearch) |> fun a -> map a  (s "search")
         User(Instruction) |> fun a -> map a  (s "instruction")
-        User(Category) |> fun a -> map a (s "category")
         User(NewAdd) |> fun a -> map a (s "newAdd")
     ]
 
