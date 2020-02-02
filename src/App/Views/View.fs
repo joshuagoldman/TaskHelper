@@ -68,6 +68,8 @@ let loginLabel model dispatch name =
                 ]
         ]
 
+
+
 let logInRoot model dispatch =
     Html.div
         [
@@ -76,7 +78,7 @@ let logInRoot model dispatch =
                 [
                     Html.div
                         [
-                            prop.className "row"
+                            prop.className "row is"
                             prop.children
                                 [
                                     loginLabel model dispatch "Username"

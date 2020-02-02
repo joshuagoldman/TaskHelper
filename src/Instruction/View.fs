@@ -9,6 +9,9 @@ open Feliz
 let quarterDiv =
     Html.div[
         prop.className "column is-one-quarter"
+        prop.style[
+            style.margin 5
+        ]
     ]
 
 let modificationButtons model dispatch name =
@@ -18,45 +21,128 @@ let modificationButtons model dispatch name =
             style.backgroundColor.white
             style.fontSize 18
             style.borderRadius 10
+            style.margin 5
         ]
         prop.children[
             str name
         ]
     ]
 
-let allPartsView ( part : Data.partData ) =
-    Html.div
-        [
-            prop.className "row"
-            prop.children[
-                Html.a[
-                    prop.className "button"
-                    prop.style[
-                        style.backgroundColor.white
-                        style.margin(5,5,5,50)
-                        style.fontSize 18
-                        style.opacity 0.9
-                        style.borderRadius 10
-                    ]
-                    prop.children[
-                        str part.Title
+let findPartPosition partTitle ( instruction : Data.InstructionData ) =
+    Seq.zip instruction.Data [0..instruction.Data |> Seq.length |> fun x -> x - 1]
+    |> Seq.tryFind (fun (part,_) -> part.Title = partTitle)
+    |> function
+        | res when res <> None ->
+            res.Value
+            |> fun (_,pos) -> pos
+        | _ -> 0
+
+let modElements ( part : Data.partData ) =
+    Html.div[
+        prop.className "column is-half"
+        prop.style[
+            style.margin 5
+        ]
+        prop.children[
+            Html.div[
+                prop.className "field"
+                prop.children[
+                    Html.div[
+                        prop.className "control"
+                        prop.children[
+                            Html.input[
+                                prop.className "input is-info"
+                                prop.type' "info"
+                                prop.placeholder part.Title
+                            ]
+                        ]
                     ]
                 ]
             ]
         ]
+    ]
 
+let positionElements ( part : Data.partData )
+                     ( instruction : Data.InstructionData ) =
+    Html.div[
+        prop.className "column is-half"
+        prop.style[
+            style.margin 5
+        ]
+        prop.children[
+            Html.div[
+                prop.className "field"
+                prop.children[
+                    Html.div[
+                        prop.className "control"
+                        prop.children[
+                            Html.input[
+                                prop.className "input is-info"
+                                prop.type' "info"
+                                prop.placeholder (
+                                    findPartPosition
+                                        part.Title
+                                        instruction
+                                    |> string
+                                ) 
+                                                        
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]
+
+let allPartsView ( part : Data.partData )
+                 ( instruction : Data.InstructionData )
+                 ( visibility) =
+    visibility
+    |>function 
+        | res when res = style.visibility.visible ->
+            Html.div[
+                prop.className "columns"
+                prop.children[
+                    modElements part
+                    positionElements part instruction
+                ]
+            ]
+
+        | _ ->
+            Html.div[
+                prop.className "columns"
+                prop.children[
+                    Html.div[
+                        prop.className "columns is-one-quarter"
+                    ]
+                    Html.a[
+                        prop.className "button"
+                        prop.style[
+                            style.backgroundColor.white
+                            style.fontSize 18
+                            style.opacity 0.9
+                            style.borderRadius 10
+                        ]
+                        prop.children[
+                            str part.Title
+                        ]
+                    ]
+                    Html.div[
+                        prop.className "column"
+                    ]
+                ]
+            ]
+    
 let instructionTitleView title =
     Html.div[
-        prop.className "row"
-        prop.style[
-            style.margin(5,5,5,50)
-            style.fontSize 25
-
-        ]
+        prop.className "columns"
         prop.children[
             quarterDiv
             Html.div[
                 prop.className "column is-half"
+                prop.style[
+                    style.margin 5
+                ]
                 prop.children[
                     str title
                 ]
@@ -67,58 +153,61 @@ let instructionTitleView title =
 
 let showAllInstructionParts model dispatch =
     match model.CurrInstruction with
-    | Ok res ->
-        res.Data
-        |> Seq.map (fun part ->
-                        allPartsView part)
-        |> Seq.append(
-               seq[
-                   instructionTitleView res.Title
-               ]   
-           )
+    | Ok partRes ->
+        match model.CurrInstruction with
+        |Ok instRes ->
+            partRes.Data
+            |> Seq.toList
+            |> List.map (fun part ->
+                            allPartsView part instRes model.PartNameModificationInput.Visible)
+            |> List.append(
+                   [
+                       instructionTitleView instRes.Title
+                   ]   
+               )
+        | Error err ->
+            [
+                Html.div[
+                    prop.children[
+                        str "No part nor instruction given" 
+                    ]
+                ]  
+            ]
     | Error err ->
-        seq[
+        [
           Html.div[
               prop.children[
-                  str err 
+                  str "No part Given" 
               ]
           ]  
         ]
 
 let root model dispatch =
   Html.div[
-    prop.className "rows"
-    prop.children[
-        Html.div[
-            prop.className "row"
-            prop.children[
-                Html.div[
-                    prop.className "columns"
-                    prop.children[
-                        Html.div[
-                            prop.className "column is-one-quarter"
-                            prop.children[
-                                modificationButtons model dispatch "Delete"
-                            ]
-                        ]
-                        Html.div[
-                            prop.className "column is-half"                
-                        ]
-                        Html.div[
-                            prop.className "column is-one-quarter"
-                            prop.children[
-                                modificationButtons model dispatch "Modify Instruction"
-                            ]    
-                        ]
-                    ]
-                ]
-            ]
-        ]
-        Html.div[
-            prop.className "row"
-            prop.children(
-                showAllInstructionParts model dispatch
-            )   
-        ]
-    ]
+    prop.children(
+          Html.div[
+              prop.className "columns"
+              prop.children[
+                  Html.div[
+                      prop.className "column is-one-quarter"
+                      prop.children[
+                          modificationButtons model dispatch "Modify"
+                      ]
+                  ]
+                  Html.div[
+                      prop.className "column is-half"
+                      prop.style[
+                        style.margin 5
+                      ]
+                  ]
+                  Html.div[
+                      prop.className "column"
+                      prop.children[
+                          modificationButtons model dispatch "Delete"
+                      ]
+                  ]
+              ]
+          ]
+          |> fun c -> List.append [c]  (showAllInstructionParts model dispatch )  
+    )
   ]

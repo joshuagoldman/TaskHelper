@@ -49,109 +49,120 @@ let instrVideo (model : Part.Types.Model) dispatch =
             str "Your browser does not support the video"
         ]
 
-let textArea (model : Part.Types.Model) dispatch =
-    let instructionText =
-        match model.Data with
-        | Ok result ->result.InstructionTxt
-        | Error err -> err
-
-    Html.div
-        [
-            prop.style
-                [
-                    style.color.white
-                    style.margin(20,0,100,0)
-                ]
-
-            prop.children
-                [
-                    str instructionText
-                ]
-        ]
+let instructionText (model : Part.Types.Model) =
+    match model.Data with
+    | Ok result ->result.InstructionTxt
+    | Error err -> err
 
 let goToInstructionButton ( model : Part.Types.Model ) dispatch =
-    Html.div
-        [
-            prop.className "column"
-            prop.style
-                [
-                    style.margin(200,0,0,0)
-                ]
-            prop.children
-                [
-                    Html.a
-                        [
-                            prop.className "button"
-                            prop.href (Global.toHashUser Global.Instruction )
-                            prop.children
-                                [
-                                    str "Go To Instruction"
-                                ]
-                        ]  
-                ]
+
+    Html.a[
+        prop.className "button"
+        prop.href (Global.toHashUser Global.Instruction )
+        prop.children[
+                str "Go To Instruction"
         ]
+    ]  
+                
+        
 
 let navigationButton ( model : Part.Types.Model )
                        dispatch
                        buttonName =
 
-
-    Html.div
-        [
-            prop.className "column"
-            prop.style
-                [
-                    style.margin(200,0,0,0)
-                ]
-            prop.children
-                [
-                    Html.a
-                        [
-                            prop.className "button"
-                            prop.onClick (fun _ -> Logic.checkInstructionAvailability
-                                                         model
-                                                         dispatch
-                                                         buttonName)
-                            prop.style
-                                [
-                                    whichNavigationButton model buttonName
-                                    |> fun x -> x.Visible
-                                ]
-                            prop.children
-                                [
-                                    str (buttonName.Replace("Button", ""))
-                                ]
-                        ]
-                ]
-
+    Html.a[
+        prop.className "button"
+        prop.onClick (fun _ -> Logic.checkInstructionAvailability
+                                        model
+                                        dispatch
+                                        buttonName)
+        prop.style[
+            whichNavigationButton model buttonName
+            |> fun x -> x.Visible
         ]
-
-let navigationButtons model dispatch =
-    Html.div
-        [
-            prop.className "columns"
-            prop.children
-                [
-                    navigationButton model dispatch "PreviousButton"
-                    goToInstructionButton model dispatch
-                    navigationButton model dispatch "NextButton"
-                    
-                ]
+        prop.children[
+            str (buttonName.Replace("Button", ""))
         ]
+    ]
+
+let getInstruction ( model : Types.Model ) =
+    match model.Instruction with
+    | Ok res -> res.Title
+    | Error err -> ""
 
 let root model dispatch =
-
-    Html.div
-        [
-            prop.style
-                [
-                    style.backgroundColor.deepSkyBlue
-                    style.width 800 
+    Html.div[
+        Html.div[
+            prop.className "columns"
+            prop.children[
+                Html.div[
+                    prop.className "column"
                 ]
-            prop.children
-                [
-                    instrVideo model dispatch
-                    textArea model dispatch
-                    navigationButtons model dispatch
+                Html.div[
+                    prop.className "column is-half"
+                    prop.children[
+                        str (getInstruction model)
+                    ]
                 ]
+                Html.div[
+                    prop.className "column"
+                ]
+            ]
         ]
+        Html.div[
+            prop.className "columns"
+            prop.children[
+                Html.div[
+                    prop.className "column is-full"
+                    prop.style[
+                        style.margin 5
+                    ]
+                    prop.children[
+                        instrVideo model dispatch
+                    ]
+                ]
+            ]
+        ]
+        Html.div[
+            prop.className "columns"
+            prop.children[
+                Html.div[
+                    prop.className "column is-full"
+                    prop.style[
+                        style.margin 5
+                        style.color.white
+                    ]
+                    prop.children[
+                        str (instructionText model)
+                    ]
+                ]
+            ]
+        ]
+        Html.div[
+            prop.className "columns is-multiline is-mobile"
+            prop.style[
+                style.margin 5
+            ]
+            prop.children[
+                Html.div[
+                    prop.className "column"
+                    prop.children[
+                        navigationButton model dispatch "PreviousButton"
+                    ]
+                ]
+                Html.div[
+                    prop.className "column"
+                    prop.children[
+                        goToInstructionButton model dispatch
+                    ]
+                ]
+                Html.div[
+                    prop.className "column"
+                    prop.children[
+                        navigationButton model dispatch "NextButton"
+                    ]
+                ]
+            ]
+        ]   
+    ]
+    

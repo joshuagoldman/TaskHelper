@@ -13,6 +13,8 @@ let init () : Model * Cmd<Msg> =
       CurrInstruction = Error ""
       CurrPart = Part.State.init() |> fun (a,b) -> a
       CurrPositions = None
+      PartNameModificationInput = defaultAppearanceAttributes
+      PositionsInput = defaultAppearanceAttributes
     }, []
 
 
