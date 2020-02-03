@@ -4,11 +4,15 @@ open Controls
 open Part
 open Data
 open Elmish
+open Feliz
+open Fable.React
 
 type Msg =
     | NewInstruction2Show of Data.InstructionData
     | PartMsg of Part.Types.Msg
     | ErrorMsg of string
+    | ModifyInstructionMsg of IStyleAttribute
+    | DeleteButtonEnablenMsg of bool
 
 type InstructionMode  =
 | Regular
@@ -22,4 +26,5 @@ type Model =
         CurrPositions : Option<seq<int>>
         PartNameModificationInput : AppearanceAttributes
         PositionsInput : AppearanceAttributes
+        DeleteButton : AppearanceAttributes
     }

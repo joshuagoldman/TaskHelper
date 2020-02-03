@@ -5,6 +5,9 @@ open Controls
 open Types
 open Part
 open Data
+open Feliz
+open Fable.Core
+open Browser
 
 let init () : Model * Cmd<Msg> =
 
@@ -13,8 +16,11 @@ let init () : Model * Cmd<Msg> =
       CurrInstruction = Error ""
       CurrPart = Part.State.init() |> fun (a,b) -> a
       CurrPositions = None
-      PartNameModificationInput = defaultAppearanceAttributes
+      PartNameModificationInput =
+        { defaultAppearanceAttributes with Visible = style.visibility.hidden }
       PositionsInput = defaultAppearanceAttributes
+      DeleteButton =
+        { defaultAppearanceAttributes with Disable = true }
     }, []
 
 
@@ -28,3 +34,11 @@ let update msg model : Instruction.Types.Model * Cmd<Msg>  =
     | ErrorMsg str ->
         { model with InstructionErrorMessage =
                         { model.InstructionErrorMessage with Text = str} }, []
+    | ModifyInstructionMsg visibility ->
+        console.log(visibility)
+        { model with PartNameModificationInput =
+                        { model.PartNameModificationInput with Visible = visibility } }, []
+    | DeleteButtonEnablenMsg isDisabled ->
+        console.log(isDisabled)
+        { model with DeleteButton =
+                        { model.DeleteButton with Disable = isDisabled } }, []

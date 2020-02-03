@@ -14,9 +14,65 @@ let quarterDiv =
         ]
     ]
 
-let modificationButtons model dispatch name =
+let addParts model dispatch =
+    Html.div[
+        prop.className "columns is-centered"
+        prop.style[
+            style.margin 5
+        ]
+        prop.children[
+            Html.div[
+                prop.className "file has-name"
+                prop.children[
+                    Html.label[
+                        prop.className "file-label"
+                        prop.children[
+                            Html.input[
+                                prop.className "file-input"
+                                prop.type'.file
+                                prop.name "resume"
+                                prop.multiple true
+                            ]
+                            Html.span[
+                                prop.className "file-cta"
+                                prop.children[
+                                    Html.span[
+                                        prop.className "file-icon"
+                                        prop.children[
+                                            Html.i[
+                                                prop.className "fas fa-upload"
+                                            ]
+                                        ]
+                                    ]
+                                    Html.span[
+                                        prop.className "file-label"
+                                        prop.children[
+                                            str "Add files..."
+                                        ]
+                                    ]
+                                    Html.span[
+                                        prop.className "file-name"
+                                        prop.children[
+                                            str "No files uploaded"
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]
+
+
+let modificationButtons ( model : Instruction.Types.Model )
+                          dispatch
+                          name
+                          disable =
     Html.a[
         prop.className "button"
+        prop.disabled disable
         prop.style[
             style.backgroundColor.white
             style.fontSize 18
@@ -39,7 +95,7 @@ let findPartPosition partTitle ( instruction : Data.InstructionData ) =
 
 let modElements ( part : Data.partData ) =
     Html.div[
-        prop.className "column is-half"
+        prop.className "column"
         prop.style[
             style.margin 5
         ]
@@ -65,7 +121,7 @@ let modElements ( part : Data.partData ) =
 let positionElements ( part : Data.partData )
                      ( instruction : Data.InstructionData ) =
     Html.div[
-        prop.className "column is-half"
+        prop.className "column"
         prop.style[
             style.margin 5
         ]
@@ -84,6 +140,7 @@ let positionElements ( part : Data.partData )
                                         part.Title
                                         instruction
                                     |> string
+                                    |> fun x -> "Part position: " + x
                                 ) 
                                                         
                             ]
@@ -94,29 +151,54 @@ let positionElements ( part : Data.partData )
         ]
     ]
 
+let modCheckBox =
+    [
+        Html.div[
+            prop.className "columns is-vcentered"
+            prop.style[
+                style.margin 10
+            ]
+            prop.children[
+                Html.label[
+                    prop.className "checkbox"
+                    prop.children[
+                        Html.input[
+                            prop.type'.checkbox
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]
+
+
 let allPartsView ( part : Data.partData )
                  ( instruction : Data.InstructionData )
-                 ( visibility) =
+                   visibility
+                   dispatch=
     visibility
     |>function 
         | res when res = style.visibility.visible ->
             Html.div[
-                prop.className "columns"
-                prop.children[
-                    modElements part
-                    positionElements part instruction
-                ]
+                prop.className "columns is-centered"
+                prop.children(
+                    modCheckBox
+                    |> List.append [positionElements part instruction]
+                    |> List.append [modElements part]
+                )
             ]
 
         | _ ->
             Html.div[
-                prop.className "columns"
+                prop.className "columns is-centered"
+                prop.style[
+                    style.margin 10
+                ]
                 prop.children[
-                    Html.div[
-                        prop.className "columns is-one-quarter"
-                    ]
                     Html.a[
                         prop.className "button"
+                        prop.onClick (fun _ -> Logic.go2PartFromInstruction part instruction dispatch)
+                        prop.href (Global.toHashUser Global.Part)
                         prop.style[
                             style.backgroundColor.white
                             style.fontSize 18
@@ -127,21 +209,20 @@ let allPartsView ( part : Data.partData )
                             str part.Title
                         ]
                     ]
-                    Html.div[
-                        prop.className "column"
-                    ]
                 ]
             ]
     
 let instructionTitleView title =
     Html.div[
-        prop.className "columns"
+        prop.className "columns is-centered"
         prop.children[
             quarterDiv
             Html.div[
-                prop.className "column is-half"
+                prop.className "column"
                 prop.style[
                     style.margin 5
+                    style.fontSize 23
+                    style.color.black
                 ]
                 prop.children[
                     str title
@@ -151,25 +232,31 @@ let instructionTitleView title =
         ]
     ]
 
+let ShowFileUpload model dispatch =
+    model.PartNameModificationInput.Visible
+    |> function
+        | res when res = style.visibility.hidden ->
+            Html.div[]
+        | _ ->  addParts model dispatch
+
 let showAllInstructionParts model dispatch =
     match model.CurrInstruction with
     | Ok partRes ->
         match model.CurrInstruction with
         |Ok instRes ->
-            partRes.Data
-            |> Seq.toList
-            |> List.map (fun part ->
-                            allPartsView part instRes model.PartNameModificationInput.Visible)
+            [ShowFileUpload model dispatch]
             |> List.append(
-                   [
-                       instructionTitleView instRes.Title
-                   ]   
-               )
+                partRes.Data
+                |> Seq.toList
+                |> List.map (fun part ->
+                                allPartsView part instRes model.PartNameModificationInput.Visible dispatch)
+            )
+            |> List.append [ instructionTitleView instRes.Title ]   
         | Error err ->
             [
                 Html.div[
                     prop.children[
-                        str "No part nor instruction given" 
+                        str "No part nor instruction's given" 
                     ]
                 ]  
             ]
@@ -182,6 +269,7 @@ let showAllInstructionParts model dispatch =
           ]  
         ]
 
+           
 let root model dispatch =
   Html.div[
     prop.children(
@@ -190,8 +278,9 @@ let root model dispatch =
               prop.children[
                   Html.div[
                       prop.className "column is-one-quarter"
+                      prop.onClick (fun _ -> Logic.modifyOrNot model dispatch )
                       prop.children[
-                          modificationButtons model dispatch "Modify"
+                          modificationButtons model dispatch "Modify" false
                       ]
                   ]
                   Html.div[
@@ -203,11 +292,11 @@ let root model dispatch =
                   Html.div[
                       prop.className "column"
                       prop.children[
-                          modificationButtons model dispatch "Delete"
+                          modificationButtons model dispatch "Delete" model.DeleteButton.Disable
                       ]
                   ]
               ]
           ]
-          |> fun c -> List.append [c]  (showAllInstructionParts model dispatch )  
+          |> fun l -> List.append [l]  (showAllInstructionParts model dispatch )
     )
   ]

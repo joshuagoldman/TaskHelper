@@ -55,33 +55,46 @@ let instructionText (model : Part.Types.Model) =
     | Error err -> err
 
 let goToInstructionButton ( model : Part.Types.Model ) dispatch =
-
-    Html.a[
-        prop.className "button"
-        prop.href (Global.toHashUser Global.Instruction )
-        prop.children[
-                str "Go To Instruction"
+    Html.div[
+        prop.className "columns is-vcentered"
+        prop.style[
+            style.margin 5
         ]
-    ]  
-                
-        
+        prop.children[
+            Html.a[
+                prop.className "button"
+                prop.href (Global.toHashUser Global.Instruction )
+                prop.children[
+                        str "Go To Instruction"
+                ]
+            ] 
+        ]    
+    ]
 
 let navigationButton ( model : Part.Types.Model )
                        dispatch
-                       buttonName =
-
-    Html.a[
-        prop.className "button"
-        prop.onClick (fun _ -> Logic.checkInstructionAvailability
-                                        model
-                                        dispatch
-                                        buttonName)
+                       buttonName
+                       position =
+    Html.div[
+        prop.className ("columns is-" + position)
         prop.style[
-            whichNavigationButton model buttonName
-            |> fun x -> x.Visible
+            style.margin 5
         ]
         prop.children[
-            str (buttonName.Replace("Button", ""))
+            Html.a[
+                prop.className "button"
+                prop.onClick (fun _ -> Logic.checkInstructionAvailability
+                                                model
+                                                dispatch
+                                                buttonName)
+                prop.style[
+                    whichNavigationButton model buttonName
+                    |> fun x -> x.Visible
+                ]
+                prop.children[
+                    str (buttonName.Replace("Button", ""))
+                ]
+            ]
         ]
     ]
 
@@ -139,7 +152,7 @@ let root model dispatch =
             ]
         ]
         Html.div[
-            prop.className "columns is-multiline is-mobile"
+            prop.className "columns"
             prop.style[
                 style.margin 5
             ]
@@ -147,7 +160,7 @@ let root model dispatch =
                 Html.div[
                     prop.className "column"
                     prop.children[
-                        navigationButton model dispatch "PreviousButton"
+                        navigationButton model dispatch "PreviousButton" "vcentered"
                     ]
                 ]
                 Html.div[
@@ -159,7 +172,7 @@ let root model dispatch =
                 Html.div[
                     prop.className "column"
                     prop.children[
-                        navigationButton model dispatch "NextButton"
+                        navigationButton model dispatch "NextButton" "centered"
                     ]
                 ]
             ]

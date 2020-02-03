@@ -26,6 +26,7 @@ type AppearanceAttributes =
         Visible : IStyleAttribute
         BackgroundMusic : string
         Text : string
+        Disable : bool
     }
 
 type MainMenuElements =
@@ -72,6 +73,7 @@ let defaultAppearanceAttributes =
         Visible = style.visibility.visible
         BackgroundMusic = ""
         Text = ""
+        Disable = false
     }
 
 let initPages = { 
