@@ -4,7 +4,6 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.React
 open Fable.React.Props
-open Feliz
 open Types
 open System
 open Data
@@ -19,6 +18,8 @@ open Thoth.Json
 open Fable.SimpleHttp
 open Data
 open Elmish
+open Browser
+open Feliz
 
 let go2PartOrInstruction dispatch result =
     match result with
@@ -472,3 +473,87 @@ let createNewInstructionId id userData =
     |> User.Types.NewAddMsg
     |> Cmd.ofMsg
 
+let chooseMediaByName name file =
+    name
+    |> function
+        | res when res = "videos" ->
+            NewAdd.Types.Video file
+        | res when res = "instructions" ->
+            NewAdd.Types.InstructionTxt file
+        | _ -> NewAdd.Types.Video file
+
+let extractFile file =
+    match file with
+    | NewAdd.Types.Video vid ->
+        vid.name
+    | NewAdd.Types.InstructionTxt instrctn -> instrctn.name
+
+let extractFileNames files name =
+    files
+    |> Seq.filter (fun media ->
+        name
+        |> function
+            | res when res = "videos" ->
+                match media with
+                | NewAdd.Types.Video _ -> true
+                | NewAdd.Types.InstructionTxt _ -> false
+            | _ ->
+                match media with
+                | NewAdd.Types.Video _ -> false
+                | NewAdd.Types.InstructionTxt _-> true)
+    |> Seq.collect (fun file ->
+        Seq.append [str (extractFile file)] [Html.br[] ; Html.br[]])
+    |> fun elements ->
+        Seq.append [ str "Files chosen are:" ; Html.br[] ; Html.br[]] elements   
+
+let currFilesInfo ( filesOption : Option<seq<NewAdd.Types.MediaChoiceFormData>> )
+                    name =
+
+    match filesOption with
+    | Some files ->
+        extractFileNames files name
+    | None -> seq[Html.div[prop.children[str "No files chosen"]]]
+
+let infoText ( model : NewAdd.Types.Model ) dispatch name =
+    Html.div[
+        prop.style[
+            style.color.black
+            style.fontStyle.italic
+            style.fontWeight.bold
+            style.textAlign.center
+        ]
+        prop.children(
+            currFilesInfo model.NewInstructionData name
+        )
+    ]
+
+let removeOldOfSame ( medias : seq<NewAdd.Types.MediaChoiceFormData> )
+                      name =
+    name
+    |> function
+        | res when res = "videos" ->
+            medias
+            |> Seq.filter (fun media ->
+                match media with
+                | NewAdd.Types.Video _ ->
+                    false
+                | NewAdd.Types.InstructionTxt _ ->
+                    true)
+        | _ ->
+            medias
+            |> Seq.filter (fun media ->
+                match media with
+                | NewAdd.Types.Video _ ->
+                    true
+                | NewAdd.Types.InstructionTxt _ ->
+                    false)
+
+
+let extractMedia ( medias : Option<seq<NewAdd.Types.MediaChoiceFormData>> )
+                 ( newVids : seq<NewAdd.Types.MediaChoiceFormData> )
+                   name=
+    match medias with
+    | Some vids->
+        newVids
+        |> Seq.append (removeOldOfSame vids name)
+    | None -> newVids

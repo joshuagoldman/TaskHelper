@@ -17,6 +17,7 @@ type Msg =
     | CreateNewDataMsg of Result<seq<MediaChoiceFormData>,string>
     | NewInstructionIdMsg of string
     | PostInstruction of seq<MediaChoiceFormData>
+    | NewFilesChosenMsg of seq<MediaChoiceFormData> * string
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
@@ -24,9 +25,11 @@ type SearchResult =
 
 type Model =
     {
-       NewInstructionData : Result<seq<MediaChoiceFormData>,string>
+       NewInstructionData : Option<seq<MediaChoiceFormData>>
        NewAddMessages : string
        NewInstructionId : Option<string>
        LoadIcon : AppearanceAttributes
+       VideosUploadInput : AppearanceAttributes
+       InstructionTxtUploadInput : AppearanceAttributes
     }
 

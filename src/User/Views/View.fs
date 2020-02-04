@@ -7,9 +7,9 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.Import
 open Browser.Types
-open Types
 open Fable.React
 open Global
+open NewAdd
 
 open Fable.React
 open Fable.React.Props
@@ -35,7 +35,7 @@ let chooseSideMenuHref name =
 let clearIfSearchButton dispatch name =
     match name with
     | "Search Instruction" ->  InstructionSearch.Types.ClearSearchResult
-                               |> (InstructionSearchMsg >> dispatch)
+                               |> ( User.Types.InstructionSearchMsg >> dispatch)
     | _ -> ()
 
 let menuButton model dispatch name =
@@ -77,21 +77,21 @@ let sideMenu model dispatch =
         menuButton model dispatch "Upload/add to instruction"
     ]
 
-let pageHtml model dispatch =
+let pageHtml ( model : User.Types.Model ) (dispatch : User.Types.Msg -> unit ) =
     match model.CurrentPage with
         | Instruction ->
-            Instruction.View.root model.Instruction ( InstructionMsg >> dispatch )
+            Instruction.View.root model.Instruction ( User.Types.InstructionMsg >> dispatch )
 
         | InstructionSearch ->
             InstructionSearch.View.root model dispatch
 
         | Part ->
                 Part.View.root model.Instruction.CurrPart ( Instruction.Types.PartMsg >>
-                                                            InstructionMsg >>
+                                                            User.Types.InstructionMsg >>
                                                             dispatch )
 
         | NewAdd ->
-            NewAdd.View.root model dispatch
+            NewAdd.View.root model.NewAdd ( User.Types.NewAddMsg >> dispatch )
 
 let bodyCols model dispatch =   
     [
