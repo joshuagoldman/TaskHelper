@@ -290,52 +290,37 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
                     |> Seq.map (fun msg -> Cmd.ofMsg msg)
                     |> Cmd.batch
 
-let checkfileTypeAndSave ( file : Types.File ) validType path =
-    validType
-    |> function
-        | _ when file.``type`` = validType ->
-            let fileInfo =
-                {| Data = (FormData.Create() |> fun frmData -> ("resume",file)
-                                                                |> frmData.append
-                                                                |> fun _ -> frmData)
-                   CntType = file.``type``
-                   Path = path
-                   Name = file.name
-                |}
-            saveInto fileInfo
-            |> Async.RunSynchronously
-            |> fun res ->
-                match res with
-                | Ok msg ->
-                    msg
-                    |> User.Types.NewAddMsg
-                    |> fun x ->
-                        Cmd.batch[
-                            Cmd.ofMsg x
-                        ]
-                        |> Ok 
-                    
-                | Error msg ->
-                    msg
-                    |> User.Types.NewAddMsg
-                    |> fun x ->
-                        Cmd.batch[
-                            Cmd.ofMsg x
-                            ]
-                        |> Error
-            
-        | _ ->
-            ("file " +
-             file.name +
-             " is of type: " +
-             file.``type`` +
-             " which is invalid!")
-            |> NewAdd.Types.NewAddInfoMsg
+let checkfileTypeAndSave ( file : Types.File ) =
+    let fileInfo =
+        {| Data = (FormData.Create() |> fun frmData -> ("resume",file)
+                                                        |> frmData.append
+                                                        |> fun _ -> frmData)
+            CntType = file.``type``
+            Path = path
+            Name = file.name
+        |}
+
+    saveInto fileInfo
+    |> Async.RunSynchronously
+    |> fun res ->
+        match res with
+        | Ok msg ->
+            msg
             |> User.Types.NewAddMsg
-            |> fun msg -> Cmd.batch[
-                            Cmd.ofMsg msg
-                          ]
-                          |> Error
+            |> fun x ->
+                Cmd.batch[
+                    Cmd.ofMsg x
+                ]
+                |> Ok 
+                    
+        | Error msg ->
+            msg
+            |> User.Types.NewAddMsg
+            |> fun x ->
+                Cmd.batch[
+                    Cmd.ofMsg x
+                    ]
+                |> Error
 
 let saveUserData file =
     let addPostMessageIfSuccess res =

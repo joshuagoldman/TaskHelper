@@ -26,8 +26,8 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
         Cmd.batch(
            Logic.saveUserData data 
         )
-    | NewAddInfoMsg str ->
-        { model with  NewAddMessages = str }, []
+    | NewAddInfoMsg reactMessage ->
+        { model with  NewAddMessages = reactMessage }, []
     | NewInstructionIdMsg str ->
         { model with NewInstructionId = Some str}, []
     | PostInstruction files ->

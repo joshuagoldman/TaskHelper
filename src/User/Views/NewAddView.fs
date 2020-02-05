@@ -102,18 +102,6 @@ let uploadTriplet model dispatch name =
         ]
     ]
 
-let uploadMessage ( model : NewAdd.Types.Model ) =
-    match model.NewInstructionData with
-    | Some res ->
-        res
-        |> function
-            | res when (res |> Seq.length) = 0 ->
-                "No files are chosen, upload is disabled"
-            | _ ->
-                model.NewAddMessages
-    | None ->
-        "No files are chosen, upload is disabled"
-
 let info ( model : NewAdd.Types.Model ) =
     Html.div[
         prop.className "columns is-centered"
@@ -121,10 +109,47 @@ let info ( model : NewAdd.Types.Model ) =
             style.margin 10
             style.color.black
         ]
-        prop.children[
-            str (uploadMessage model)
-        ]
+        prop.children(
+            model.NewAddMessages
+        )
     ]
+
+let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
+    medias
+    |> Seq.filter (fun media ->
+        match media with
+        | NewAdd.Types.Video vid ->
+            vid.``type`` <> "video/mpeg" &&
+            vid.``type`` <> "video/ogg" &&
+            vid.``type`` <> "video/mp4" &&
+            vid.``type`` <> "video/avi"
+
+        | NewAdd.Types.InstructionTxt instrctn ->
+            instrctn.``type`` <> "text/markdown")
+    |> function
+        | res when ( res |> Seq.length ) = 0 ->
+            None
+        | res ->
+            let initialMessage =
+                seq[str "The following files did not have the the right file type:\n"]
+            let secondMessage = 
+                res
+                |> Seq.map (fun media ->
+                    match media with
+                    | NewAdd.Types.Video vid ->
+                        seq[ str (vid.name + "\n") ; Html.br[] ]
+
+                    | NewAdd.Types.InstructionTxt instrctn ->
+                        seq[ str(instrctn.name + "\n") ; Html.br[] ])
+                |> Seq.collect (fun components -> components)
+            let finalMessage =
+                seq[str "Allowed file types are:\n"]
+
+            initialMessage
+            |> Seq.append secondMessage
+            |> Seq.append finalMessage
+            |> Some
+                 
 
 let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
     let mutable videos = seq[]
@@ -140,17 +165,38 @@ let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormDat
     ()
     |> function
         | _ when ( videos |> Seq.length ) = ( instructions |> Seq.length ) ->
-            false
+            None
         | _ ->
-            true
-    
+            seq[str "צריך לבחור אותו כמות של קבצי וידאו ומארקדבן"]
+            |> Some 
 
-let isUploadable ( model : NewAdd.Types.Model ) dispatch =
+let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
+                          model
+                          dispatch =
+
+    seq[decideIfUploadableByTypeCount medias]
+    |> Seq.append [decideIfRightFormat medias]
+    |> Seq.filter (fun msgs ->
+        match msgs with
+        | Some _ -> true
+        | None -> false)
+    |> function
+        | res when ( res |> Seq.length = 0 ) ->
+            seq[str ""] |> ( NewAdd.Types.NewAddInfoMsg >> dispatch )
+        | res ->
+            res
+            |> Seq.collect (fun msgs -> msgs.Value)
+            |> ( NewAdd.Types.NewAddInfoMsg >> dispatch )
+  
+
+let isUploadable ( model : NewAdd.Types.Model )
+                   dispatch =
     match model.NewInstructionData with
     | Some res ->
-        decideIfUploadableByTypeCount res
+        decideIfUploadValid res model dispatch
     | None ->
-        true
+        seq[str "לא היה הבחרת קביצה"]
+        |> ( NewAdd.Types.NewAddInfoMsg >> dispatch )
 
 let uploadButton model dispatch =
     Html.div[
@@ -165,7 +211,7 @@ let uploadButton model dispatch =
                 prop.children[
                     Html.button[
                         prop.className "button is-light"
-                        prop.disabled (isUploadable model dispatch)
+                        prop.onClick (fun _ -> isUploadable model dispatch)
                         prop.children[
                             str "Upload files"
                         ]

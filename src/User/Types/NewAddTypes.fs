@@ -7,13 +7,14 @@ open Types
 open Data
 open Browser
 open Browser.Blob
+open Fable.React
 
 type MediaChoiceFormData =
     | Video of Types.File
     | InstructionTxt of Types.File
 
 type Msg =
-    | NewAddInfoMsg of string
+    | NewAddInfoMsg of seq<ReactElement>
     | CreateNewDataMsg of Result<seq<MediaChoiceFormData>,string>
     | NewInstructionIdMsg of string
     | PostInstruction of seq<MediaChoiceFormData>
@@ -26,7 +27,7 @@ type SearchResult =
 type Model =
     {
        NewInstructionData : Option<seq<MediaChoiceFormData>>
-       NewAddMessages : string
+       NewAddMessages : seq<ReactElement>
        NewInstructionId : Option<string>
        LoadIcon : AppearanceAttributes
        VideosUploadInput : AppearanceAttributes
