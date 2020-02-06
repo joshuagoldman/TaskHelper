@@ -8,6 +8,7 @@ open Data
 open Browser
 open Browser.Blob
 open Fable.React
+open Feliz
 
 type MediaChoiceFormData =
     | Video of Types.File
@@ -19,6 +20,7 @@ type Msg =
     | NewInstructionIdMsg of string
     | PostInstruction of seq<MediaChoiceFormData>
     | NewFilesChosenMsg of seq<MediaChoiceFormData> * string
+    | ProgressBarVisibleMsg of IStyleAttribute
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
@@ -32,5 +34,6 @@ type Model =
        LoadIcon : AppearanceAttributes
        VideosUploadInput : AppearanceAttributes
        InstructionTxtUploadInput : AppearanceAttributes
+       Progressbar : AppearanceAttributes
     }
 

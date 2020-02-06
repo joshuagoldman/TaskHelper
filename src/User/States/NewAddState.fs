@@ -7,15 +7,19 @@ open Part
 open Data
 open NewAdd.Types
 open User
+open Fable.React
+open Feliz
 
 let init () : Model * Cmd<Msg> =
     {
        NewInstructionData =  None
-       NewAddMessages = ""
+       NewAddMessages = seq[str ""]
        LoadIcon = defaultAppearanceAttributes
        NewInstructionId = None
        VideosUploadInput = defaultAppearanceAttributes
        InstructionTxtUploadInput = defaultAppearanceAttributes
+       Progressbar =
+        { defaultAppearanceAttributes with Visible = style.visibility.hidden } 
     }, []
 
 
@@ -24,7 +28,12 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     | CreateNewDataMsg ( Ok data ) ->
         model,
         Cmd.batch(
-           Logic.saveUserData data 
+           style.visibility.visible |>
+           ( NewAdd.Types.ProgressBarVisibleMsg >>
+             User.Types.NewAddMsg )
+           |> Cmd.ofMsg
+           |> fun x -> seq[x]
+           |> Seq.append (Logic.saveUserData data )
         )
     | NewAddInfoMsg reactMessage ->
         { model with  NewAddMessages = reactMessage }, []
@@ -35,3 +44,14 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     | NewFilesChosenMsg (files,type') ->
         { model with NewInstructionData =
                         (User.Logic.extractMedia model.NewInstructionData files type' |> Some)}, []
+    | ProgressBarVisibleMsg visibility ->
+        let newVisibility =
+            visibility
+            |> function
+               | res when res = style.visibility.visible ->
+                   style.visibility.hidden
+               | _ ->
+                   style.visibility.visible 
+            
+        { model with Progressbar =
+                        { model.Progressbar with Visible = newVisibility } }, []
