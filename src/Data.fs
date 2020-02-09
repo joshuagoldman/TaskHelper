@@ -108,6 +108,14 @@ type Deferred<'t> =
     | InProgress
     | Resolved of 't
 
+type SaveDataProgress<'t> =
+    | SavingHasNostStartedYet of 't 
+    | SavingInProgress of 't
+
+type AsyncOperationSavingStatus<'t> =
+    | SavingWillBegin of 't 
+    | SavingOnGoing of 't
+
 type AsyncOperationEvent<'t> =
     | Started 
     | Finished of 't

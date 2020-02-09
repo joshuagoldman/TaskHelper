@@ -79,7 +79,7 @@ let infoText ( model : NewAdd.Types.Model ) dispatch name =
         )
     ]
 
-let uploadTriplet model dispatch name =
+let uploadDuet model dispatch name =
     seq[
         Html.div[
             prop.className "columns is-centered"
@@ -113,16 +113,16 @@ let info ( model : NewAdd.Types.Model ) =
         )
     ]
 
-let progressBar ( model : NewAdd.Types.Model ) dispatch =
-    Html.progress[
-        prop.className "progress is-primary"
+let spinner ( model : NewAdd.Types.Model ) =
+    Html.div[
+        prop.className "columns is-centered"
         prop.style[
-            model.Progressbar.Visible
+            style.marginTop 20
         ]
-        prop.value 15
-        prop.max 100
         prop.children[
-            str "15"
+            Html.i[
+                prop.className "fa fa-cog fa-spin fa-2x"
+            ]
         ]
     ]
 
@@ -147,15 +147,14 @@ let uploadButton model dispatch =
                 ]
             ]
             info model
-            progressBar model dispatch
         ]
     ]
 
 let root model dispatch =
     Html.div[
         prop.children(
-            uploadTriplet model dispatch "instructions"
-            |> Seq.append (uploadTriplet model dispatch "videos")
+            uploadDuet model dispatch "instructions"
+            |> Seq.append (uploadDuet model dispatch "videos")
             |> Seq.append [ uploadButton model dispatch ]
         )
             

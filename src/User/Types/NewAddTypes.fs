@@ -10,17 +10,22 @@ open Browser.Blob
 open Fable.React
 open Feliz
 
+type IsUploading =
+| Yes of ReactElement
+| No of ReactElement
+
 type MediaChoiceFormData =
-    | Video of Types.File
-    | InstructionTxt of Types.File
+    | Video of Types.File * IsUploading
+    | InstructionTxt of Types.File * IsUploading
 
 type Msg =
     | NewAddInfoMsg of seq<ReactElement>
-    | CreateNewDataMsg of Result<seq<MediaChoiceFormData>,string>
+    | CreateNewDataMsg of AsyncOperationSavingStatus<SaveDataProgress<MediaChoiceFormData>>
     | NewInstructionIdMsg of string
     | PostInstruction of seq<MediaChoiceFormData>
     | NewFilesChosenMsg of seq<MediaChoiceFormData> * string
-    | ProgressBarVisibleMsg of IStyleAttribute
+    | SpinnerVisibleMsg of IStyleAttribute
+    | ChangeFileStatus of MediaChoiceFormData * IsUploading
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
@@ -34,6 +39,5 @@ type Model =
        LoadIcon : AppearanceAttributes
        VideosUploadInput : AppearanceAttributes
        InstructionTxtUploadInput : AppearanceAttributes
-       Progressbar : AppearanceAttributes
     }
 

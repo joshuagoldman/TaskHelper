@@ -23,10 +23,23 @@ open Feliz
 
 let divWithStyle msg properties =
     Html.div[
+        prop.className "column"
         properties
         prop.children[
             Html.br[]
             str msg
+        ]
+    ]
+
+let spinner =
+    Html.div[
+        prop.className "column"
+        prop.style[
+        ]
+        prop.children[
+            Html.i[
+                prop.className "fa fa-cog fa-spin fa-2x"
+            ]
         ]
     ]
 
@@ -228,43 +241,6 @@ let postInstructionToDatabase ( status : Result<Data.InstructionData,string> ) i
         |> NewAdd.Types.NewAddInfoMsg
         |> Cmd.ofMsg
 
-let saveInto (info : {| Data : FormData ; CntType : string ; Path : string ; Name : string |}) = async{
-        console.log("starting to post")
-        let! response = 
-            Http.request ("http://localhost:8081/" + info.Path)
-            |> Http.method POST
-            |> Http.content (BodyContent.Form info.Data)
-            |> Http.header (Headers.contentType info.CntType)
-            |> Http.send
-
-        console.log("post ended")
-
-        match response.statusCode with
-        | 200 ->
-            return (
-                   divWithStyle
-                        ("file" + info.Name + " was succesfully loaded")
-                         ( prop.style[ style.color.green ; style.fontWeight.bold ] )
-                   |> fun x -> seq[x]
-                   |> NewAdd.Types.NewAddInfoMsg
-                   |> Error
-                
-            )
-        | _ ->
-            return (
-                seq[
-                    divWithStyle
-                        ("file " + info.Name + "failed with status code: ")
-                         ( prop.style[ style.color.green ; style.fontWeight.bold ] )
-                    divWithStyle
-                        ( response.statusCode |> string )
-                        ( prop.style[ style.color.orangeRed ; style.fontWeight.bold ] )
-                ]
-                |> NewAdd.Types.NewAddInfoMsg
-                |> Ok
-            )
-    }
-
 let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) idString =
 
 
@@ -279,11 +255,11 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
         files
         |> Seq.iter (fun mediaContent ->
                             match mediaContent with
-                            | NewAdd.Types.Video f ->
-                                Seq.append videosSequence [f]
+                            | NewAdd.Types.Video (vid,_) ->
+                                Seq.append videosSequence [vid]
                                 |> ignore
-                            | NewAdd.Types.InstructionTxt f ->
-                                Seq.append instructionSequence [f]
+                            | NewAdd.Types.InstructionTxt (instrctn,_) ->
+                                Seq.append instructionSequence [instrctn]
                                 |> ignore)
 
 
@@ -305,72 +281,77 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
                     |> Seq.map (fun msg -> Cmd.ofMsg msg)
                     |> Cmd.batch
 
-let checkfileTypeAndSave ( file : Types.File ) root =
-    let fileInfo =
-        {|
-            Data = (FormData.Create() |> fun frmData -> ("resume",file)
-                                                        |> frmData.append
-                                                        |> fun _ -> frmData)
-            CntType = file.``type``
-            Path = ( root + file.name )
-            Name = file.name
-        |}
+let saveAsync ( fileInfo : (Types.File * string) )
+              ( media : NewAdd.Types.MediaChoiceFormData ) = async{
+    let file = fileInfo |> fun (x,_) -> x
 
-    console.log (fileInfo)
-    saveInto fileInfo
-    |> Async.RunSynchronously
-    |> fun res ->
-        match res with
-        | Ok msg ->
-            msg
-            |> User.Types.NewAddMsg
-            |> fun x ->
-                Cmd.batch[
-                    Cmd.ofMsg x
-                ]
-                |> Ok 
-                    
-        | Error msg ->
-            msg
-            |> User.Types.NewAddMsg
-            |> fun x ->
-                Cmd.batch[
-                    Cmd.ofMsg x
-                    ]
-                |> Error
+    let root = fileInfo |> fun (_,x) -> x
 
-let saveUserData file =
-    let addPostMessageIfSuccess res =
-        match res with
-        | Ok msg ->
-              Cmd.batch[
-                  msg
-                  Cmd.ofMsg(
-                      file
-                      |> (NewAdd.Types.PostInstruction >>
-                          User.Types.NewAddMsg)
-                  )
-                ]
-        | Error msg ->
-            Cmd.batch[
-                msg
-              ]
+    console.log(root)
+    console.log("starting to post")
+    let! response =
+        Http.request ("http://localhost:8081/" + root)
+        |> Http.method POST
+        |> Http.content (BodyContent.Binary file)
+        |> Http.send
 
-    let formDtExtract =
-        file
-        |> Seq.map (fun data ->
-            match data with
-            | NewAdd.Types.Video videoFormData ->
-                    console.log (videoFormData)
-                    checkfileTypeAndSave videoFormData "Videos/"
-                    |> addPostMessageIfSuccess
-                                        
-            | NewAdd.Types.InstructionTxt instructionFormData ->
-                    console.log (instructionFormData)
-                    checkfileTypeAndSave instructionFormData "/videos"
-                    |> addPostMessageIfSuccess )
+    console.log("post ended")
 
-    formDtExtract
+    match response.statusCode with
+    | 200 ->
+        return (
+            divWithStyle
+                ("file was succesfully loaded")
+                ( prop.style[ style.color.green ; style.fontWeight.bold ] )
+            |> fun x -> (media, NewAdd.Types.IsUploading.No(x))
+                        |> ( NewAdd.Types.ChangeFileStatus >> User.Types.NewAddMsg )
+            
+        )
+    | _ ->
+        return (
+                divWithStyle
+                    ("file failed with status code: " +
+                     ( response.statusCode |> string ))
+                     ( prop.style[ style.color.red ; style.fontWeight.bold ] )
+                |> fun x -> (media, NewAdd.Types.IsUploading.No(x))
+                            |> ( NewAdd.Types.ChangeFileStatus >> User.Types.NewAddMsg )
+        )
+}
+
+let matchMediaBeforeSave media =
+    let fileSavingInfo =
+        match media with
+        | NewAdd.Types.Video (vid,_) ->
+            (vid, "/Videos/")
+        | NewAdd.Types.InstructionTxt (instrctn,_) ->
+            (instrctn,"/Instructions/")
+
+    saveAsync fileSavingInfo media
+
+let saveUserData ( status : SaveDataProgress<NewAdd.Types.MediaChoiceFormData> ) =
+    match status with 
+    | SavingHasNostStartedYet media ->
+        let msg =
+            divWithStyle
+                "File is uploading"
+                (prop.style[style.color.black ; style.fontWeight.bold] )
+        (media,NewAdd.Types.IsUploading.Yes(msg))
+        |> ( NewAdd.Types.ChangeFileStatus >> User.Types.NewAddMsg )
+        |> fun x ->
+            seq[
+                x
+                media |> ( SavingInProgress >>
+                           SavingOnGoing >>
+                           NewAdd.Types.CreateNewDataMsg >>
+                           User.Types.NewAddMsg)
+            ]
+            |> Seq.map (fun msg -> msg |> Cmd.ofMsg )
+
+    | SavingInProgress media ->
+        matchMediaBeforeSave media
+        |> Cmd.fromAsync
+        |> fun x -> seq[x]
+
 
 let loadUserItems = async {
     do! Async.Sleep 3000
@@ -481,16 +462,58 @@ let chooseMediaByName name file =
     name
     |> function
         | res when res = "videos" ->
-            NewAdd.Types.Video file
+            NewAdd.Types.Video (file,NewAdd.Types.IsUploading.No Html.none)
         | res when res = "instructions" ->
-            NewAdd.Types.InstructionTxt file
-        | _ -> NewAdd.Types.Video file
+            NewAdd.Types.InstructionTxt (file,NewAdd.Types.IsUploading.No Html.none)
+        | _ -> NewAdd.Types.Video (file,NewAdd.Types.IsUploading.No Html.none)
 
-let extractFile file =
+let isuploading result =
+    match result with
+    | NewAdd.Types.IsUploading.Yes msg ->
+        seq[
+            spinner
+            msg
+        ]
+    | NewAdd.Types.IsUploading.No msg ->
+        msg
+        |> fun x -> seq[x]
+        
+
+let filenameWStatus file =
     match file with
-    | NewAdd.Types.Video vid ->
-        vid.name
-    | NewAdd.Types.InstructionTxt instrctn -> instrctn.name
+    | NewAdd.Types.Video (vid,status) ->
+        Html.div[
+            prop.className "columns is-centered"
+            prop.children(
+               isuploading status
+               |> Seq.append(
+                Html.div[
+                    prop.className "column"
+                    prop.children[
+                        str vid.name
+                    ]
+                ]
+                |> fun x -> seq[x]
+               )
+            )
+        ]
+
+    | NewAdd.Types.InstructionTxt (instrctn,status) -> 
+        Html.div[
+            prop.className "columns is-centered"
+            prop.children(
+               isuploading status
+               |> Seq.append(
+                Html.div[
+                    prop.className "column"
+                    prop.children[
+                        str instrctn.name
+                    ]
+                ]
+                |> fun x -> seq[x]
+               )
+            )
+        ]
 
 let extractFileNames files name =
     files
@@ -499,14 +522,13 @@ let extractFileNames files name =
         |> function
             | res when res = "videos" ->
                 match media with
-                | NewAdd.Types.Video _ -> true
-                | NewAdd.Types.InstructionTxt _ -> false
+                | NewAdd.Types.Video (_,_) -> true
+                | NewAdd.Types.InstructionTxt (_,_) -> false
             | _ ->
                 match media with
-                | NewAdd.Types.Video _ -> false
-                | NewAdd.Types.InstructionTxt _-> true)
-    |> Seq.collect (fun file ->
-        Seq.append [str (extractFile file)] [Html.br[] ; Html.br[]])
+                | NewAdd.Types.Video (_,_) -> false
+                | NewAdd.Types.InstructionTxt (_,_) -> true)
+    |> Seq.map (fun file -> filenameWStatus file)
     |> fun elements ->
         Seq.append [ str "Files chosen are:" ; Html.br[] ; Html.br[]] elements   
 
@@ -515,7 +537,22 @@ let currFilesInfo ( filesOption : Option<seq<NewAdd.Types.MediaChoiceFormData>> 
 
     match filesOption with
     | Some files ->
-        extractFileNames files name
+        files
+        |> Seq.filter (fun media ->
+            name
+            |> function
+                | res when res = "videos" ->
+                    match media with
+                    | NewAdd.Types.Video (_,_) -> true
+                    | NewAdd.Types.InstructionTxt (_,_) -> false
+                | _ ->
+                    match media with
+                    | NewAdd.Types.Video (_,_) -> false
+                    | NewAdd.Types.InstructionTxt (_,_) -> true)
+        |> function
+            | res when (res |> Seq.length) = 0 ->
+                seq[Html.div[prop.children[str "No files chosen"]]]
+            | _ -> extractFileNames files name
     | None -> seq[Html.div[prop.children[str "No files chosen"]]]
 
 let infoText ( model : NewAdd.Types.Model ) dispatch name =
@@ -566,13 +603,13 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
     medias
     |> Seq.filter (fun media ->
         match media with
-        | NewAdd.Types.Video vid ->
+        | NewAdd.Types.Video (vid,_) ->
             vid.``type`` <> "video/mpeg" &&
             vid.``type`` <> "video/ogg" &&
             vid.``type`` <> "video/mp4" &&
             vid.``type`` <> "video/avi"
 
-        | NewAdd.Types.InstructionTxt instrctn ->
+        | NewAdd.Types.InstructionTxt (instrctn,_) ->
             instrctn.``type`` <> "text/plain")
     |> function
         | res when ( res |> Seq.length ) = 0 ->
@@ -588,14 +625,14 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                 res
                 |> Seq.map (fun media ->
                     match media with
-                    | NewAdd.Types.Video vid ->
+                    | NewAdd.Types.Video (vid,_) ->
                         seq[
                             divWithStyle
                                 vid.name
                                 (prop.style[style.color.indianRed ; style.fontWeight.bold] )
                         ]
 
-                    | NewAdd.Types.InstructionTxt instrctn ->
+                    | NewAdd.Types.InstructionTxt (instrctn,_) ->
                         seq[
                             divWithStyle
                                 instrctn.name
@@ -630,9 +667,9 @@ let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormDat
     medias
     |> Seq.iter (fun media ->
         match media with
-        | NewAdd.Types.Video vid ->
+        | NewAdd.Types.Video (vid,_) ->
             videos <- videos |> Seq.append [vid]
-        | NewAdd.Types.InstructionTxt instrctn ->
+        | NewAdd.Types.InstructionTxt (instrctn,_) ->
             instructions <- instructions |> Seq.append [instrctn])
 
     ()
@@ -665,11 +702,13 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                     (prop.style[style.color.indianRed ; style.fontWeight.bold])
             ]
             |> NewAdd.Types.NewAddInfoMsg
-            |> fun x -> seq[
-                            x
-                            (Ok medias |> NewAdd.Types.CreateNewDataMsg)
-                        ]
-                        |> Seq.iter (fun msg -> (msg |> dispatch))
+            |> fun x -> (medias
+                         |> Seq.map (fun media -> media |> 
+                                                   (SavingHasNostStartedYet >>
+                                                    SavingWillBegin >>
+                                                    NewAdd.Types.CreateNewDataMsg))
+                        |> fun y -> Seq.append [x] y
+                        |> Seq.iter (fun msg -> (msg |> dispatch)))
                         
         | res ->
             res
@@ -681,7 +720,17 @@ let isUploadable ( model : NewAdd.Types.Model )
                    dispatch =
     match model.NewInstructionData with
     | Some res ->
-        decideIfUploadValid res model dispatch
+        res
+        |> function
+            | _ when res |> Seq.length = 0 ->
+                seq[
+                    divWithStyle
+                        "לא היה הבחרת קביצה"
+                        (prop.style[style.color.indianRed ; style.fontWeight.bold])
+                ]
+                |> ( NewAdd.Types.NewAddInfoMsg >> dispatch )
+            | _ ->
+                decideIfUploadValid res model dispatch
     | None ->
         seq[
             divWithStyle
@@ -689,3 +738,54 @@ let isUploadable ( model : NewAdd.Types.Model )
                 (prop.style[style.color.indianRed ; style.fontWeight.bold])
         ]
         |> ( NewAdd.Types.NewAddInfoMsg >> dispatch )
+
+let changeFileStatus ( model : NewAdd.Types.Model ) media newStatus =
+            
+    let info =
+        match media with
+        | NewAdd.Types.Video (file,_) ->
+            (NewAdd.Types.Video(file, newStatus),file)  
+        | NewAdd.Types.InstructionTxt (file,_) ->
+            (NewAdd.Types.InstructionTxt(file, newStatus),file)
+
+    let fileName = info |> fun (_,x) -> x.name
+    let media = info |> fun (x,_) -> x
+    console.log("before")
+    console.log(media)
+
+
+    match model.NewInstructionData with
+    | Some data ->
+        data
+        |> fun x -> Seq.zip x [0..x |> Seq.length |> fun y -> y - 1]
+        |> Seq.tryFind (fun (mediaComp,_) ->
+            match mediaComp with
+            | NewAdd.Types.Video (file,_) ->
+                file.name = fileName 
+            | NewAdd.Types.InstructionTxt (file,_) ->
+                file.name = fileName)
+        |> function
+            | res when res <> None ->
+                res.Value
+                |> fun (_,pos) ->
+                    let dataAsArr = data |> Seq.toArray
+                    let lastPos = dataAsArr.Length - 1
+                    let newData =
+                        dataAsArr
+                        |> function
+                            | res when res.Length = 1 ->
+                                seq[media]
+                            | _ when pos = 0 ->
+                                Array.append [|media|] dataAsArr.[1..lastPos]
+                                |> Array.toSeq
+                            | _ when pos = lastPos ->
+                                Array.append dataAsArr.[0..lastPos - 1] [|media|]
+                                |> Array.toSeq
+                            | _ ->
+                                Array.append dataAsArr.[0..pos - 1] [|media|]
+                                |> Array.append dataAsArr.[pos + 1..lastPos]
+                                |> Array.toSeq
+                    { model with NewInstructionData = Some newData}, []
+            | _ -> model, []
+
+    | _ -> model, []

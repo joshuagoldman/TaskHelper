@@ -18,23 +18,22 @@ let init () : Model * Cmd<Msg> =
        NewInstructionId = None
        VideosUploadInput = defaultAppearanceAttributes
        InstructionTxtUploadInput = defaultAppearanceAttributes
-       Progressbar =
-        { defaultAppearanceAttributes with Visible = style.visibility.hidden } 
     }, []
-
 
 let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     match msg with
-    | CreateNewDataMsg ( Ok data ) ->
+    | CreateNewDataMsg(SavingWillBegin(status)) ->
         model,
-        Cmd.batch(
-           style.visibility.visible |>
-           ( NewAdd.Types.ProgressBarVisibleMsg >>
-             User.Types.NewAddMsg )
-           |> Cmd.ofMsg
-           |> fun x -> seq[x]
-           |> Seq.append (Logic.saveUserData data )
-        )
+            Cmd.batch(
+                Logic.saveUserData status
+            )    
+
+    | CreateNewDataMsg(SavingOnGoing(status)) ->
+        model,
+            Cmd.batch(
+                Logic.saveUserData status
+            )    
+
     | NewAddInfoMsg reactMessage ->
         { model with  NewAddMessages = reactMessage }, []
     | NewInstructionIdMsg str ->
@@ -44,14 +43,7 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     | NewFilesChosenMsg (files,type') ->
         { model with NewInstructionData =
                         (User.Logic.extractMedia model.NewInstructionData files type' |> Some)}, []
-    | ProgressBarVisibleMsg visibility ->
-        let newVisibility =
-            visibility
-            |> function
-               | res when res = style.visibility.visible ->
-                   style.visibility.hidden
-               | _ ->
-                   style.visibility.visible 
-            
-        { model with Progressbar =
-                        { model.Progressbar with Visible = newVisibility } }, []
+    | ChangeFileStatus (media,newStatus) ->
+        Logic.changeFileStatus model media newStatus
+
+       
