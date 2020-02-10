@@ -13,6 +13,7 @@ open Feliz
 type IsUploading =
 | Yes of ReactElement
 | No of ReactElement
+| YesSuceeded of ReactElement
 
 type MediaChoiceFormData =
     | Video of Types.File * IsUploading
@@ -20,7 +21,9 @@ type MediaChoiceFormData =
 
 type Msg =
     | NewAddInfoMsg of seq<ReactElement>
-    | CreateNewDataMsg of AsyncOperationSavingStatus<SaveDataProgress<MediaChoiceFormData>>
+    | CreateNewDataMsg of
+        AsyncOperationSavingStatus<SaveDataProgress<(MediaChoiceFormData * string)
+            ,option<seq<MediaChoiceFormData>>>>
     | NewInstructionIdMsg of string
     | PostInstruction of seq<MediaChoiceFormData>
     | NewFilesChosenMsg of seq<MediaChoiceFormData> * string

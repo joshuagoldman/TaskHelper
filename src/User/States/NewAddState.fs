@@ -9,6 +9,8 @@ open NewAdd.Types
 open User
 open Fable.React
 open Feliz
+open Fable.Core
+open Browser
 
 let init () : Model * Cmd<Msg> =
     {
@@ -32,7 +34,23 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
         model,
             Cmd.batch(
                 Logic.saveUserData status
-            )    
+                |> Seq.append(
+                    seq[
+                        (model.NewInstructionData |>
+                         ( SavingResolved >>
+                           SavingFinished >>
+                           NewAdd.Types.CreateNewDataMsg >>
+                           User.Types.NewAddMsg))
+                        |> Cmd.ofMsg
+                     ]
+                )
+                    
+            )
+    | CreateNewDataMsg(SavingFinished(status)) ->
+        model,
+            Cmd.batch(
+                Logic.saveUserData status
+            )
 
     | NewAddInfoMsg reactMessage ->
         { model with  NewAddMessages = reactMessage }, []

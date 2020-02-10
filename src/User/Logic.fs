@@ -35,6 +35,7 @@ let spinner =
     Html.div[
         prop.className "column"
         prop.style[
+            style.marginTop 15
         ]
         prop.children[
             Html.i[
@@ -282,17 +283,38 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
                     |> Cmd.batch
 
 let saveAsync ( fileInfo : (Types.File * string) )
-              ( media : NewAdd.Types.MediaChoiceFormData ) = async{
-    let file = fileInfo |> fun (x,_) -> x
+              ( media : NewAdd.Types.MediaChoiceFormData )
+              ( id : string ) = async{
+    let file = fileInfo
+                       |> fun (x,_) -> x
 
     let root = fileInfo |> fun (_,x) -> x
 
-    console.log(root)
+    let fileNameFirstPart =
+        file.name
+        |> fun str -> str.Substring(0, str.LastIndexOf(".")) + id
+   
+    let fileNameSecPart =
+        file.name
+        |> fun str -> str.Substring(str.LastIndexOf("."))
+
+    console.log(fileNameSecPart)
+    let fileName = fileNameFirstPart + fileNameSecPart
+
+    let fData =
+        FormData.Create()
+
+    fData.append("fname", fileName)
+    fData.append("data", file)
+
+    console.log(fData)
     console.log("starting to post")
+
     let! response =
         Http.request ("http://localhost:8081/" + root)
         |> Http.method POST
-        |> Http.content (BodyContent.Binary file)
+        |> Http.content (BodyContent.Form fData)
+        |> Http.header (Headers.contentType file.``type``)
         |> Http.send
 
     console.log("post ended")
@@ -318,7 +340,7 @@ let saveAsync ( fileInfo : (Types.File * string) )
         )
 }
 
-let matchMediaBeforeSave media =
+let matchMediaBeforeSave media id =
     let fileSavingInfo =
         match media with
         | NewAdd.Types.Video (vid,_) ->
@@ -326,11 +348,14 @@ let matchMediaBeforeSave media =
         | NewAdd.Types.InstructionTxt (instrctn,_) ->
             (instrctn,"/Instructions/")
 
-    saveAsync fileSavingInfo media
+    saveAsync fileSavingInfo media id
 
-let saveUserData ( status : SaveDataProgress<NewAdd.Types.MediaChoiceFormData> ) =
+let saveUserData
+        ( status : SaveDataProgress<NewAdd.Types.MediaChoiceFormData * string,
+                                            option<seq<NewAdd.Types.MediaChoiceFormData>>> ) =
     match status with 
-    | SavingHasNostStartedYet media ->
+    | SavingHasNostStartedYet (media,id) ->
+        console.log(media,id)
         let msg =
             divWithStyle
                 "File is uploading"
@@ -340,17 +365,48 @@ let saveUserData ( status : SaveDataProgress<NewAdd.Types.MediaChoiceFormData> )
         |> fun x ->
             seq[
                 x
-                media |> ( SavingInProgress >>
+                (media, id) |> ( SavingInProgress >>
                            SavingOnGoing >>
                            NewAdd.Types.CreateNewDataMsg >>
                            User.Types.NewAddMsg)
             ]
             |> Seq.map (fun msg -> msg |> Cmd.ofMsg )
 
-    | SavingInProgress media ->
-        matchMediaBeforeSave media
+    | SavingInProgress (media,id) ->
+        console.log("file is now about to be saved")
+        matchMediaBeforeSave media id
         |> Cmd.fromAsync
         |> fun x -> seq[x]
+
+    | SavingResolved mediasOpt ->
+        match mediasOpt with
+        | Some medias ->
+            let isUploadFinished =
+                medias
+                |> Seq.map (fun media ->
+                        match media with
+                        | NewAdd.Types.Video (_,uploadStatus) ->
+                            uploadStatus
+                        | NewAdd.Types.InstructionTxt (_,uploadStatus) ->
+                            uploadStatus
+                    )
+                |> Seq.forall (fun uploadStatus ->
+                    match uploadStatus with
+                    | NewAdd.Types.IsUploading.Yes _ -> false
+                    | NewAdd.Types.IsUploading.No _ -> false
+                    | NewAdd.Types.IsUploading.YesSuceeded _ -> true)
+            ()
+            |> function
+                | _ when isUploadFinished = true ->
+                    medias |>
+                    ( NewAdd.Types.PostInstruction >> User.Types.NewAddMsg)
+                    |> Cmd.ofMsg
+                    |> fun x -> seq[x]
+                | _ ->
+                    seq[Cmd.Empty]
+
+                    
+        | None -> seq[Cmd.Empty]
 
 
 let loadUserItems = async {
@@ -490,7 +546,9 @@ let filenameWStatus file =
                 Html.div[
                     prop.className "column"
                     prop.children[
-                        str vid.name
+                        divWithStyle
+                            vid.name
+                            (prop.style[style.color.black ; style.fontWeight.bold])
                     ]
                 ]
                 |> fun x -> seq[x]
@@ -507,7 +565,9 @@ let filenameWStatus file =
                 Html.div[
                     prop.className "column"
                     prop.children[
-                        str instrctn.name
+                        divWithStyle
+                            instrctn.name
+                            (prop.style[style.color.black ; style.fontWeight.bold])
                     ]
                 ]
                 |> fun x -> seq[x]
@@ -702,13 +762,16 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                     (prop.style[style.color.indianRed ; style.fontWeight.bold])
             ]
             |> NewAdd.Types.NewAddInfoMsg
-            |> fun x -> (medias
-                         |> Seq.map (fun media -> media |> 
-                                                   (SavingHasNostStartedYet >>
-                                                    SavingWillBegin >>
-                                                    NewAdd.Types.CreateNewDataMsg))
-                        |> fun y -> Seq.append [x] y
-                        |> Seq.iter (fun msg -> (msg |> dispatch)))
+            |> fun x ->
+                medias
+                |> Seq.map (fun media ->
+                        (media,model.NewInstructionId.Value)
+                         |> (SavingHasNostStartedYet >>
+                             SavingWillBegin >>
+                             NewAdd.Types.CreateNewDataMsg)
+                )
+                |> fun y -> Seq.append [x] y
+                |> Seq.iter (fun msg -> (msg |> dispatch))
                         
         | res ->
             res
@@ -722,14 +785,29 @@ let isUploadable ( model : NewAdd.Types.Model )
     | Some res ->
         res
         |> function
-            | _ when res |> Seq.length = 0 ->
+            | _ when res |> Seq.length = 0 && model.NewInstructionId = None ->
                 seq[
                     divWithStyle
-                        "לא היה הבחרת קביצה"
+                        "לא היה הבחרת קביצה, ומספר זהות לא קיימת"
                         (prop.style[style.color.indianRed ; style.fontWeight.bold])
                 ]
                 |> ( NewAdd.Types.NewAddInfoMsg >> dispatch )
-            | _ ->
+            | _ when res |> Seq.length = 0 ->
+                seq[
+                    divWithStyle
+                        ("לא היה הבחרת קביצה")
+                        (prop.style[style.color.indianRed ; style.fontWeight.bold])
+                ]
+                |> ( NewAdd.Types.NewAddInfoMsg >> dispatch )
+            | _ when model.NewInstructionId = None ->
+                seq[
+                    divWithStyle
+                        "מספר זהות לא קיימת"
+                        (prop.style[style.color.indianRed ; style.fontWeight.bold])
+                ]
+                |> ( NewAdd.Types.NewAddInfoMsg >> dispatch )
+            | _  ->
+                console.log( model.NewInstructionId.Value)
                 decideIfUploadValid res model dispatch
     | None ->
         seq[
