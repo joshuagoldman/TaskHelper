@@ -11,6 +11,7 @@ open Fable.React
 open Browser
 open Thoth.Json
 open Logic
+open Feliz
 
 let urlUpdate (result : UserPage option) model =
     match result with
@@ -18,7 +19,6 @@ let urlUpdate (result : UserPage option) model =
         console.error("Error parsing url")
         model, Navigation.modifyUrl (toHashUser model.CurrentPage)
     | Some page ->
-        console.log((toHashUser page))
         { model with CurrentPage = page }, []
 
 let init() : Model * Cmd<Msg> =
@@ -36,6 +36,8 @@ let init() : Model * Cmd<Msg> =
         UserData = Data.HasNostStartedYet
         NewAdd = NewAdd.State.init() |> fun(a,_) -> a
         Instruction = Instruction.State.init() |> fun (a,b) -> a
+        LoginSpinner =
+            { Controls.defaultAppearanceAttributes with Visible = style.visibility.hidden }
     }, []
 
 let matchValidity validityObject =
@@ -56,13 +58,24 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with UserData = Resolved ( Error error)}, Cmd.batch
                                                                 (Logic.getUserDataUpdate
                                                                             (Resolved ( Error error))
-                                                                |> Seq.map (fun msg -> Cmd.ofMsg msg))
+                                                                |> Seq.map (fun msg -> Cmd.ofMsg msg)
+                                                                |> Seq.append(
+                                                                    style.visibility.hidden
+                                                                    |> ( LoginSpinnerMsg >> Cmd.ofMsg)
+                                                                    |> fun x -> seq[x]
+                                                                   ))
     | LoadedInstructions (Finished (Ok items)) ->
-        { model with UserData = Resolved ( Ok items)}, Cmd.batch
-                                                            (Logic.getUserDataUpdate (Resolved ( Ok items))
-                                                            |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                                                            |> Seq.append [Cmd.ofMsg LoginSuceeded]
-                                                            |> Seq.append [ Logic.createNewInstructionId model.Id items])
+        model, Cmd.batch
+                    (Logic.getUserDataUpdate (Resolved ( Ok items))
+                    |> Seq.map (fun msg -> Cmd.ofMsg msg)
+                    |> Seq.append(
+                        seq[
+                            (style.visibility.hidden
+                            |> ( LoginSpinnerMsg >> Cmd.ofMsg))
+                            (items |> (sleepAndLogin >> Cmd.fromAsync))
+                        ]
+                    )
+                    |> Seq.append [ Logic.createNewInstructionId model.Id items])
                                                         
                                                             
                                                         
@@ -105,7 +118,12 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                           { model.UserFromLogin with Password =
                                                       validateLoginInfo passwrd } }, []
         newModel
-    | LoginSuceeded ->
-        { model with CurrentPage = UserPage.InstructionSearch}, []
+    | LoginSuceeded data ->
+        { model with CurrentPage = UserPage.InstructionSearch ;
+                     UserData = Resolved(Ok data)}, []
     | NewUserId id ->
         { model with Id = id }, []
+
+    | LoginSpinnerMsg visibility ->
+        { model with LoginSpinner =
+                        { model.LoginSpinner with Visible = visibility } }, []

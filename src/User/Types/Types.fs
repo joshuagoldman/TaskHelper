@@ -2,6 +2,8 @@ module User.Types
 
 open Global
 open Data
+open Controls
+open Feliz
 
 type Msg =
     | LoginAttemptMsg of string * string
@@ -14,9 +16,10 @@ type Msg =
     | LoginMessages of string
     | UserNameInputChangedMsg of string
     | PasswordInputChangedMsg of string
-    | LoginSuceeded
+    | LoginSuceeded of UserData
     | NewUserId of int
     | LoadInstructions of UserData
+    | LoginSpinnerMsg of IStyleAttribute
 type Model =
     {
       AllUsers : Data.Deferred<Result<seq<LoginInfo>, string>>
@@ -28,4 +31,5 @@ type Model =
       NewAdd : NewAdd.Types.Model
       UserData : Data.Deferred<Result<UserData, string>>
       Instruction: Instruction.Types.Model
+      LoginSpinner : AppearanceAttributes
     }

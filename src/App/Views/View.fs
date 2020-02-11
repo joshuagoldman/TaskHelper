@@ -6,6 +6,10 @@ open Elmish.Navigation
 open Elmish.UrlParser
 open App.Types
 open Global
+open Browser
+open Fable.SimpleHttp
+open Fable.SimpleHttp
+open Feliz.prop
 
 //Fable.Core.JsInterop.importAll "../sass/main.sass"
 
@@ -100,11 +104,12 @@ let logInRoot model dispatch =
         ]
 
 let root model dispatch =
-    match model.CurrentPage with
-    | User msg ->
-        User.View.root model.User ( UserMsg >>
-                                    dispatch)
-    | Login -> Login.View.root model dispatch
+    match model.User.UserData with
+    | Data.Deferred.Resolved (Ok _) ->
+            User.View.root model.User ( UserMsg >>
+                                        dispatch)
+    | _ ->
+        Login.View.root model dispatch
 
 open Elmish.React
 open Elmish.Debug

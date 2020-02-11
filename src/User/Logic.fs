@@ -21,6 +21,15 @@ open Elmish
 open Browser
 open Feliz
 
+let sleepAndLogin usrData =
+    async{
+        do! Async.Sleep 3000
+        return(
+            usrData
+            |> User.Types.LoginSuceeded
+        )
+    }
+
 let divWithStyle msg properties =
     Html.div[
         prop.className "column"
@@ -242,12 +251,28 @@ let postInstructionToDatabase ( status : Result<Data.InstructionData,string> ) i
         |> NewAdd.Types.NewAddInfoMsg
         |> Cmd.ofMsg
 
+let createNewFileName ( file : Types.File ) id =
+    let fileNameFirstPart =
+        file.name
+        |> fun str -> str.Substring(0, str.LastIndexOf(".")) + id
+   
+    let fileNameSecPart =
+        file.name
+        |> fun str -> str.Substring(str.LastIndexOf("."))
+
+    console.log(fileNameSecPart)
+    fileNameFirstPart + fileNameSecPart
+
 let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) idString =
 
 
     match idString with
     | None ->
-        seq[str ""] |> (NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)
+        divWithStyle
+                ("No instruction id has been given")
+                ( prop.style[ style.color.red ; style.fontWeight.bold ] )
+        |> fun x -> seq[x]
+        |> (NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)
         |> Cmd.ofMsg 
     | Some id ->
         let mutable videosSequence = seq[]
@@ -263,17 +288,16 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
                                 Seq.append instructionSequence [instrctn]
                                 |> ignore)
 
-
-        Seq.zip videosSequence instructionSequence
-        |> Seq.map (fun (video,txt) ->
+        Seq.zip3 videosSequence instructionSequence [0..videosSequence |> Seq.length |> fun x -> x - 1]
+        |> Seq.map (fun (video,txt,pos) ->
                     {
-                        Title = ""
-                        InstructionVideo = id + video.name
-                        InstructionTxt = id + txt.name
+                        Title = "No_title_given_" + (pos |> string)
+                        InstructionVideo = createNewFileName video id
+                        InstructionTxt =  createNewFileName txt id
                     })
         |> fun parts ->
                 {
-                    Title = ""
+                    Title = "No_title_given"
                     Data = parts
                 }
         |> Instruction.Types.NewInstruction2Show
@@ -290,24 +314,13 @@ let saveAsync ( fileInfo : (Types.File * string) )
 
     let root = fileInfo |> fun (_,x) -> x
 
-    let fileNameFirstPart =
-        file.name
-        |> fun str -> str.Substring(0, str.LastIndexOf(".")) + id
-   
-    let fileNameSecPart =
-        file.name
-        |> fun str -> str.Substring(str.LastIndexOf("."))
-
-    console.log(fileNameSecPart)
-    let fileName = fileNameFirstPart + fileNameSecPart
+    let fileName = createNewFileName file id
 
     let fData =
         FormData.Create()
 
     fData.append("fname", fileName)
     fData.append("data", file)
-
-    console.log(fData)
     console.log("starting to post")
 
     let! response =
@@ -325,7 +338,7 @@ let saveAsync ( fileInfo : (Types.File * string) )
             divWithStyle
                 ("file was succesfully loaded")
                 ( prop.style[ style.color.green ; style.fontWeight.bold ] )
-            |> fun x -> (media, NewAdd.Types.IsUploading.No(x))
+            |> fun x -> (media, NewAdd.Types.IsUploading.YesSuceeded(x))
                         |> ( NewAdd.Types.ChangeFileStatus >> User.Types.NewAddMsg )
             
         )
@@ -398,11 +411,13 @@ let saveUserData
             ()
             |> function
                 | _ when isUploadFinished = true ->
+                    console.log("all were success")
                     medias |>
                     ( NewAdd.Types.PostInstruction >> User.Types.NewAddMsg)
                     |> Cmd.ofMsg
                     |> fun x -> seq[x]
                 | _ ->
+                    console.log("not all were success")
                     seq[Cmd.Empty]
 
                     
@@ -461,13 +476,19 @@ let existOrNot compareVal result =
 let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<seq<LoginInfo>, string>> ) =
     match status with
     | HasNostStartedYet ->
-        seq[User.Types.LoadedUsers Started]
+        seq[
+            style.visibility.visible |> User.Types.LoginSpinnerMsg
+            User.Types.LoadedUsers Started
+        ]
         
         
     | InProgress ->
         seq["loading all users" |> User.Types.LoginMessages]
         
     | Resolved response ->
+        let spinnerMessage =
+            style.visibility.hidden |> LoginSpinnerMsg
+
         match response with
         | Ok result ->
 
@@ -489,13 +510,22 @@ let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<se
                                                                          User.Types.InstructionMsg)
                                         User.Types.LoadedInstructions Started
                                     ]
-                           | _ -> seq["Wrong password for the given user name" |> LoginMessages]
-                    | _ -> seq[ "The password provided is invalid" |> LoginMessages]
-               | _ -> seq["The user name provided is invalid" |> LoginMessages]
+                           | _ -> seq[
+                                    "Wrong password for the given user name" |> LoginMessages
+                                    spinnerMessage
+                                  ]
+                    | _ -> seq[
+                                "The password provided is invalid" |> LoginMessages
+                                spinnerMessage
+                            ]
+               | _ -> seq[
+                            "The user name provided is invalid" |> LoginMessages
+                            spinnerMessage
+                      ]
                         
                         
                         
-        | Error err -> seq[err|> User.Types.LoginMessages]
+        | Error err -> seq[err|> User.Types.LoginMessages ; spinnerMessage]
         
 
 let validateLoginInfo info =

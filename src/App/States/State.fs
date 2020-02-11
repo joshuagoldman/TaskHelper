@@ -21,16 +21,8 @@ let urlUpdate (result : Page option) model =
     | Some page ->
         match page with
         | Login ->
-            console.log("page changed to: ")
-            console.log((toHash page))
-            console.log("model is: ")
-            console.log(model)
             model, []
         | User userPage ->
-            console.log("Dis is urlUpdat (the main update function). the user page here is changed to: ")
-            console.log(toHashUser userPage)
-            console.log("model is: ")
-            console.log(model)
             let userPageOption = Some(userPage)
             let (user, _) = User.State.urlUpdate userPageOption model.User
             { model with CurrentPage = result.Value ;
@@ -77,6 +69,8 @@ let update msg model : Model * Cmd<App.Types.Msg> =
                  model,  Cmd.ofMsg (Logic.loginToUserIfSuccess model)
                    
     | LoginToUser (Finished page) ->
+            console.log("login finished to:")
+            console.log(page)
             let (newModel, _) =
                     { model with CurrentPage = page }, []
             newModel, []
