@@ -65,6 +65,16 @@ let addParts model dispatch =
         ]
     ]
 
+let buttonActions name =
+    function
+    | _ when name = "Modify" ->
+        ""
+    | _ when name = "Save" ->
+        ""
+    | _ when name = "Delete" ->
+        ""
+    | _ ->
+        ""
 
 let modificationButtons ( model : Instruction.Types.Model )
                           dispatch
@@ -77,7 +87,6 @@ let modificationButtons ( model : Instruction.Types.Model )
             style.backgroundColor.white
             style.fontSize 18
             style.borderRadius 10
-            style.margin 5
         ]
         prop.children[
             str name
@@ -105,6 +114,7 @@ let modElements ( part : Data.partData ) =
                 prop.children[
                     Html.div[
                         prop.className "control"
+                        prop.onTextChange (fun str -> )
                         prop.children[
                             Html.input[
                                 prop.className "input is-info"
@@ -256,7 +266,7 @@ let showAllInstructionParts model dispatch =
             [
                 Html.div[
                     prop.children[
-                        str "No part nor instruction's given" 
+                        str "No part nor instruction given" 
                     ]
                 ]  
             ]
@@ -277,16 +287,16 @@ let root model dispatch =
               prop.className "columns"
               prop.children[
                   Html.div[
-                      prop.className "column is-one-quarter"
+                      prop.className "column"
                       prop.onClick (fun _ -> Logic.modifyOrNot model dispatch )
                       prop.children[
                           modificationButtons model dispatch "Modify" false
                       ]
                   ]
                   Html.div[
-                      prop.className "column is-half"
-                      prop.style[
-                        style.margin 5
+                      prop.className "column"
+                      prop.children[
+                          modificationButtons model dispatch "Save" model.DeleteButton.Disable
                       ]
                   ]
                   Html.div[

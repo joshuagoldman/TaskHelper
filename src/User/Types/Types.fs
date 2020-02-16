@@ -20,6 +20,8 @@ type Msg =
     | NewUserId of int
     | LoadInstructions of UserData
     | LoginSpinnerMsg of IStyleAttribute
+    | NewUserDataToAddMsg of Data.InstructionData
+    | ChangePage of UserPage
 type Model =
     {
       AllUsers : Data.Deferred<Result<seq<LoginInfo>, string>>

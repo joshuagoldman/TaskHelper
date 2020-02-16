@@ -43,3 +43,5 @@ let go2PartFromInstruction part instruction dispatch =
         |> fun _ ->
             Part.Logic.go2PreviousOrNext instruction part.Title (Instruction.Types.PartMsg >>
                                                                  dispatch) ""
+
+

@@ -11,6 +11,8 @@ var webpack = require("webpack");
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
 var MiniCssExtractPlugin = require("mini-css-extract-plugin");
+var bodyParser = require('body-parser');
+var request = require('sync-request');
 
 var CONFIG = {
     // The tags to include the generated JS and CSS will be automatically injected in the HTML template
@@ -20,7 +22,7 @@ var CONFIG = {
     cssEntry: "./sass/main.sass",
     outputDir: "./deploy",
     assetsDir: "./public",
-    devServerPort: 8081,
+    devServerPort: 8080,
     // When using webpack-dev-server, you may need to redirect some calls
     // to a external API server. See https://webpack.js.org/configuration/dev-server/#devserver-proxy
     devServerProxy: undefined,
@@ -103,8 +105,9 @@ module.exports = {
     },
     // Configuration for webpack-dev-server
     devServer: {
-        publicPath: "/",
+        publicPath: '/',
         contentBase: resolve(CONFIG.assetsDir),
+        host: '0.0.0.0',
         port: CONFIG.devServerPort,
         proxy: CONFIG.devServerProxy,
         hot: true,

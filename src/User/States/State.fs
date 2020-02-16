@@ -127,3 +127,33 @@ let update msg model : Model * Cmd<User.Types.Msg> =
     | LoginSpinnerMsg visibility ->
         { model with LoginSpinner =
                         { model.LoginSpinner with Visible = visibility } }, []
+
+    | NewUserDataToAddMsg instructionToAdd ->
+        match model.UserData with
+        | Data.Deferred.Resolved(Ok data) ->
+            let newInstructions =
+                data.Instructions
+                |> Seq.append [instructionToAdd]
+            {
+                Id = data.Id
+                Instructions = newInstructions
+
+            }
+            |> ( Ok >> Deferred.Resolved )
+            |> fun newUserData ->
+                { model with UserData = newUserData}, Cmd.none
+                
+        | Data.Deferred.Resolved(Error err) ->
+            seq[
+                divWithStyle
+                    (err)
+                    (prop.style[style.color.black ; style.fontWeight.bolder])
+            ]
+            |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)
+            |> Cmd.ofMsg
+            |> fun msg -> model, msg
+
+        | _ -> model, Cmd.none
+    | ChangePage page ->
+        { model with CurrentPage = page}, Cmd.none
+                

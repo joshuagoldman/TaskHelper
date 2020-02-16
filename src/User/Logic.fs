@@ -282,11 +282,9 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
         |> Seq.iter (fun mediaContent ->
                             match mediaContent with
                             | NewAdd.Types.Video (vid,_) ->
-                                Seq.append videosSequence [vid]
-                                |> ignore
+                                videosSequence <- Seq.append videosSequence [vid]
                             | NewAdd.Types.InstructionTxt (instrctn,_) ->
-                                Seq.append instructionSequence [instrctn]
-                                |> ignore)
+                                instructionSequence <- (Seq.append instructionSequence [instrctn]))
 
         Seq.zip3 videosSequence instructionSequence [0..videosSequence |> Seq.length |> fun x -> x - 1]
         |> Seq.map (fun (video,txt,pos) ->
@@ -303,6 +301,11 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
         |> Instruction.Types.NewInstruction2Show
         |> User.Types.InstructionMsg
         |> fun x -> seq[x]
+                    |> Seq.append(
+                            UserPage.Instruction
+                            |> (User.Types.ChangePage)
+                            |> fun y -> seq[y]
+                        )
                     |> Seq.map (fun msg -> Cmd.ofMsg msg)
                     |> Cmd.batch
 
@@ -324,7 +327,7 @@ let saveAsync ( fileInfo : (Types.File * string) )
     console.log("starting to post")
 
     let! response =
-        Http.request ("http://localhost:8081/" + root)
+        Http.request ("http://localhost:8081/Videos")
         |> Http.method POST
         |> Http.content (BodyContent.Form fData)
         |> Http.header (Headers.contentType file.``type``)
@@ -346,7 +349,7 @@ let saveAsync ( fileInfo : (Types.File * string) )
         return (
                 divWithStyle
                     ("file failed with status code: " +
-                     ( response.statusCode |> string ))
+                     ( response.statusCode |> string ) + response.responseText)
                      ( prop.style[ style.color.red ; style.fontWeight.bold ] )
                 |> fun x -> (media, NewAdd.Types.IsUploading.No(x))
                             |> ( NewAdd.Types.ChangeFileStatus >> User.Types.NewAddMsg )
@@ -357,9 +360,9 @@ let matchMediaBeforeSave media id =
     let fileSavingInfo =
         match media with
         | NewAdd.Types.Video (vid,_) ->
-            (vid, "/Videos/")
+            (vid, "Videos")
         | NewAdd.Types.InstructionTxt (instrctn,_) ->
-            (instrctn,"/Instructions/")
+            (instrctn,"Instructions")
 
     saveAsync fileSavingInfo media id
 
