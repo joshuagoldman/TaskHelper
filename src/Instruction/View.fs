@@ -102,7 +102,7 @@ let findPartPosition partTitle ( instruction : Data.InstructionData ) =
             |> fun (_,pos) -> pos
         | _ -> 0
 
-let modElements ( part : Data.partData ) =
+let modElements ( part : Data.partData ) dispatch =
     Html.div[
         prop.className "column"
         prop.style[
@@ -114,10 +114,10 @@ let modElements ( part : Data.partData ) =
                 prop.children[
                     Html.div[
                         prop.className "control"
-                        prop.onTextChange (fun str -> )
                         prop.children[
                             Html.input[
                                 prop.className "input is-info"
+                                prop.onTextChange (fun str -> Logic.upDateName part dispatch str )
                                 prop.type' "info"
                                 prop.placeholder part.Title
                             ]
@@ -129,7 +129,8 @@ let modElements ( part : Data.partData ) =
     ]
 
 let positionElements ( part : Data.partData )
-                     ( instruction : Data.InstructionData ) =
+                     ( instruction : Data.InstructionData )
+                       dispatch =
     Html.div[
         prop.className "column"
         prop.style[
@@ -144,6 +145,7 @@ let positionElements ( part : Data.partData )
                         prop.children[
                             Html.input[
                                 prop.className "input is-info"
+                                prop.onTextChange (fun str -> Logic.upDatePosition part dispatch str )
                                 prop.type' "info"
                                 prop.placeholder (
                                     findPartPosition
@@ -161,7 +163,7 @@ let positionElements ( part : Data.partData )
         ]
     ]
 
-let modCheckBox =
+let modCheckBox part dispatch =
     [
         Html.div[
             prop.className "columns is-vcentered"
@@ -171,6 +173,7 @@ let modCheckBox =
             prop.children[
                 Html.label[
                     prop.className "checkbox"
+                    prop.onCheckedChange (fun isChecked -> Logic.upDateChecked part dispatch isChecked)
                     prop.children[
                         Html.input[
                             prop.type'.checkbox
@@ -192,9 +195,9 @@ let allPartsView ( part : Data.partData )
             Html.div[
                 prop.className "columns is-centered"
                 prop.children(
-                    modCheckBox
-                    |> List.append [positionElements part instruction]
-                    |> List.append [modElements part]
+                    modCheckBox part dispatch
+                    |> List.append [positionElements part instruction dispatch]
+                    |> List.append [modElements part dispatch]
                 )
             ]
 

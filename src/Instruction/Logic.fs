@@ -138,3 +138,42 @@ let updateCurrPositions model (
             { model with CurrPositions = Some newPositionsCheckedModified }, []
     
         | _ -> defaultValueToReturn
+
+let upDatePosition ( part : Data.partData )
+                   ( dispatch : Msg -> unit)
+                   ( str : string ) =
+    match System.Int32.TryParse(str) with
+    | true, num ->
+        let namePair = {
+            CurrName = part.Title
+            NewName = None
+        }
+        (Some num, None, namePair)
+        |> ( Instruction.Types.NewModificationInfo >> dispatch )
+    | _ -> ()
+
+let upDateName ( part : Data.partData )
+               ( dispatch : Msg -> unit)
+               ( str : string ) =
+    str
+    |>function
+        | _ when str |> String.length < 15 ->
+            let namePair = {
+                CurrName = part.Title
+                NewName = Some str
+            }
+            (None, None, namePair)
+            |> ( Instruction.Types.NewModificationInfo >> dispatch )
+            
+        | _ -> ()
+
+let upDateChecked ( part : Data.partData )
+                  ( dispatch : Msg -> unit)
+                  ( ``checked`` : bool ) =
+
+    let namePair = {
+        CurrName = part.Title
+        NewName = None
+    }
+    (None, Some ``checked``, namePair)
+    |> ( Instruction.Types.NewModificationInfo >> dispatch )
