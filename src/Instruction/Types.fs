@@ -7,15 +7,15 @@ open Elmish
 open Feliz
 open Fable.React
 
-type modificationInfo = {
-    Position : option<int>
-    IsChecked : option<bool>
-    Name : option<string>
-}
-
 type NamePair = {
     CurrName : string
     NewName : string Option
+}
+
+type modificationInfo = {
+    Position : option<int>
+    IsChecked : option<bool>
+    Names : NamePair
 }
 
 type Msg =
@@ -38,6 +38,7 @@ type Model =
         CurrInstruction : Result<Data.InstructionData,string>
         CurrPart : Part.Types.Model
         CurrPositions : Option<seq<modificationInfo>>
+        CurrTempInstruction : Option<InstructionData>
         PartNameModificationInput : AppearanceAttributes
         PositionsInput : AppearanceAttributes
         DeleteButton : AppearanceAttributes

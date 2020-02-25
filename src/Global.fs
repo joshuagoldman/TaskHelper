@@ -39,100 +39,79 @@ let changePositions ( sequence : seq<'t> ) ( posPair : int * int ) =
     let posTwo = posPair |> fun (_,y) -> y
     ()
     |> function
-        | _ when posOne = posTwo || len = 0 ->
+        | _ when posOne = posTwo ||
+                 len = 0 ->
             sequence
-        | _ when posOne = 0 && posTwo = len ->
+        | _ when [posOne;posTwo] 
+                 |> Seq.exists(fun x -> x > len || x < 0) ->
+            sequence
+        | _ when  posOne = 0 && posTwo = len ||
+                  posOne = len && posTwo = 0 ->
+            let min = seq[posOne;posTwo] |> Seq.min
             let first = Arr.[len]
             let second = Arr.[1..len - 1]
-            let third = Arr.[posOne]
+            let third = Arr.[min]
 
-            seq[first]
-            |> Seq.append (second |> Array.toSeq)
-            |> Seq.append (seq[third])
-            
-        | _ when posOne = len && posTwo = 0 ->
-            let first = Arr.[len]
-            let second = Arr.[1..len - 1]
-            let third = Arr.[posTwo]
+            let newSeq =
+                seq[third]
+                |> Seq.append (second |> Array.toSeq)
+                |> Seq.append (seq[first])
+            newSeq
 
-            seq[first]
-            |> Seq.append (second |> Array.toSeq)
-            |> Seq.append (seq[third])
+           
+        | _ when posOne = 0 ||
+                 posTwo = 0 ->
+            let min = seq[posOne;posTwo] |> Seq.min
+            let max = seq[posOne;posTwo] |> Seq.max
+            let first = Arr.[max]
+            let second = Arr.[1..max - 1]
+            let third = Arr.[min]
+            let fourth = Arr.[max + 1..len]
 
-        | _ when posOne = 0 ->
-            let first = Arr.[posTwo]
-            let second = Arr.[1..posTwo - 1]
-            let third = Arr.[posOne]
-            let fourth = Arr.[posTwo + 1..len]
+            let newSeq =
+                (fourth |> Array.toSeq)
+                |> Seq.append (seq[third])
+                |> Seq.append (second |> Array.toSeq)
+                |> Seq.append (seq[first]) 
 
-            seq[first]
-            |> Seq.append (second |> Array.toSeq)
-            |> Seq.append (seq[third])
-            |> Seq.append (fourth |> Array.toSeq)
+            newSeq
 
-        | _ when posTwo = 0 ->
-            let first = Arr.[posOne]
-            let second = Arr.[1..posOne - 1]
-            let third = Arr.[posTwo]
-            let fourth = Arr.[posOne + 1..len]
-
-            seq[first]
-            |> Seq.append (second |> Array.toSeq)
-            |> Seq.append (seq[third])
-            |> Seq.append (fourth |> Array.toSeq)
-
-        | _ when posOne = len ->
-            let first = Arr.[0..posTwo - 1]
+        | _ when posOne = len ||
+                 posTwo = len->
+            let min = seq[posOne;posTwo] |> Seq.min
+            let first = Arr.[0..min - 1]
             let second = Arr.[len]
-            let third = Arr.[posTwo + 1..len - 1]
-            let fourth = Arr.[posTwo]
+            let third = Arr.[min + 1..len - 1]
+            let fourth = Arr.[min]
 
-            first
-            |> Seq.append (seq[second])
-            |> Seq.append third
-            |> Seq.append (seq[fourth])
+            let newSeq =
+                seq[fourth]
+                |> Seq.append third
+                |> Seq.append (seq[second])
+                |> Seq.append first 
 
-        | _ when posTwo = len ->
-            let first = Arr.[0..posOne - 1]
-            let second = Arr.[len]
-            let third = Arr.[posOne + 1..len - 1]
-            let fourth = Arr.[posOne]
-
-            first
-            |> Seq.append (seq[second])
-            |> Seq.append third
-            |> Seq.append (seq[fourth])
+            newSeq
 
         | _ when posOne > 0 &&
                  posOne < len &&
                  posTwo > 0 &&
                  posTwo < len ->
-                    ()
-                    |> function
-                        | _ when posOne < posTwo ->
-                            let first = Arr.[0..posOne - 1]
-                            let second = Arr.[posTwo]
-                            let third = Arr.[posOne + 1..posTwo - 1]
-                            let fourth = Arr.[posOne]
-                            let fifth = Arr.[posTwo + 1..len]
+                    let min = seq[posOne;posTwo] |> Seq.min
+                    let max = seq[posOne;posTwo] |> Seq.max
+                    let first = Arr.[0..min - 1]
+                    let second = Arr.[max]
+                    let third = Arr.[min + 1..max - 1]
+                    let fourth = Arr.[min]
+                    let fifth = Arr.[max + 1..len]
 
-                            first
-                            |> Seq.append (seq[second])
-                            |> Seq.append third
-                            |> Seq.append (seq[fourth])
-                            |> Seq.append fifth
-                        | _ ->
-                            let first = Arr.[0..posTwo - 1]
-                            let second = Arr.[posOne]
-                            let third = Arr.[posTwo + 1..posOne - 1]
-                            let fourth = Arr.[posTwo]
-                            let fifth = Arr.[posOne + 1..len]
+                    let newSeq =
+                        fifth
+                        |> Seq.append (seq[fourth])
+                        |> Seq.append third
+                        |> Seq.append (seq[second])
+                        |> Seq.append first  
 
-                            first
-                            |> Seq.append (seq[second])
-                            |> Seq.append third
-                            |> Seq.append (seq[fourth])
-                            |> Seq.append fifth
+                    newSeq
         | _ ->
             sequence
 
