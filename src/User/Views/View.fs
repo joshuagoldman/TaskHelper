@@ -91,7 +91,7 @@ let pageHtml ( model : User.Types.Model ) (dispatch : User.Types.Msg -> unit ) =
                                                             dispatch )
 
         | NewAdd ->
-            NewAdd.View.root model.NewAdd ( User.Types.NewAddMsg >> dispatch )
+            NewAdd.View.root model.NewAdd dispatch
 
 let bodyCols model dispatch =   
     [

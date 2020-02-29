@@ -9,17 +9,7 @@ open Fable.Core.JsInterop
 open Fable.Import
 open Fable.Core
 
-let fileHandle (ev : Types.Event) model dispatch name =
-    let files = (ev.target?files : Types.FileList)
-    console.log(files)
-
-
-    seq[0..files.length - 1]
-    |> Seq.map (fun pos -> User.Logic.chooseMediaByName name files.[pos])
-    |> fun medias -> (medias,name)
-    |> NewAdd.Types.NewFilesChosenMsg |> dispatch 
-
-let alternative model dispatch name =
+let alternative ( model : NewAdd.Types.Model ) dispatch name =
     
     Html.div[
         prop.className "file has-name"
@@ -32,7 +22,10 @@ let alternative model dispatch name =
                         prop.type'.file
                         prop.name "resume"
                         prop.multiple true
-                        prop.onChange (fun ev -> fileHandle (ev : Types.Event) model dispatch name)
+                        prop.onChange (fun ev -> User.Logic.fileHandle (ev : Types.Event)
+                                                                        model.CurrentInstruction
+                                                                        dispatch
+                                                                        name)
                     ]
                     Html.span[
                         prop.className "file-cta"
@@ -126,6 +119,11 @@ let spinner ( model : NewAdd.Types.Model ) =
         ]
     ]
 
+let newInstructionSelected ( ev : Types.Event ) dispatch =
+    let instrName = ev.target?value |> string
+    instrName
+    |> ( User.Types.NewAddNewCurrentInstruction >> dispatch)
+
 let uploadButton model dispatch =
     Html.div[
         prop.className "columns is-vcentered"
@@ -147,10 +145,35 @@ let uploadButton model dispatch =
                 ]
             ]
             info model
+            Html.div[
+                prop.className "select"
+                prop.onChange (fun ev -> newInstructionSelected (ev : Types.Event) dispatch)
+                prop.children[
+                    Html.select[
+                        prop.children(
+                            model.InstructionList
+                            |> function
+                                | res when res.IsSome ->
+                                    res.Value
+                                    |> Seq.map (fun instruction ->
+                                        Html.option[
+                                            str instruction
+                                        ])
+                                | _ -> seq[Html.none]
+                            |> Seq.append(
+                                    Html.option[
+                                        str "New"
+                                    ]
+                                    |> fun x -> seq[x]
+                                ) 
+                        )
+                    ]
+                ]
+            ]
         ]
     ]
 
-let root model dispatch =
+let root model ( dispatch : User.Types.Msg -> unit ) =
     Html.div[
         prop.children(
             uploadDuet model dispatch "instructions"

@@ -1,4 +1,4 @@
-module Logic
+module Instruction.Logic
 
 open Fable.Core
 open Fable.React
@@ -9,8 +9,6 @@ open Browser
 
 
 let modifyOrNot model dispatch =
-    console.log(model.PartNameModificationInput.Visible)
-    console.log(model.DeleteButton.Disable)
     model.PartNameModificationInput.Visible
     |> function
         | res when res = style.visibility.hidden ->
@@ -82,6 +80,12 @@ let updateCurrPositions model (
                                             {
                                                 Names = modInfo.Names
                                                 Position = posOpt
+                                                IsChecked = modInfo.IsChecked
+                                            }
+                                        | _ when currPos = posOpt.Value ->
+                                            {
+                                                Names = modInfo.Names
+                                                Position = currPartPositionOpt
                                                 IsChecked = modInfo.IsChecked
                                             }
                                         | _ -> modInfo
@@ -177,3 +181,46 @@ let upDateChecked ( part : Data.partData )
     }
     (None, Some ``checked``, namePair)
     |> ( Instruction.Types.NewModificationInfo >> dispatch )
+
+let startSaving model dispatch =
+    match model.CurrInstruction with
+    | Ok instruction ->
+        ()
+        |>function
+          | _ when model.CurrPositions.IsSome ->
+              (instruction.Data, model.CurrPositions.Value)
+              |>function
+                 | (parts,newData) when parts |> Seq.length <> 0 &&
+                                        newData |> Seq.length <> 0 ->
+                        parts
+                        |> Seq.map (fun part ->
+                                newData
+                                |> Seq.tryFind (fun newPart -> newPart.Names.CurrName = part.Title)
+                                |> function
+                                    | res when res.IsSome ->
+                                        let newPartInfo = res.Value
+                                        ()
+                                        |> function
+                                            | _ when newPartInfo.Position.IsSome ->
+                                                parts
+                                                |> Seq.item newPartInfo.Position.Value
+                                                |> fun x ->
+                                                    { x with Title =
+                                                             if newPartInfo.Names.NewName.IsSome
+                                                             then newPartInfo.Names.NewName.Value
+                                                             else x.Title}
+                                            | _ -> part
+                                    | _ -> part
+                           )
+                        |> fun partData ->
+                            {
+                                Data.InstructionData.Data = partData
+                                Data.InstructionData.Title = instruction.Title
+                            }
+                        |> Instruction.Types.NewInstruction2Show
+                        |> dispatch
+                    
+                 | _ -> ()
+          | _ -> ()
+    | Error _ -> ()
+

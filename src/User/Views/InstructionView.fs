@@ -64,6 +64,14 @@ let addParts model dispatch =
             ]
         ]
     ]
+    |> fun x -> [
+            x
+            Global.divWithStyle
+                (Some "columns is-centered")
+                model.FileAddMsg.Text
+                (prop.style[style.margin 5; style.color.black;style.fontWeight.bold])
+        ]
+
 
 let buttonActions name =
     function
@@ -249,7 +257,7 @@ let ShowFileUpload model dispatch =
     model.PartNameModificationInput.Visible
     |> function
         | res when res = style.visibility.hidden ->
-            Html.div[]
+            [Html.none]
         | _ ->  addParts model dispatch
 
 let showAllInstructionParts model dispatch =
@@ -257,13 +265,10 @@ let showAllInstructionParts model dispatch =
     | Ok partRes ->
         match model.CurrInstruction with
         |Ok instRes ->
-            [ShowFileUpload model dispatch]
-            |> List.append(
-                partRes.Data
-                |> Seq.toList
-                |> List.map (fun part ->
-                                allPartsView part instRes model.PartNameModificationInput.Visible dispatch)
-            )
+            partRes.Data
+            |> Seq.toList
+            |> List.map (fun part ->
+                            allPartsView part instRes model.PartNameModificationInput.Visible dispatch)
             |> List.append [ instructionTitleView instRes.Title ]   
         | Error err ->
             [
@@ -298,6 +303,7 @@ let root model dispatch =
                   ]
                   Html.div[
                       prop.className "column"
+                      prop.onClick (fun _ -> Logic.modifyOrNot model dispatch)
                       prop.children[
                           modificationButtons model dispatch "Save" model.DeleteButton.Disable
                       ]

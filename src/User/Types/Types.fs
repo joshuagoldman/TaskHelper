@@ -4,6 +4,11 @@ open Global
 open Data
 open Controls
 open Feliz
+open Browser
+
+type NewUserPage =
+    | NoDelay of UserPage
+    | Delay of UserPage * int
 
 type Msg =
     | LoginAttemptMsg of string * string
@@ -21,7 +26,8 @@ type Msg =
     | LoadInstructions of UserData
     | LoginSpinnerMsg of IStyleAttribute
     | NewUserDataToAddMsg of Data.InstructionData
-    | ChangePage of UserPage
+    | ChangePage of NewUserPage
+    | NewAddNewCurrentInstruction of string
 type Model =
     {
       AllUsers : Data.Deferred<Result<seq<LoginInfo>, string>>

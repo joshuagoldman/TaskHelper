@@ -1,5 +1,8 @@
 module Global
 
+open Feliz
+open Fable.React
+
 type UserPage =
     | Part
     | Instruction
@@ -21,6 +24,19 @@ let toHash page =
     match page with
     | Login -> "#login"
     | User userPage -> toHashUser userPage
+
+/// <summary>A simple div with custom properties.</summary>
+///<c>infotext,style</c>
+///<remarks>logindelay</remarks>
+let divWithStyle ( className : Option<string> ) msg properties =
+    Html.div[
+        prop.className ( if className.IsSome then className.Value else "columnn" )
+        properties
+        prop.children[
+            Html.br[]
+            str msg
+        ]
+    ]
 
 let getPositionSequence ( sequence : seq<'t> ) =
     [0..sequence |> Seq.length |> fun x -> x - 1]

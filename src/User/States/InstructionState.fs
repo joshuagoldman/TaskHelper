@@ -22,16 +22,20 @@ let init () : Model * Cmd<Msg> =
       PositionsInput = defaultAppearanceAttributes
       DeleteButton =
         { defaultAppearanceAttributes with Disable = true }
+      FileAddMsg = defaultAppearanceAttributes
     }, []
 
 
-let update msg model : Instruction.Types.Model * Cmd<Msg>  =
+let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
     match msg with
     | NewInstruction2Show instruction ->
-        { model with CurrInstruction = Ok instruction }, []
+        { model with CurrInstruction = Ok instruction }, (instruction |>
+                                                          ( NewCurrPositions >>
+                                                            User.Types.InstructionMsg >>
+                                                            Cmd.ofMsg ))
     | PartMsg msg ->
         let (parModel, partModelCmd) = Part.State.update msg model.CurrPart
-        { model with CurrPart = parModel}, Cmd.map PartMsg partModelCmd
+        { model with CurrPart = parModel}, Cmd.map (PartMsg >> User.Types.InstructionMsg) partModelCmd
     | ErrorMsg str ->
         { model with InstructionErrorMessage =
                         { model.InstructionErrorMessage with Text = str} }, []
@@ -45,5 +49,21 @@ let update msg model : Instruction.Types.Model * Cmd<Msg>  =
                         { model.DeleteButton with Disable = isDisabled } }, []
     | NewModificationInfo (posOpt,checkedOpt,namePair) ->
         Logic.updateCurrPositions model (posOpt,checkedOpt,namePair)
+
+    | NewCurrPositions instruction ->
+        let currPositions =
+            Seq.zip instruction.Data (seq[0..instruction.Data |> Seq.length |> fun x -> x - 1])
+            |> Seq.map (fun (data,pos) ->
+                {
+                    Names = {
+                        CurrName = data.Title
+                        NewName = None
+                    }
+                    Position = Some pos
+                    IsChecked = Some false
+                })
+            |> Some
+
+        { model with CurrPositions = currPositions }, []
 
         

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <UserSecretsId>7a4351b0-1e05-4747-a2a8-91bf391903d1</UserSecretsId>
@@ -14,18 +14,19 @@
     <!-- Info -->
     <Compile Include="Part\Logic.fs" />
     <Compile Include="Part\View.fs" />
-    <!-- Counter -->
-    <Compile Include="Instruction\Types.fs" />
-    <Compile Include="Instruction\Logic.fs" />
-    <Compile Include="Instruction\State.fs" />
-    <Compile Include="Instruction\View.fs" />
+    <Compile Include="User\Types\InstructionTypes.fs" />
     <Compile Include="User\Types\NewAddTypes.fs" />
+    <!-- Counter -->
     <Compile Include="User\Types\InstructionSearchTypes.fs" />
     <Compile Include="User\Types\Types.fs" />
+    <Compile Include="User\InstructionLogic.fs" />
+    <Compile Include="User\NewAddLogic.fs" />
     <Compile Include="User\Logic.fs" />
+    <Compile Include="User\States\InstructionState.fs" />
     <Compile Include="User\States\NewAddState.fs" />
     <Compile Include="User\States\InstructionSearchState.fs" />
     <Compile Include="User\States\State.fs" />
+    <Compile Include="User\Views\InstructionView.fs" />
     <Compile Include="User\Views\NewAddView.fs" />
     <Compile Include="User\Views\InstructionSearchView.fs" />
     <Compile Include="User\Views\View.fs" />

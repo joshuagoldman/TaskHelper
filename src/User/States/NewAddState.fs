@@ -20,6 +20,8 @@ let init () : Model * Cmd<Msg> =
        NewInstructionId = None
        VideosUploadInput = defaultAppearanceAttributes
        InstructionTxtUploadInput = defaultAppearanceAttributes
+       InstructionList = None
+       CurrentInstruction = None
     }, []
 
 let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
@@ -63,5 +65,31 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
                         (User.Logic.extractMedia model.NewInstructionData files type' |> Some)}, []
     | ChangeFileStatus (media,newStatus) ->
         Logic.changeFileStatus model media newStatus
+    | NewInstructionsListMsg sequence ->
+        { model with InstructionList = Some sequence }, Cmd.none
+    | NewCurrentInstructionMsg instr ->
+        let newInstructionData =
+            model.NewInstructionData
+            |> function
+                | res when instr.IsSome && res.IsSome ->
+                    res.Value
+                    |> Seq.map (fun media ->
+                        match media with
+                        | NewAdd.Types.Video (file,isUploading, _) ->
+                            instr.Value
+                            |> Add
+                            |> fun ``type`` ->
+                                (file,isUploading, ``type``)
+                                |> Video
+                        | NewAdd.Types.InstructionTxt (file,isUploading,``type``) ->
+                            instr.Value
+                            |> Add
+                            |> fun ``type`` ->
+                                (file,isUploading, ``type``)
+                                |> InstructionTxt)
+                    |> Some
+                | res -> res 
+        { model with CurrentInstruction = instr
+                     NewInstructionData = newInstructionData}, Cmd.none
 
        

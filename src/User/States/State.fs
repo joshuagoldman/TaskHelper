@@ -75,7 +75,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                             (items |> (sleepAndLogin >> Cmd.fromAsync))
                         ]
                     )
-                    |> Seq.append [ Logic.createNewInstructionId model.Id items])
+                    |> Seq.append [ Logic.createNewInstructionId model.Id items]
+                    |> Seq.append [ NewAdd.Logic.createNewInstructionSequence items |> Cmd.ofMsg])
                                                         
                                                             
                                                         
@@ -97,7 +98,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                                                     
     | InstructionMsg msg ->
         let (instruction, instructionCmd) = Instruction.State.update msg model.Instruction
-        { model with Instruction = instruction}, Cmd.map InstructionMsg instructionCmd
+        { model with Instruction = instruction}, instructionCmd
     | InstructionSearchMsg msg ->
         let (instructionSearch, instructionSearchCmd) = InstructionSearch.State.update msg model.InstructionSearch
         { model with InstructionSearch = instructionSearch }, Cmd.map InstructionSearchMsg instructionSearchCmd
@@ -146,6 +147,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         | Data.Deferred.Resolved(Error err) ->
             seq[
                 divWithStyle
+                    None
                     (err)
                     (prop.style[style.color.black ; style.fontWeight.bolder])
             ]
@@ -154,6 +156,23 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             |> fun msg -> model, msg
 
         | _ -> model, Cmd.none
-    | ChangePage page ->
-        { model with CurrentPage = page}, Cmd.none
-                
+    | ChangePage info ->
+        match info with
+        | Delay (page,delay) ->
+            model, page
+                   |> (NoDelay >> User.Types.ChangePage)
+                   |> Logic.delayedMessage delay
+                   |> Cmd.fromAsync
+
+        | NoDelay page ->
+            { model with CurrentPage = page}, Cmd.none
+    | NewAddNewCurrentInstruction title ->
+            match model.UserData with
+            | Resolved (Ok data) ->
+                data.Instructions
+                |> Seq.tryFind (fun instruction -> instruction.Title = title)
+                |> ( NewAdd.Types.NewCurrentInstructionMsg >>
+                        User.Types.NewAddMsg >> Cmd.ofMsg )
+                |> fun msg ->
+                    model, msg
+            | _ -> model, []

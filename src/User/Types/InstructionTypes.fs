@@ -27,6 +27,8 @@ type Msg =
     | NewModificationInfo of int Option *
                              bool Option *
                              NamePair
+    | NewCurrPositions of Data.InstructionData
+    | NewFileAddMsg of ReactElement
 
 type InstructionMode  =
 | Regular
@@ -42,4 +44,5 @@ type Model =
         PartNameModificationInput : AppearanceAttributes
         PositionsInput : AppearanceAttributes
         DeleteButton : AppearanceAttributes
+        FileAddMsg : AppearanceAttributes
     }
