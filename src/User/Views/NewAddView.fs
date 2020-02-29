@@ -119,11 +119,6 @@ let spinner ( model : NewAdd.Types.Model ) =
         ]
     ]
 
-let newInstructionSelected ( ev : Types.Event ) dispatch =
-    let instrName = ev.target?value |> string
-    instrName
-    |> ( User.Types.NewAddNewCurrentInstruction >> dispatch)
-
 let uploadButton model dispatch =
     Html.div[
         prop.className "columns is-vcentered"
@@ -147,7 +142,7 @@ let uploadButton model dispatch =
             info model
             Html.div[
                 prop.className "select"
-                prop.onChange (fun ev -> newInstructionSelected (ev : Types.Event) dispatch)
+                prop.onChange (fun ev -> NewAdd.Logic.newInstructionSelected (ev : Types.Event) dispatch)
                 prop.children[
                     Html.select[
                         prop.children(

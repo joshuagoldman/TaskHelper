@@ -271,7 +271,7 @@ let createNewFileName ( file : Types.File ) id =
     console.log(fileNameSecPart)
     fileNameFirstPart + fileNameSecPart
 
-let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) idString =
+let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>) idString =
 
 
     match idString with
@@ -284,10 +284,26 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
         |> (NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)
         |> Cmd.ofMsg 
     | Some id ->
+        let instructionToAppend =
+            medias
+            |> Seq.item 0
+            |> fun media ->
+                    match media with
+                    | NewAdd.Types.Video (_,_,tipe) ->
+                        match tipe with
+                        | NewAdd.Types.Add instr -> Some instr
+                        | NewAdd.Types.New -> None
+                    | NewAdd.Types.InstructionTxt (_,_,tipe) ->
+                        match tipe with
+                        | NewAdd.Types.Add instr -> Some instr
+                        | NewAdd.Types.New -> None
+                    
+
+
         let mutable videosSequence = seq[]
         let mutable instructionSequence = seq[]
 
-        files
+        medias
         |> Seq.iter (fun mediaContent ->
                             match mediaContent with
                             | NewAdd.Types.Video (vid,_,msgType) ->
@@ -307,6 +323,17 @@ let createInstructionFromFile ( files : seq<NewAdd.Types.MediaChoiceFormData>) i
                     Title = "Please_provide_Title"
                     Data = parts
                 }
+        |> function
+            | res when instructionToAppend.IsSome ->
+                let newParts =
+                    instructionToAppend.Value.Data
+                    |> Seq.append res.Data
+
+                {
+                    Title = instructionToAppend.Value.Title
+                    Data = newParts
+                }
+            | res -> res
         |> Instruction.Types.NewInstruction2Show
         |> User.Types.InstructionMsg
         |> fun x -> seq[x]
