@@ -49,6 +49,14 @@ let updateCurrPositions model (
                                   namePair
                                ) =
     let defaultValueToReturn = model, []
+
+    let currentPositionsValues =
+        model.CurrPositions.Value
+        |> Seq.map (fun modinfo ->
+            modinfo.Names.CurrName + ", " + ( if modinfo.Names.NewName.IsSome
+                                              then modinfo.Names.NewName.Value
+                                              else "null") + ",  ")
+        |> String.concat ""
     
     ()
     |> function
@@ -71,26 +79,21 @@ let updateCurrPositions model (
                     | _ when posOpt.IsSome && currPartPositionOpt.IsSome ->
                         Seq.zip currPositions (Global.getPositionSequence currPositions)
                         |> Seq.map (fun (modInfo,currPos) ->
-                            modInfo.Position
+                            ()
                             |> function
-                                | res when res.IsSome ->
-                                    ()
-                                    |> function
-                                        | _ when currPos = currPartPositionOpt.Value ->
-                                            {
-                                                Names = modInfo.Names
-                                                Position = posOpt
-                                                IsChecked = modInfo.IsChecked
-                                            }
-                                        | _ when currPos = posOpt.Value ->
-                                            {
-                                                Names = modInfo.Names
-                                                Position = currPartPositionOpt
-                                                IsChecked = modInfo.IsChecked
-                                            }
-                                        | _ -> modInfo
-                                | _ -> modInfo
-                        )
+                                | _ when currPos = currPartPositionOpt.Value ->
+                                    {
+                                        Names = modInfo.Names
+                                        Position = posOpt
+                                        IsChecked = modInfo.IsChecked
+                                    }
+                                | _ when currPos = posOpt.Value ->
+                                    {
+                                        Names = modInfo.Names
+                                        Position = currPartPositionOpt
+                                        IsChecked = modInfo.IsChecked
+                                    }
+                                | _ -> modInfo)
                     | _ -> currPositions
     
             let newPositionsNameModified =
@@ -99,23 +102,18 @@ let updateCurrPositions model (
                     | _ when namePair.NewName.IsSome && currPartPositionOpt.IsSome ->
                         Seq.zip currPositions (Global.getPositionSequence currPositions)
                         |> Seq.map (fun (modInfo,currPos) ->
-                            modInfo.Names.NewName
+                            ()
                             |> function
-                                | res when res.IsSome ->
-                                    ()
-                                    |> function
-                                        | _ when currPos = currPartPositionOpt.Value ->
-                                            {
-                                                Names = {
-                                                    CurrName = modInfo.Names.CurrName
-                                                    NewName = namePair.NewName
-                                                }
-                                                Position = modInfo.Position
-                                                IsChecked = modInfo.IsChecked
-                                            }
-                                        | _ -> modInfo
-                                | _ -> modInfo
-                        )
+                                | _ when currPos = currPartPositionOpt.Value ->
+                                    {
+                                        Names = {
+                                            CurrName = modInfo.Names.CurrName
+                                            NewName = namePair.NewName
+                                        }
+                                        Position = modInfo.Position
+                                        IsChecked = modInfo.IsChecked
+                                    }
+                                | _ -> modInfo)
                     | _ -> newPositionsPositionModified
     
             let newPositionsCheckedModified =
@@ -124,19 +122,15 @@ let updateCurrPositions model (
                     | _ when checkedOpt.IsSome && currPartPositionOpt.IsSome ->
                         Seq.zip currPositions (Global.getPositionSequence currPositions)
                         |> Seq.map (fun (modInfo,currPos) ->
-                            modInfo.IsChecked
-                            |> function
-                                | res when res.IsSome ->
-                                    ()
-                                    |> function
-                                        | _ when currPos = currPartPositionOpt.Value ->
-                                            {
-                                                Names = modInfo.Names
-                                                Position = modInfo.Position
-                                                IsChecked = checkedOpt
-                                            }
-                                        | _ -> modInfo
-                                | _ -> modInfo)
+                                ()
+                                |> function
+                                    | _ when currPos = currPartPositionOpt.Value ->
+                                        {
+                                            Names = modInfo.Names
+                                            Position = modInfo.Position
+                                            IsChecked = checkedOpt
+                                        }
+                                    | _ -> modInfo)
                     | _ -> newPositionsNameModified
     
             { model with CurrPositions = Some newPositionsCheckedModified }, []

@@ -46,7 +46,7 @@
     "copy-webpack-plugin": "^5.1.1",
     "core-js": "^2.6.3",
     "css-loader": "^2.1.0",
-    "fable-compiler": "^2.4.12",
+    "fable-compiler": "^2.4.16",
     "fable-loader": "^2.1.8",
     "fable-utils": "^1.0.6",
     "file-loader": "^3.0.1",

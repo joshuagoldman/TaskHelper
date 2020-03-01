@@ -606,7 +606,12 @@ let isuploading result =
     | NewAdd.Types.IsUploading.No msg ->
         msg
         |> fun x -> seq[x]
-    | _ -> seq[Html.none]
+    | _ -> seq[
+                divWithStyle
+                    None
+                    ""
+                    (prop.style[style.color.black ; style.fontWeight.bold])
+           ]
         
 
 let filenameWStatus file =
@@ -641,7 +646,7 @@ let filenameWStatus file =
                     prop.className "column"
                     prop.children[
                         divWithStyle
-                            None
+                            (Some "columns is-centered")
                             instrctn.name
                             (prop.style[style.color.black ; style.fontWeight.bold])
                     ]
@@ -939,11 +944,7 @@ let changeFileStatus ( model : NewAdd.Types.Model ) media newStatus =
                 else currMedia)
 
         |> fun x ->
-            match mediaType with
-            | NewAdd.Types.New ->
-                model,[]
-            | NewAdd.Types.Add _ ->
-                model,[]
+            { model with NewInstructionData = Some x }, []
 
     | _ -> model,[]
 
