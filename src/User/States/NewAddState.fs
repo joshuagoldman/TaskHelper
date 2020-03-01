@@ -17,11 +17,10 @@ let init () : Model * Cmd<Msg> =
        NewInstructionData =  None
        NewAddMessages = seq[str ""]
        LoadIcon = defaultAppearanceAttributes
-       NewInstructionId = None
        VideosUploadInput = defaultAppearanceAttributes
        InstructionTxtUploadInput = defaultAppearanceAttributes
        InstructionList = None
-       CurrentInstruction = None
+       CurrentInstructionWId = None
     }, []
 
 let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
@@ -56,10 +55,8 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
 
     | NewAddInfoMsg reactMessage ->
         { model with  NewAddMessages = reactMessage }, []
-    | NewInstructionIdMsg str ->
-        { model with NewInstructionId = Some str}, []
     | PostInstruction files ->
-        model, Logic.createInstructionFromFile files model.NewInstructionId
+        model, Logic.createInstructionFromFile files 
     | NewFilesChosenMsg (files,type') ->
         { model with NewInstructionData =
                         (User.Logic.extractMedia model.NewInstructionData files type' |> Some)}, []
@@ -67,10 +64,10 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
         Logic.changeFileStatus model media newStatus
     | NewInstructionsListMsg sequence ->
         { model with InstructionList = Some sequence }, Cmd.none
-    | NewCurrentInstructionMsg instr ->
+    | NewCurrentInstructionMsg (instr,id) ->
         let newInstructionData =
-            NewAdd.Logic.modifyFileData model.NewInstructionData instr
-        { model with CurrentInstruction = instr
+            NewAdd.Logic.modifyFileData model.NewInstructionData instr id
+        { model with CurrentInstructionWId = Some (instr,id)
                      NewInstructionData = newInstructionData}, Cmd.none
 
        

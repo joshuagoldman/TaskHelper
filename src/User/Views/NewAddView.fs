@@ -23,7 +23,7 @@ let alternative ( model : NewAdd.Types.Model ) dispatch name =
                         prop.name "resume"
                         prop.multiple true
                         prop.onChange (fun ev -> User.Logic.fileHandle (ev : Types.Event)
-                                                                        model.CurrentInstruction
+                                                                        model.CurrentInstructionWId
                                                                         dispatch
                                                                         name)
                     ]

@@ -1,18 +1,18 @@
-const http = require('http');
+var express = require("express"),
+    app = express(),
+    http = require("http").Server(app).listen(80),
+    upload = require("express-fileupload");
 
-const server = http.createServer((req,res) => {
-    if (req.url == '/Instructions') {
-        res.write('You are about to save an instruction?');
-        res.end
-    }
+app.use(upload())
 
-    if (req.url == '/Videos') {
-        res.write('you are about to save a video?');
-        res.end
+console.log("Server Started!")
+app.get("/", function(req,res){
+    res.sendfile("C:/Users/jogo/Downloads/test.md")
+})
+app.post("/",function(req,res){
+    if(req.files){
+        var file = req.files.filename
+            filenames = req.files.name
+        console.log(req.files)
     }
 })
-
-server.listen(3000)
-
-console.log("you're listening on port 3000!")
-

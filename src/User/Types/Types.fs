@@ -27,7 +27,7 @@ type Msg =
     | LoginSpinnerMsg of IStyleAttribute
     | NewUserDataToAddMsg of Data.InstructionData
     | ChangePage of NewUserPage
-    | NewAddNewCurrentInstruction of string
+    | NewAddNewCurrentInstruction of Option<string>
 type Model =
     {
       AllUsers : Data.Deferred<Result<seq<LoginInfo>, string>>

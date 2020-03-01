@@ -16,8 +16,8 @@ type IsUploading =
     | YesSuceeded of ReactElement
 
 type ModificationType =
-    | Add of Data.InstructionData
-    | New
+    | Add of Data.InstructionData * string
+    | New of string
 
 type MediaChoiceFormData =
     | Video of Types.File * IsUploading * ModificationType
@@ -29,12 +29,12 @@ type Msg =
     | SpinnerVisibleMsg of IStyleAttribute
     | NewFilesChosenMsg of seq<MediaChoiceFormData> * string
     | CreateNewDataMsg of
-        AsyncOperationSavingStatus<SaveDataProgress<(MediaChoiceFormData * string)
+        AsyncOperationSavingStatus<SaveDataProgress<(MediaChoiceFormData)
             ,option<seq<MediaChoiceFormData>>>>
     | PostInstruction of seq<MediaChoiceFormData>
     | ChangeFileStatus of MediaChoiceFormData * IsUploading
     | NewInstructionsListMsg of seq<string>
-    | NewCurrentInstructionMsg of Data.InstructionData Option
+    | NewCurrentInstructionMsg of option<Data.InstructionData> * string
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
@@ -44,11 +44,10 @@ type Model =
     {
        NewInstructionData : Option<seq<MediaChoiceFormData>>
        NewAddMessages : seq<ReactElement>
-       NewInstructionId : Option<string>
        LoadIcon : AppearanceAttributes
        VideosUploadInput : AppearanceAttributes
        InstructionTxtUploadInput : AppearanceAttributes
        InstructionList : Option<seq<string>>
-       CurrentInstruction : Option<Data.InstructionData>
+       CurrentInstructionWId : Option<Option<Data.InstructionData> * string>
     }
 

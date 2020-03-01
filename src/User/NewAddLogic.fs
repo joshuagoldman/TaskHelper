@@ -12,11 +12,12 @@ let createNewInstructionSequence ( usrData : Data.UserData ) =
 
 let newInstructionSelected ( ev : Types.Event ) dispatch =
     let instrName = ev.target?value |> string
-    instrName
+    Some instrName
     |> ( User.Types.NewAddNewCurrentInstruction >> dispatch)
 
 let modifyFileData ( newInstrData : seq<NewAdd.Types.MediaChoiceFormData> Option )
-                   ( instr : Data.InstructionData Option ) =
+                   ( instr : Data.InstructionData Option )
+                     id =
     newInstrData
     |> function
         | res when instr.IsSome && res.IsSome ->
@@ -24,13 +25,13 @@ let modifyFileData ( newInstrData : seq<NewAdd.Types.MediaChoiceFormData> Option
             |> Seq.map (fun media ->
                 match media with
                 | NewAdd.Types.Video (file,isUploading, _) ->
-                    instr.Value
+                    (instr.Value,id)
                     |> NewAdd.Types.Add
                     |> fun ``type`` ->
                         (file,isUploading, ``type``)
                         |> NewAdd.Types.Video
                 | NewAdd.Types.InstructionTxt (file,isUploading,``type``) ->
-                    instr.Value
+                    (instr.Value,id)
                     |> NewAdd.Types.Add
                     |> fun ``type`` ->
                         (file,isUploading, ``type``)

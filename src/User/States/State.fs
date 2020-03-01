@@ -75,7 +75,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                             (items |> (sleepAndLogin >> Cmd.fromAsync))
                         ]
                     )
-                    |> Seq.append [ Logic.createNewInstructionId model.Id items]
+                    |> Seq.append [ None |> ( NewAddNewCurrentInstruction >> Cmd.ofMsg )]
                     |> Seq.append [ NewAdd.Logic.createNewInstructionSequence items |> Cmd.ofMsg])
                                                         
                                                             
@@ -166,13 +166,32 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
         | NoDelay page ->
             { model with CurrentPage = page}, Cmd.none
-    | NewAddNewCurrentInstruction title ->
+    | NewAddNewCurrentInstruction titleOpt ->
+            let usrId = model.Id |> string
             match model.UserData with
             | Resolved (Ok data) ->
-                data.Instructions
-                |> Seq.tryFind (fun instruction -> instruction.Title = title)
-                |> ( NewAdd.Types.NewCurrentInstructionMsg >>
-                        User.Types.NewAddMsg >> Cmd.ofMsg )
+                let dataIsNew =
+                    data.Instructions
+                    |> Seq.length
+                    |> function pos ->
+                        (None,pos |> string |> fun x -> usrId + "_" + x) |>
+                        ( NewAdd.Types.NewCurrentInstructionMsg >>
+                          User.Types.NewAddMsg >> Cmd.ofMsg )
+
+                titleOpt
+                |> function
+                    | res when res.IsSome ->
+                        Seq.zip data.Instructions ( Global.getPositionSequence data.Instructions )
+                        |> Seq.tryFind (fun (instruction,_) -> instruction.Title = titleOpt.Value)
+                        |> function
+                            | res when res.IsSome ->
+                                res.Value
+                                |> fun (instr,pos) ->
+                                    (Some instr,pos |> string |> fun x -> usrId + "_" + x) |>
+                                    ( NewAdd.Types.NewCurrentInstructionMsg >>
+                                      User.Types.NewAddMsg >> Cmd.ofMsg )
+                            | _ -> dataIsNew
+                    | _ -> dataIsNew
                 |> fun msg ->
                     model, msg
             | _ -> model, []
