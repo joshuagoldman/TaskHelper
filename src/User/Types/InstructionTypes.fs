@@ -7,6 +7,10 @@ open Elmish
 open Feliz
 open Fable.React
 
+type DeleteInfo =
+    | Delete of string
+    | Regret of string
+
 type NamePair = {
     CurrName : string
     NewName : string Option
@@ -14,7 +18,7 @@ type NamePair = {
 
 type modificationInfo = {
     Position : option<int>
-    IsChecked : option<bool>
+    DelOrReg : option<DeleteInfo>
     Names : NamePair
 }
 

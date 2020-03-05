@@ -65,18 +65,17 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                                     |> fun x -> seq[x]
                                                                    ))
     | LoadedInstructions (Finished (Ok items)) ->
-        model, Cmd.batch
-                    (Logic.getUserDataUpdate (Resolved ( Ok items))
-                    |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                    |> Seq.append(
-                        seq[
-                            (style.visibility.hidden
-                            |> ( LoginSpinnerMsg >> Cmd.ofMsg))
-                            (items |> (sleepAndLogin >> Cmd.fromAsync))
-                        ]
-                    )
-                    |> Seq.append [ None |> ( NewAddNewCurrentInstruction >> Cmd.ofMsg )]
-                    |> Seq.append [ NewAdd.Logic.createNewInstructionSequence items |> Cmd.ofMsg])
+        { model with UserData = Resolved (Ok items) }, Cmd.batch
+                                                            (Logic.getUserDataUpdate (Resolved ( Ok items))
+                                                            |> Seq.map (fun msg -> Cmd.ofMsg msg)
+                                                            |> Seq.append(
+                                                                seq[
+                                                                    (style.visibility.hidden
+                                                                    |> ( LoginSpinnerMsg >> Cmd.ofMsg))
+                                                                    (items |> (sleepAndLogin >> Cmd.fromAsync))
+                                                                ]
+                                                            )
+                                                            |> Seq.append [ NewAdd.Logic.createNewInstructionSequence items |> Cmd.ofMsg])
                                                         
                                                             
                                                         

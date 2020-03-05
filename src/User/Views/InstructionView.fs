@@ -303,7 +303,7 @@ let root model dispatch =
                   ]
                   Html.div[
                       prop.className "column"
-                      prop.onClick (fun _ -> Logic.modifyOrNot model dispatch)
+                      prop.onClick (fun _ -> Logic.startSaving model dispatch)
                       prop.children[
                           modificationButtons model dispatch "Save" model.DeleteButton.Disable
                       ]
