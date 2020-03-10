@@ -194,3 +194,21 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                 |> fun msg ->
                     model, msg
             | _ -> model, []
+
+    | GiveResetInstruction str ->
+        let msg =
+            match model.UserData with
+            | Resolved (Ok data) ->
+                data.Instructions
+                |> Seq.tryFind (fun instruction ->
+                    instruction.Title = str)
+                |> function
+                    | res when res.IsSome ->
+                        res.Value
+                        |> (Instruction.Types.ResetActions.ResetInstructionObtained >>
+                            Instruction.Types.Reset >>
+                            User.Types.InstructionMsg >>
+                            Cmd.ofMsg) 
+                    | _ -> []
+            | _ -> []
+        model, msg

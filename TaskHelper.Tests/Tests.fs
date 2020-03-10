@@ -45,7 +45,8 @@ let getModInfo ( currNameOpt  : option<string>)
         Names =
             {
                 CurrName = currName
-                NewName = newName
+                NameToChangeTo = newName
+                NewName = None
             }
     }
 
@@ -104,7 +105,8 @@ let ``TestModificationsLogic`` () =
     let namePairFunc currName newName =
         {
             CurrName = currName
-            NewName = newName
+            NameToChangeTo = newName
+            NewName = None
         }
 
     let repeatOfSame obj amount =
@@ -269,11 +271,13 @@ let ``TestModificationsLogic`` () =
                         | _ when info.Names.CurrName = namePair.CurrName ->
                             { info with Names = {
                                             CurrName = namePair.NewName.Value
+                                            NameToChangeTo = None
                                             NewName = None
                                         }}
                         | _ when info.Names.CurrName = namePair.NewName.Value ->
                             { info with Names = {
                                             CurrName = namePair.CurrName
+                                            NameToChangeTo = None
                                             NewName = None
                                         }}
                         | _ -> info

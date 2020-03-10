@@ -99,11 +99,13 @@ let updateCurrPositionsTestable (currInstruction : Data.InstructionData)
                             { info with Names = {
                                             CurrName = namePair.NewName.Value
                                             NewName = None
+                                            NameToChangeTo = None
                                         }}
                         | _ when info.Names.CurrName = namePair.NewName.Value ->
                             { info with Names = {
                                             CurrName = namePair.CurrName
                                             NewName = None
+                                            NameToChangeTo = None
                                         }}
                         | _ -> info
                     )
@@ -162,9 +164,46 @@ let newPartSelected ( ev : Types.Event ) partName dispatch =
     let newPartName = ev.target?value |> string
     {
         CurrName = partName
-        NewName = Some newPartName 
+        NameToChangeTo = Some newPartName
+        NewName = None
     }
     |> fun namePair ->
         (None,namePair)
         |> (Instruction.Types.NewModificationInfo >> dispatch)
 
+let partNameToChange dispatch
+    ( part : Data.partData )
+    newPartName =
+        if newPartName |> String.length < 30
+        then true
+        else false
+        |> function
+            | res when res = true ->
+                (part.Title,newPartName)
+                |> (Instruction.Types.UpdateNewName >> dispatch)
+            | _ -> ()
+let updateNewNameTestable currPositions currName newName=
+    currPositions
+    |> Seq.map (fun modInfo ->
+        ()
+        |> function
+            | _ when modInfo.Names.CurrName = currName ->
+                { modInfo.Names with NewName = Some newName}
+                |> fun namPair ->
+                    { modInfo with Names = namPair}
+            | _  -> modInfo)
+
+let modifyNames model dispatch =
+    match model.CurrPositions with
+     | Some currPositions ->
+        currPositions
+        |> Seq.iter (fun modInfo ->
+            ()
+            |> function
+                | _ when modInfo.Names.NewName.IsSome ->
+                    (modInfo.Names.CurrName,modInfo.Names.NewName.Value)
+                    |> (Instruction.Types.NewName >> dispatch)
+                | _ -> ())
+     | _ -> ()
+            
+    

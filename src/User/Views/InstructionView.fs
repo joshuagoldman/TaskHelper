@@ -128,7 +128,7 @@ let modElements ( part : Data.partData ) dispatch =
                         prop.children[
                             Html.input[
                                 prop.className "input is-info"
-                                //prop.onTextChange (fun str -> Logic.upDateName part dispatch str )
+                                prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
                                 prop.type' "info"
                                 prop.placeholder part.Title
                             ]
@@ -323,7 +323,6 @@ let showAllInstructionParts model dispatch =
               ]
           ]  
         ]
-
            
 let root model dispatch =
   Html.div[
@@ -353,6 +352,38 @@ let root model dispatch =
                   ]
               ]
           ]
-          |> fun l -> List.append [l]  (showAllInstructionParts model dispatch )
+          |> fun x ->
+            [
+                x
+                Html.div[
+                    prop.className "columns"
+                    prop.style[
+                        model.PartNameModificationInput.Visible
+                    ]
+                    prop.children[
+                        Html.div[
+                            prop.className "column"
+                            prop.onClick (fun _ -> Logic.modifyNames model dispatch)
+                            prop.children[
+                                modificationButtons model dispatch "Modify Names" false
+                            ]
+                        ]
+                        Html.div[
+                            prop.className "column"
+                            prop.onClick (fun _ ->
+                                match model.CurrInstruction with
+                                | Ok instruction ->
+                                    instruction.Title
+                                    |> ( ResetActions.ResetInstructionNotObtained >>
+                                         Reset >> dispatch )
+                                | _ -> ())
+                            prop.children[
+                                modificationButtons model dispatch "Reset" false
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+          |> fun l -> List.append l  (showAllInstructionParts model dispatch )
     )
   ]

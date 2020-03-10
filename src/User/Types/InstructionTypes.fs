@@ -14,12 +14,17 @@ type DeleteInfo =
 type NamePair = {
     CurrName : string
     NewName : string Option
+    NameToChangeTo : string Option
 }
 
 type modificationInfo = {
     DelOrReg : option<DeleteInfo>
     Names : NamePair
 }
+
+type ResetActions =
+    | ResetInstructionNotObtained of string
+    | ResetInstructionObtained of Data.InstructionData
 
 type Msg =
     | NewInstruction2Show of Data.InstructionData
@@ -30,7 +35,9 @@ type Msg =
     | NewModificationInfo of DeleteInfo Option *
                              NamePair
     | NewName of string * string
+    | UpdateNewName of string * string
     | NewFileAddMsg of ReactElement
+    | Reset of ResetActions
 
 type InstructionMode  =
 | Regular

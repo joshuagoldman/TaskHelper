@@ -75,4 +75,20 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                         { model with CurrInstruction = Ok newInstruction }, []
         | _ -> model,[]
 
+    | UpdateNewName (currName,newName) ->
+        match model.CurrPositions with
+        | Some currPositions ->
+            Instruction.Logic.updateNewNameTestable currPositions
+                                                    currName
+                                                    newName
+            
+            |> fun newCurrPos ->
+                 { model with CurrPositions = Some newCurrPos }, []
+        | _ -> model,[]
+
+    | Reset(ResetInstructionNotObtained str)->
+        model, ( str |>
+                 ( User.Types.GiveResetInstruction >> Cmd.ofMsg ))
+    | Reset(ResetInstructionObtained instruction)->
+        { model with CurrInstruction = Ok instruction}, []
         

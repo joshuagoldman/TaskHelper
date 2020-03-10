@@ -28,6 +28,7 @@ type Msg =
     | NewUserDataToAddMsg of Data.InstructionData
     | ChangePage of NewUserPage
     | NewAddNewCurrentInstruction of Option<string>
+    | GiveResetInstruction of string
 type Model =
     {
       AllUsers : Data.Deferred<Result<seq<LoginInfo>, string>>
