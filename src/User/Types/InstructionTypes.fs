@@ -29,7 +29,7 @@ type Msg =
     | DeleteButtonEnablenMsg of bool
     | NewModificationInfo of DeleteInfo Option *
                              NamePair
-    | NewCurrPositions of Data.InstructionData
+    | NewName of string * string
     | NewFileAddMsg of ReactElement
 
 type InstructionMode  =

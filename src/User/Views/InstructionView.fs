@@ -5,6 +5,9 @@ open Fable.React
 open Fable.React.Props
 open Types
 open Feliz
+open Browser
+open Fable.Core
+open Fable.Core.JsInterop
 
 let quarterDiv =
     Html.div[
@@ -125,7 +128,7 @@ let modElements ( part : Data.partData ) dispatch =
                         prop.children[
                             Html.input[
                                 prop.className "input is-info"
-                                prop.onTextChange (fun str -> Logic.upDateName part dispatch str )
+                                //prop.onTextChange (fun str -> Logic.upDateName part dispatch str )
                                 prop.type' "info"
                                 prop.placeholder part.Title
                             ]
@@ -136,8 +139,45 @@ let modElements ( part : Data.partData ) dispatch =
         ]
     ]
 
+let partPositionoptions model
+                              ( currPart : Data.partData ) =
+    match model.CurrInstruction with
+    | Ok instruction ->
+        instruction.Data
+        |> Seq.map (fun part ->
+            ()
+            |> function
+                | _ when part.Title <> currPart.Title ->
+                    Some part.Title
+                | _ -> None
+        )
+        |> Seq.choose id
+        |> Seq.map (fun partTitle ->
+            Html.option[
+                prop.children[
+                    str partTitle
+                ]
+            ])
+        |> Seq.append(
+            seq[
+                Html.option[
+                    prop.children[
+                        str "Select new part"
+                    ]
+                ]
+            ]
+        ) 
+    | _ ->
+        Html.option[
+            prop.children[
+                str "Select new part"
+            ]
+        ]
+        |> fun x -> seq[x]
+
 let positionElements ( part : Data.partData )
                      ( instruction : Data.InstructionData )
+                       model
                        dispatch =
     Html.div[
         prop.className "column"
@@ -148,30 +188,29 @@ let positionElements ( part : Data.partData )
             Html.div[
                 prop.className "field"
                 prop.children[
-                    Html.div[
+                    Html.label[
                         prop.className "control"
                         prop.children[
-                            Html.input[
-                                prop.className "input is-info"
-                                prop.onTextChange (fun str -> Logic.upDatePosition part dispatch str )
-                                prop.type' "info"
-                                prop.placeholder (
-                                    findPartPosition
-                                        part.Title
-                                        instruction
-                                    |> string
-                                    |> fun x -> "Part position: " + x
-                                ) 
-                                                        
+                            Html.div[
+                                prop.className "select"
+                                prop.onChange (fun ev -> Logic.newPartSelected (ev : Types.Event) part.Title dispatch)
+                                prop.children[
+                                    Html.select[
+                                        prop.children(
+                                            partPositionoptions model part
+                                        )
+                                    ]
+                                ]
                             ]
                         ]
+
                     ]
                 ]
             ]
         ]
     ]
 
-let modCheckBox part dispatch =
+let delOrRegbutton model part dispatch =
     [
         Html.div[
             prop.className "columns is-vcentered"
@@ -180,12 +219,10 @@ let modCheckBox part dispatch =
             ]
             prop.children[
                 Html.label[
-                    prop.className "checkbox"
-                    prop.onCheckedChange (fun isChecked -> Logic.upDateChecked part dispatch isChecked)
+                    prop.className "button is-link"
+                    prop.onClick (fun _ ->  Logic.dispatchDelOrReg model dispatch part)
                     prop.children[
-                        Html.input[
-                            prop.type'.checkbox
-                        ]
+                        str (Logic.getDelOrRegName model dispatch part)
                     ]
                 ]
             ]
@@ -195,16 +232,16 @@ let modCheckBox part dispatch =
 
 let allPartsView ( part : Data.partData )
                  ( instruction : Data.InstructionData )
-                   visibility
+                 (  model : Instruction.Types.Model )
                    dispatch=
-    visibility
+    model.PartNameModificationInput.Visible
     |>function 
         | res when res = style.visibility.visible ->
             Html.div[
                 prop.className "columns is-centered"
                 prop.children(
-                    modCheckBox part dispatch
-                    |> List.append [positionElements part instruction dispatch]
+                    delOrRegbutton  model part dispatch 
+                    |> List.append [positionElements part instruction model dispatch]
                     |> List.append [modElements part dispatch]
                 )
             ]
@@ -268,7 +305,7 @@ let showAllInstructionParts model dispatch =
             partRes.Data
             |> Seq.toList
             |> List.map (fun part ->
-                            allPartsView part instRes model.PartNameModificationInput.Visible dispatch)
+                            allPartsView part instRes model dispatch)
             |> List.append [ instructionTitleView instRes.Title ]   
         | Error err ->
             [
@@ -303,7 +340,7 @@ let root model dispatch =
                   ]
                   Html.div[
                       prop.className "column"
-                      prop.onClick (fun _ -> Logic.startSaving model dispatch)
+                      //prop.onClick (fun _ -> Logic.startSaving model dispatch)
                       prop.children[
                           modificationButtons model dispatch "Save" model.DeleteButton.Disable
                       ]

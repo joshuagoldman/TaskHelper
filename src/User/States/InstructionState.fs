@@ -29,10 +29,7 @@ let init () : Model * Cmd<Msg> =
 let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
     match msg with
     | NewInstruction2Show instruction ->
-        { model with CurrInstruction = Ok instruction }, (instruction |>
-                                                          ( NewCurrPositions >>
-                                                            User.Types.InstructionMsg >>
-                                                            Cmd.ofMsg ))
+        { model with CurrInstruction = Ok instruction }, []
     | PartMsg msg ->
         let (parModel, partModelCmd) = Part.State.update msg model.CurrPart
         { model with CurrPart = parModel}, Cmd.map (PartMsg >> User.Types.InstructionMsg) partModelCmd
@@ -62,20 +59,20 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             | _ -> model,[]
         | _ -> model,[]
 
-    | NewCurrPositions instruction ->
-        let currPositions =
-            Seq.zip instruction.Data (seq[0..instruction.Data |> Seq.length |> fun x -> x - 1])
-            |> Seq.map (fun (data,pos) ->
-                {
-                    Names = {
-                        CurrName = data.Title
-                        NewName = None
-                    }
-                    Position = Some pos
-                    IsChecked = Some false
-                })
-            |> Some
-
-        { model with CurrPositions = currPositions }, []
+    | NewName (currName,newName) ->
+        match model.CurrInstruction with
+        | Ok instruction ->
+            instruction.Data
+            |> Seq.map (fun part ->
+                ()
+                |> function
+                    | _ when part.Title = currName  ->
+                        { part with Title = newName}
+                    | _ -> part)
+                |> fun parts ->
+                    { instruction with Data = parts}
+                    |> fun newInstruction ->
+                        { model with CurrInstruction = Ok newInstruction }, []
+        | _ -> model,[]
 
         

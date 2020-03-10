@@ -6,7 +6,7 @@ open Fable.React.Props
 open Instruction.Types
 open Feliz
 open Browser
-
+open Fable.Core.JsInterop
 
 let modifyOrNot model dispatch =
     model.PartNameModificationInput.Visible
@@ -123,84 +123,48 @@ let updateCurrPositionsTestable (currInstruction : Data.InstructionData)
                         { currInstruction with Data = parts}, newModinfo
             | _ -> currInstruction, currModInfo
 
-let upDatePosition ( part : Data.partData )
-                   ( dispatch : Msg -> unit)
-                   ( str : string ) =
-    match System.Int32.TryParse(str) with
-    | true, num ->
-        let namePair = {
-            CurrName = part.Title
-            NewName = None
-        }
-        (Some num, None, namePair)
-        |> ( Instruction.Types.NewModificationInfo >> dispatch )
-    | _ -> ()
+let getCurrentDelOrReg model ( part : Data.partData ) =
+    match model.CurrPositions with
+    | Some modinfo ->
+        modinfo
+        |> Seq.tryFind (fun info ->
+            info.Names.CurrName = part.Title)
+        |> function
+            | res when res.IsSome ->
+                res.Value |> Some
+            | _ -> None
+    | None -> None
 
-let upDateName ( part : Data.partData )
-               ( dispatch : Msg -> unit)
-               ( str : string ) =
-    str
-    |>function
-        | _ when str |> String.length < 15 ->
-            let namePair = {
-                CurrName = part.Title
-                NewName = Some str
-            }
-            (None, None, namePair)
-            |> ( Instruction.Types.NewModificationInfo >> dispatch )
-            
+let dispatchDelOrReg model dispatch ( part : Data.partData ) =
+    getCurrentDelOrReg model part
+    |> function
+        | res when res.IsSome ->
+            (res.Value.DelOrReg, res.Value.Names)
+            |> (Instruction.Types.NewModificationInfo >> dispatch)
         | _ -> ()
 
-let upDateChecked ( part : Data.partData )
-                  ( dispatch : Msg -> unit)
-                  ( ``checked`` : bool ) =
+let getDelOrRegName model dispatch ( part : Data.partData ) =
+        getCurrentDelOrReg model part
+        |> function
+            | res when res.IsSome ->
+                res.Value
+                |> function
+                    | subRes when subRes.DelOrReg.IsSome ->
+                        match subRes.DelOrReg.Value with
+                        | Delete strVal ->
+                            strVal
+                        | Regret strVal ->
+                            strVal
+                    | _ -> ""
+            | _ -> ""
 
-    let namePair = {
-        CurrName = part.Title
-        NewName = None
+let newPartSelected ( ev : Types.Event ) partName dispatch =
+    let newPartName = ev.target?value |> string
+    {
+        CurrName = partName
+        NewName = Some newPartName 
     }
-    (None, Some ``checked``, namePair)
-    |> ( Instruction.Types.NewModificationInfo >> dispatch )
-
-let startSaving model dispatch =
-    match model.CurrInstruction with
-    | Ok instruction ->
-        ()
-        |>function
-          | _ when model.CurrPositions.IsSome ->
-              (instruction.Data, model.CurrPositions.Value)
-              |>function
-                 | (parts,newData) when parts |> Seq.length <> 0 &&
-                                        newData |> Seq.length <> 0 ->
-                        parts
-                        |> Seq.map (fun part ->
-                                newData
-                                |> Seq.tryFind (fun newPart -> newPart.Names.CurrName = part.Title)
-                                |> function
-                                    | res when res.IsSome ->
-                                        let newPartInfo = res.Value
-                                        ()
-                                        |> function
-                                            | _ when newPartInfo.Position.IsSome ->
-                                                parts
-                                                |> Seq.item newPartInfo.Position.Value
-                                                |> fun x ->
-                                                    { x with Title =
-                                                             if newPartInfo.Names.NewName.IsSome
-                                                             then newPartInfo.Names.NewName.Value
-                                                             else x.Title}
-                                            | _ -> part
-                                    | _ -> part
-                           )
-                        |> fun partData ->
-                            {
-                                Data.InstructionData.Data = partData
-                                Data.InstructionData.Title = instruction.Title
-                            }
-                        |> Instruction.Types.NewInstruction2Show
-                        |> dispatch
-                    
-                 | _ -> ()
-          | _ -> ()
-    | Error _ -> ()
+    |> fun namePair ->
+        (None,namePair)
+        |> (Instruction.Types.NewModificationInfo >> dispatch)
 
