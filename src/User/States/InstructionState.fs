@@ -47,8 +47,20 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         console.log(isDisabled)
         { model with DeleteButton =
                         { model.DeleteButton with Disable = isDisabled } }, []
-    | NewModificationInfo (posOpt,checkedOpt,namePair) ->
-        Logic.updateCurrPositions model (posOpt,checkedOpt,namePair)
+    | NewModificationInfo (delOrReg,namePair) ->
+        match model.CurrInstruction with
+        | Ok instruction ->
+            match model.CurrPositions with
+            | Some modinfo ->
+                let (newInstruction,newModInfo) =
+                    Logic.updateCurrPositionsTestable instruction
+                                                      modinfo
+                                                      delOrReg
+                                                      namePair
+                { model with CurrInstruction = Ok newInstruction
+                             CurrPositions = Some newModInfo}, []
+            | _ -> model,[]
+        | _ -> model,[]
 
     | NewCurrPositions instruction ->
         let currPositions =

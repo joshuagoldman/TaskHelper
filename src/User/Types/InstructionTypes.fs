@@ -17,7 +17,6 @@ type NamePair = {
 }
 
 type modificationInfo = {
-    Position : option<int>
     DelOrReg : option<DeleteInfo>
     Names : NamePair
 }
@@ -28,8 +27,7 @@ type Msg =
     | ErrorMsg of string
     | ModifyInstructionMsg of IStyleAttribute
     | DeleteButtonEnablenMsg of bool
-    | NewModificationInfo of int Option *
-                             bool Option *
+    | NewModificationInfo of DeleteInfo Option *
                              NamePair
     | NewCurrPositions of Data.InstructionData
     | NewFileAddMsg of ReactElement
