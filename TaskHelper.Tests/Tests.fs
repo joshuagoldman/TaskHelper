@@ -10,6 +10,7 @@ open Thoth.Json
 open FSharp.Data
 open NewAdd.Types
 open Instruction.Types
+open Instruction
 
 type Testcase =
     {
@@ -32,14 +33,10 @@ type ChooseModInfo =
     | DelOrReg of DeleteInfo
 
 let getModInfo ( currNameOpt  : option<string>)
-               ( newNameOpt : option<string> )
                  delOption  =
     let currName = if currNameOpt.IsSome
                    then currNameOpt.Value
                    else ""
-    let newName = if newNameOpt.IsSome
-                  then Some newNameOpt.Value
-                  else None
     {
         DelOrReg = delOption
         Names =
@@ -52,25 +49,15 @@ let getModInfo ( currNameOpt  : option<string>)
 [<Fact>]
 let ``TestModificationsLogic`` () =
         
-    let getTestModInfo names
-                       ( newNames : seq<int option> )
+    let getTestModInfo   names
                        ( newDelOrReg : seq<DeleteInfo option> ) =
-        Seq.zip3 names newNames newDelOrReg
-        |> Seq.map (fun (num,newNameNumOpt,newDelOrReg) ->
-            let newName =
-                if newNameNumOpt.IsSome
-                then newNameNumOpt.Value
-                     |> string
-                     |> fun x -> ("part" + x)
-                     |> Some 
-                else None
+        Seq.zip names newDelOrReg
+        |> Seq.map (fun (num,newDelOrReg) ->
             (num |> string |> fun x -> "part" + x) ,
-              newName,
               newDelOrReg)
-        |> Seq.map (fun (title,newTitle,newDelOrReg) ->
+        |> Seq.map (fun (title,newDelOrReg) ->
             let currName = Some(title)
             getModInfo   currName
-                         newTitle
                          newDelOrReg
         )
                 
@@ -101,10 +88,10 @@ let ``TestModificationsLogic`` () =
     let testCaseDelOrRegChanged =
         seq[
             "Delete" |> (Delete >> Some)
+            "Delete" |> (Delete >> Some)
+            "Delete" |> (Delete >> Some)
+            "Delete" |> (Delete >> Some)
             "Regret" |> (Regret >> Some)
-            "Delete" |> (Delete >> Some)
-            "Delete" |> (Delete >> Some)
-            "Delete" |> (Delete >> Some)
         ]
 
     let caseOneNewModInfo =
@@ -153,15 +140,12 @@ let ``TestModificationsLogic`` () =
     let caseOneModinfoInputs =
         let subCase1 =
             getTestModInfo (seq[1;2;3;4;5])
-                           (repeatOfSame None 5)
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
         let subCase2 =
             getTestModInfo (seq[2;1;3;4;5])
-                           (repeatOfSame None 5)
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
         let subCase3 =
             getTestModInfo (seq[5;1;3;4;2])
-                           (repeatOfSame None 5)
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
         seq[
              subCase1
@@ -172,15 +156,12 @@ let ``TestModificationsLogic`` () =
     let caseOneModInfoResult =
         let subCase1 =
             getTestModInfo (seq[2;1;3;4;5])
-                            (repeatOfSame None 5)
                             (repeatOfSame ("Delete" |> (Delete >> Some)) 5)
         let subCase2 =
-            getTestModInfo (seq[5;1;3;4;2])
-                            (repeatOfSame None 5)            
+            getTestModInfo (seq[5;1;3;4;2])          
                             (repeatOfSame ("Delete" |> (Delete >> Some)) 5)
         let subCase3 =
             getTestModInfo (seq[5;1;3;4;2])
-                           ([5;1;3;4;2] |> Seq.map (fun i -> i |> Some))
                             testCaseDelOrRegChanged
         seq[
             subCase1
@@ -199,76 +180,6 @@ let ``TestModificationsLogic`` () =
 
              |})
 
-    let ajustAfterNewModinfo ( currInstruction : Data.InstructionData )
-                             ( newModinfo : seq<modificationInfo> ) :
-                               ( Data.InstructionData * seq<modificationInfo> ) =
-        newModinfo
-        |> Seq.map (fun info ->
-            currInstruction.Data
-            |> Seq.tryFind (fun part ->
-                part.Title = info.Names.CurrName)
-            |> function
-                | res when res.IsSome ->
-                    Some res.Value
-                | _ -> None)
-        |> Seq.choose id
-        |> fun parts ->
-            { currInstruction with Data = parts}, newModinfo
-
-    let updateCurrPositions (currInstruction : Data.InstructionData)
-                            ( currModInfo : seq<modificationInfo> )
-                            ( delOrReg : DeleteInfo Option )
-                              currName
-                            ( newName : Option<string> ) :
-                            Data.InstructionData *
-                            seq<modificationInfo> =
-        ()
-        |> function
-            | _ when delOrReg.IsSome && newName.IsNone ->
-                currModInfo
-                |> Seq.map (fun info ->
-                    info.Names.CurrName
-                    |> function
-                        | name when name = currName ->
-                            info.DelOrReg
-                            |> function
-                                | res when res.IsSome ->
-                                    let newVal =
-                                        match res.Value with
-                                        | Delete _ ->
-                                            Regret("Regret")
-                                        | Regret _ ->
-                                            Delete("Delete")
-                                    { info with DelOrReg = Some newVal }
-                                | _ -> info
-                        | _ -> info
-                    )
-                |> fun newModInfo ->
-                    newModInfo
-                    |> ajustAfterNewModinfo currInstruction
-            | _ when newName.IsSome && delOrReg.IsNone ->
-                currModInfo
-                |> Seq.map (fun info ->
-                    ()
-                    |> function
-                        | _ when info.Names.CurrName = currName ->
-                            { info with Names = {
-                                            CurrName = newName.Value
-                                            NewName = None
-                                        }}
-                        | _ when info.Names.CurrName = newName.Value ->
-                            { info with Names = {
-                                            CurrName = currName
-                                            NewName = None
-                                        }}
-                        | _ -> info
-                    )
-                    
-                |>  fun newModinfo ->
-                    newModinfo
-                    |> ajustAfterNewModinfo currInstruction
-            | _ -> currInstruction, currModInfo
-
     testCases
     |> Seq.iter (fun case ->
         let (currName,newName,dOrR) =
@@ -276,11 +187,12 @@ let ``TestModificationsLogic`` () =
             |> fun (currName,newName,dOrR) ->
                 currName,newName,dOrR
         let (instructionResultActual, modInfoOResultActual) =
-            updateCurrPositions case.InstructionInput
-                                case.currModInfoInput
-                                dOrR
-                                currName
-                                newName
+            Instruction.Logic.updateCurrPositionsTestable
+                                                   case.InstructionInput
+                                                   case.currModInfoInput
+                                                   dOrR
+                                                   currName
+                                                   newName
 
         [0..instructionResultActual.Data |> Seq.length |> fun x -> x - 1]
         |> Seq.iter (fun pos ->
