@@ -14,7 +14,6 @@ type DeleteInfo =
 type NamePair = {
     CurrName : string
     NewName : string Option
-    NameToChangeTo : string Option
 }
 
 type modificationInfo = {
@@ -33,7 +32,8 @@ type Msg =
     | ModifyInstructionMsg of IStyleAttribute
     | DeleteButtonEnablenMsg of bool
     | NewModificationInfo of DeleteInfo Option *
-                             NamePair
+                             string *
+                             string Option
     | NewName of string * string
     | UpdateNewName of string * string
     | NewFileAddMsg of ReactElement

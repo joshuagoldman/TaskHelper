@@ -29,7 +29,17 @@ let init () : Model * Cmd<Msg> =
 let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
     match msg with
     | NewInstruction2Show instruction ->
-        { model with CurrInstruction = Ok instruction }, []
+        let delOrReg  =
+            "Delete"
+            |> ( Delete >> Some )
+        let newModInfo =
+            instruction.Data
+            |> Seq.map (fun part ->
+                (delOrReg,part.Title,None)
+                |> ( NewModificationInfo
+                     >> User.Types.InstructionMsg
+                     >> Cmd.ofMsg ))
+        { model with CurrInstruction = Ok instruction }, Cmd.batch newModInfo
     | PartMsg msg ->
         let (parModel, partModelCmd) = Part.State.update msg model.CurrPart
         { model with CurrPart = parModel}, Cmd.map (PartMsg >> User.Types.InstructionMsg) partModelCmd
@@ -44,7 +54,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         console.log(isDisabled)
         { model with DeleteButton =
                         { model.DeleteButton with Disable = isDisabled } }, []
-    | NewModificationInfo (delOrReg,namePair) ->
+    | NewModificationInfo (delOrReg,currName,newName) ->
         match model.CurrInstruction with
         | Ok instruction ->
             match model.CurrPositions with
@@ -53,7 +63,8 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                     Logic.updateCurrPositionsTestable instruction
                                                       modinfo
                                                       delOrReg
-                                                      namePair
+                                                      currName
+                                                      newName
                 { model with CurrInstruction = Ok newInstruction
                              CurrPositions = Some newModInfo}, []
             | _ -> model,[]

@@ -42,88 +42,75 @@ let go2PartFromInstruction part instruction dispatch =
             Part.Logic.go2PreviousOrNext instruction part.Title (Instruction.Types.PartMsg >>
                                                                  dispatch) ""
 
-let updateCurrPositionsTestable (currInstruction : Data.InstructionData)
-                                (currModInfo : seq<modificationInfo>)
-                                (delOrReg : DeleteInfo Option)
-                                (namePair : NamePair) :
-                                Data.InstructionData *
-                                seq<modificationInfo> =
-                
-            
-        ()
+let ajustAfterNewModinfo ( currInstruction : Data.InstructionData )
+                         ( newModinfo : seq<modificationInfo> ) :
+                           ( Data.InstructionData * seq<modificationInfo> ) =
+    newModinfo
+    |> Seq.map (fun info ->
+        currInstruction.Data
+        |> Seq.tryFind (fun part ->
+            part.Title = info.Names.CurrName)
         |> function
-            | _ when delOrReg.IsSome && namePair.NewName.IsNone ->
-                currModInfo
-                |> Seq.map (fun info ->
-                    info.Names.CurrName
-                    |> function
-                        | name when name = namePair.CurrName ->
-                            info.DelOrReg
-                            |> function
-                                | res when res.IsSome ->
-                                    let newVal =
-                                        match res.Value with
-                                        | Delete _ ->
-                                            Regret("Regret")
-                                        | Regret _ ->
-                                            Delete("Delete")
-                                    { info with DelOrReg = Some newVal }
-                                | _ -> info
-                        | _ -> info
-                    )
-                |> Seq.filter (fun info ->
-                    match info.DelOrReg.Value with
-                    | Delete _ ->
-                        true
-                    | Regret _ ->
-                        false)
-                |> fun newModInfo ->
-                    newModInfo
-                    |> Seq.map (fun info ->
-                        currInstruction.Data
-                        |> Seq.tryFind (fun part ->
-                            part.Title = info.Names.CurrName)
+            | res when res.IsSome ->
+                Some res.Value
+            | _ -> None)
+    |> Seq.choose id
+    |> fun parts ->
+        { currInstruction with Data = parts}, newModinfo
+
+let updateCurrPositionsTestable (currInstruction : Data.InstructionData)
+                        ( currModInfo : seq<modificationInfo> )
+                        ( delOrReg : DeleteInfo Option )
+                          currName
+                        ( newName : Option<string> ) :
+                        Data.InstructionData *
+                        seq<modificationInfo> =
+    ()
+    |> function
+        | _ when delOrReg.IsSome && newName.IsNone ->
+            currModInfo
+            |> Seq.map (fun info ->
+                info.Names.CurrName
+                |> function
+                    | name when name = currName ->
+                        info.DelOrReg
                         |> function
                             | res when res.IsSome ->
-                                Some res.Value
-                            | _ -> None)
-                    |> Seq.choose id
-                    |> fun parts ->
-                        { currInstruction with Data = parts}, newModInfo
-            | _ when namePair.NewName.IsSome && delOrReg.IsNone ->
-                currModInfo
-                |> Seq.map (fun info ->
-                    ()
-                    |> function
-                        | _ when info.Names.CurrName = namePair.CurrName ->
-                            { info with Names = {
-                                            CurrName = namePair.NewName.Value
-                                            NewName = None
-                                            NameToChangeTo = None
-                                        }}
-                        | _ when info.Names.CurrName = namePair.NewName.Value ->
-                            { info with Names = {
-                                            CurrName = namePair.CurrName
-                                            NewName = None
-                                            NameToChangeTo = None
-                                        }}
-                        | _ -> info
-                    )
-                    
-                |>  fun newModinfo ->
-                    newModinfo
-                    |> Seq.map (fun info ->
-                        currInstruction.Data
-                        |> Seq.tryFind (fun part ->
-                            part.Title = info.Names.CurrName)
-                        |> function
-                            | res when res.IsSome ->
-                                Some res.Value
-                            | _ -> None)
-                    |> Seq.choose id
-                    |> fun parts ->
-                        { currInstruction with Data = parts}, newModinfo
-            | _ -> currInstruction, currModInfo
+                                let newVal =
+                                    match res.Value with
+                                    | Delete _ ->
+                                        Regret("Regret")
+                                    | Regret _ ->
+                                        Delete("Delete")
+                                { info with DelOrReg = Some newVal }
+                            | _ -> info
+                    | _ -> info
+                )
+            |> fun newModInfo ->
+                newModInfo
+                |> ajustAfterNewModinfo currInstruction
+        | _ when newName.IsSome && delOrReg.IsNone ->
+            currModInfo
+            |> Seq.map (fun info ->
+                ()
+                |> function
+                    | _ when info.Names.CurrName = currName ->
+                        { info with Names = {
+                                        CurrName = newName.Value
+                                        NewName = None
+                                    }}
+                    | _ when info.Names.CurrName = newName.Value ->
+                        { info with Names = {
+                                        CurrName = currName
+                                        NewName = None
+                                    }}
+                    | _ -> info
+                )
+                
+            |>  fun newModinfo ->
+                newModinfo
+                |> ajustAfterNewModinfo currInstruction
+        | _ -> currInstruction, currModInfo
 
 let getCurrentDelOrReg model ( part : Data.partData ) =
     match model.CurrPositions with
@@ -141,7 +128,7 @@ let dispatchDelOrReg model dispatch ( part : Data.partData ) =
     getCurrentDelOrReg model part
     |> function
         | res when res.IsSome ->
-            (res.Value.DelOrReg, res.Value.Names)
+            (res.Value.DelOrReg, res.Value.Names.CurrName,None)
             |> (Instruction.Types.NewModificationInfo >> dispatch)
         | _ -> ()
 
@@ -162,14 +149,9 @@ let getDelOrRegName model dispatch ( part : Data.partData ) =
 
 let newPartSelected ( ev : Types.Event ) partName dispatch =
     let newPartName = ev.target?value |> string
-    {
-        CurrName = partName
-        NameToChangeTo = Some newPartName
-        NewName = None
-    }
-    |> fun namePair ->
-        (None,namePair)
-        |> (Instruction.Types.NewModificationInfo >> dispatch)
+
+    (None,partName,Some newPartName)
+    |> (Instruction.Types.NewModificationInfo >> dispatch)
 
 let partNameToChange dispatch
     ( part : Data.partData )
@@ -188,9 +170,9 @@ let updateNewNameTestable currPositions currName newName=
         ()
         |> function
             | _ when modInfo.Names.CurrName = currName ->
-                { modInfo.Names with NewName = Some newName}
-                |> fun namPair ->
-                    { modInfo with Names = namPair}
+                { modInfo.Names with CurrName = newName}
+                |> fun newModInfo ->
+                    { modInfo with Names = newModInfo }
             | _  -> modInfo)
 
 let modifyNames model dispatch =
