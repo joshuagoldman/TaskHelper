@@ -72,7 +72,10 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                                 seq[
                                                                     (style.visibility.hidden
                                                                     |> ( LoginSpinnerMsg >> Cmd.ofMsg))
-                                                                    (items |> (sleepAndLogin >> Cmd.fromAsync))
+                                                                    (items
+                                                                     |> LoginSuceeded
+                                                                     |> delayedMessage 2000
+                                                                     |> Cmd.fromAsync)
                                                                 ]
                                                             )
                                                             |> Seq.append [ NewAdd.Logic.createNewInstructionSequence items |> Cmd.ofMsg])
@@ -119,8 +122,10 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                       validateLoginInfo passwrd } }, []
         newModel
     | LoginSuceeded data ->
+        let msg =
+            Elmish.Navigation.Navigation.newUrl(Global.toHash(User(InstructionSearch)))
         { model with CurrentPage = UserPage.InstructionSearch ;
-                     UserData = Resolved(Ok data)}, []
+                     UserData = Resolved(Ok data)}, msg
     | NewUserId id ->
         { model with Id = id }, []
 
@@ -164,7 +169,9 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                    |> Cmd.fromAsync
 
         | NoDelay page ->
-            { model with CurrentPage = page}, Cmd.none
+            let msg =
+                Elmish.Navigation.Navigation.newUrl(Global.toHash(User(page)))
+            { model with CurrentPage = page}, msg
     | NewAddNewCurrentInstruction titleOpt ->
             let usrId = model.Id |> string
             match model.UserData with
@@ -205,8 +212,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                 |> function
                     | res when res.IsSome ->
                         res.Value
-                        |> (Instruction.Types.ResetActions.ResetInstructionObtained >>
-                            Instruction.Types.Reset >>
+                        |> (Instruction.Types.NewInstruction2Show >>
                             User.Types.InstructionMsg >>
                             Cmd.ofMsg) 
                     | _ -> []

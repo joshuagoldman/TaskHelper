@@ -106,8 +106,12 @@ let logInRoot model dispatch =
 let root model dispatch =
     match model.User.UserData with
     | Data.Deferred.Resolved (Ok _) ->
+        match model.CurrentPage with
+        | Global.Page.User _ ->
             User.View.root model.User ( UserMsg >>
                                         dispatch)
+        | Login ->
+             Login.View.root model dispatch
     | _ ->
         Login.View.root model dispatch
 

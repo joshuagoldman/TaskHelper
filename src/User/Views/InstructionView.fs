@@ -113,34 +113,41 @@ let findPartPosition partTitle ( instruction : Data.InstructionData ) =
             |> fun (_,pos) -> pos
         | _ -> 0
 
-let modElements ( part : Data.partData ) dispatch =
-    Html.div[
-        prop.className "column"
-        prop.style[
-            style.margin 5
-        ]
-        prop.children[
-            Html.div[
-                prop.className "field"
-                prop.children[
-                    Html.div[
-                        prop.className "control"
-                        prop.children[
-                            Html.input[
-                                prop.className "input is-info"
-                                prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
-                                prop.type' "info"
-                                prop.placeholder part.Title
+let modElements ( part : Data.partData ) model dispatch =
+    let modificationControl =
+        Html.div[
+            prop.className "column"
+            prop.style[
+                style.margin 5
+            ]
+            prop.children[
+                Html.div[
+                    prop.className "field"
+                    prop.children[
+                        Html.div[
+                            prop.className "control"
+                            prop.children[
+                                Html.input[
+                                    prop.className "input is-info"
+                                    prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
+                                    prop.type' "info"
+                                    prop.placeholder part.Title
+                                ]
                             ]
                         ]
                     ]
                 ]
             ]
         ]
-    ]
+
+    Instruction.Logic.enableModificationTestable model.CurrPositions part
+    |> function
+        | res when res = true ->
+            modificationControl
+        | _ -> Html.none
 
 let partPositionoptions model
-                              ( currPart : Data.partData ) =
+                        ( currPart : Data.partData ) =
     match model.CurrInstruction with
     | Ok instruction ->
         instruction.Data
@@ -153,14 +160,14 @@ let partPositionoptions model
         )
         |> Seq.choose id
         |> Seq.map (fun partTitle ->
-            Html.option[
+            Html.option[ 
                 prop.children[
                     str partTitle
                 ]
             ])
         |> Seq.append(
             seq[
-                Html.option[
+                Html.option[                    
                     prop.children[
                         str "Select new part"
                     ]
@@ -179,55 +186,73 @@ let positionElements ( part : Data.partData )
                      ( instruction : Data.InstructionData )
                        model
                        dispatch =
-    Html.div[
-        prop.className "column"
-        prop.style[
-            style.margin 5
-        ]
-        prop.children[
-            Html.div[
-                prop.className "field"
-                prop.children[
-                    Html.label[
-                        prop.className "control"
-                        prop.children[
-                            Html.div[
-                                prop.className "select"
-                                prop.onChange (fun ev -> Logic.newPartSelected (ev : Types.Event) part.Title dispatch)
-                                prop.children[
-                                    Html.select[
-                                        prop.children(
-                                            partPositionoptions model part
-                                        )
+
+    let modificationControls =
+        Html.div[
+            prop.className "column"
+            prop.style[
+                style.margin 5
+            ]
+            prop.children[
+                Html.div[
+                    prop.className "field"
+                    prop.children[
+                        Html.label[
+                            prop.className "control"
+                            prop.children[
+                                Html.div[
+                                    prop.className "select"
+                                    prop.onChange (fun ev -> Logic.newPartSelected (ev : Types.Event) part.Title dispatch)
+                                    prop.children[
+                                        Html.select[
+                                            prop.children(
+                                                partPositionoptions model part
+                                            )
+                                        ]
                                     ]
                                 ]
                             ]
-                        ]
 
+                        ]
                     ]
                 ]
             ]
         ]
-    ]
+
+    Instruction.Logic.enableModificationTestable model.CurrPositions part
+    |> function
+        | res when res = true ->
+            modificationControls
+        | _ -> Html.none
 
 let delOrRegbutton model part dispatch =
-    [
-        Html.div[
-            prop.className "columns is-vcentered"
-            prop.style[
-                style.margin 10
-            ]
-            prop.children[
-                Html.label[
-                    prop.className "button is-link"
-                    prop.onClick (fun _ ->  Logic.dispatchDelOrReg model dispatch part)
-                    prop.children[
-                        str (Logic.getDelOrRegName model dispatch part)
+    let button buttonName =
+        [
+            Html.div[
+                prop.className "columns is-vcentered"
+                prop.style[
+                    style.margin 10
+                ]
+                prop.children[
+                    Html.label[
+                        prop.className "button is-link"
+                        prop.style[
+                        ]
+                        prop.onClick (fun _ ->  Logic.dispatchDelOrReg model dispatch part)
+                        prop.children[
+                            str buttonName
+                        ]
                     ]
                 ]
             ]
         ]
-    ]
+
+    let validOrNot = Logic.getDelOrRegName model dispatch part
+
+    match validOrNot with
+    | Some buttonName ->
+        button buttonName
+    | _ -> [Html.none]
 
 
 let allPartsView ( part : Data.partData )
@@ -242,7 +267,7 @@ let allPartsView ( part : Data.partData )
                 prop.children(
                     delOrRegbutton  model part dispatch 
                     |> List.append [positionElements part instruction model dispatch]
-                    |> List.append [modElements part dispatch]
+                    |> List.append [modElements part model dispatch]
                 )
             ]
 
@@ -347,7 +372,7 @@ let root model dispatch =
                   Html.div[
                       prop.className "column"
                       prop.children[
-                          modificationButtons model dispatch "Delete" model.DeleteButton.Disable
+                          modificationButtons model dispatch "Delete Instruction" model.DeleteButton.Disable
                       ]
                   ]
               ]
@@ -374,8 +399,8 @@ let root model dispatch =
                                 match model.CurrInstruction with
                                 | Ok instruction ->
                                     instruction.Title
-                                    |> ( ResetActions.ResetInstructionNotObtained >>
-                                         Reset >> dispatch )
+                                    |> ( ResetInstruction
+                                         >> dispatch )
                                 | _ -> ())
                             prop.children[
                                 modificationButtons model dispatch "Reset" false

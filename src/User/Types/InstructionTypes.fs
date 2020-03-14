@@ -21,10 +21,6 @@ type modificationInfo = {
     Names : NamePair
 }
 
-type ResetActions =
-    | ResetInstructionNotObtained of string
-    | ResetInstructionObtained of Data.InstructionData
-
 type Msg =
     | NewInstruction2Show of Data.InstructionData
     | PartMsg of Part.Types.Msg
@@ -34,11 +30,11 @@ type Msg =
     | NewModificationInfo of DeleteInfo Option *
                              string *
                              string Option
-    | NewName of string * string
+    | ImplementNewNames
     | UpdateNewName of string * string
     | NewFileAddMsg of ReactElement
-    | Reset of ResetActions
-
+    | ResetInstruction of string
+    | NewPage of Global.Page * int Option
 type InstructionMode  =
 | Regular
 | Modification

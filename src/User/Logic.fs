@@ -114,7 +114,6 @@ let loadInitData data =
              (Part.Types.NewPart2Show >>
               Instruction.Types.PartMsg >>
               User.Types.InstructionMsg))
-            ( None |> NewAddNewCurrentInstruction)
         ]
 
                        

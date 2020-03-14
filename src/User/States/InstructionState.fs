@@ -35,11 +35,17 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         let newModInfo =
             instruction.Data
             |> Seq.map (fun part ->
-                (delOrReg,part.Title,None)
-                |> ( NewModificationInfo
-                     >> User.Types.InstructionMsg
-                     >> Cmd.ofMsg ))
-        { model with CurrInstruction = Ok instruction }, Cmd.batch newModInfo
+                let names =
+                    {
+                        CurrName = part.Title
+                        NewName = None
+                    }
+                {
+                    DelOrReg = delOrReg
+                    Names = names
+                })
+        { model with CurrInstruction = Ok instruction ;
+                     CurrPositions = Some newModInfo }, []
     | PartMsg msg ->
         let (parModel, partModelCmd) = Part.State.update msg model.CurrPart
         { model with CurrPart = parModel}, Cmd.map (PartMsg >> User.Types.InstructionMsg) partModelCmd
@@ -70,21 +76,40 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             | _ -> model,[]
         | _ -> model,[]
 
-    | NewName (currName,newName) ->
+    | ImplementNewNames ->
         match model.CurrInstruction with
         | Ok instruction ->
-            instruction.Data
-            |> Seq.map (fun part ->
-                ()
-                |> function
-                    | _ when part.Title = currName  ->
-                        { part with Title = newName}
-                    | _ -> part)
-                |> fun parts ->
-                    { instruction with Data = parts}
-                    |> fun newInstruction ->
-                        { model with CurrInstruction = Ok newInstruction }, []
-        | _ -> model,[]
+            let result =
+                Logic.implementNewNamesTestable instruction model.CurrPositions
+            let kattenJansson =
+                match model.CurrPositions with
+                | Some modInfo ->
+                    modInfo
+                    |> Seq.map (fun info ->
+                        let delOrReg =
+                            match info.DelOrReg with
+                            | Some button ->
+                                match button with
+                                | Delete str -> str
+                                | Regret str -> str
+                            | _ -> ""
+                        info.Names.CurrName +
+                        "\n" +
+                        (if info.Names.NewName.IsSome then info.Names.NewName.Value else "") +
+                        "\n" +
+                        delOrReg +
+                        "\n\n")
+                    |> String.concat ""
+                | _ -> "2"
+            result
+            |> function
+                | res when res.IsSome ->
+                    let (newInstruction,newModinfo) =
+                        res.Value |> fun (a,b) -> (a,b)
+                    {model with CurrInstruction = Ok newInstruction ;
+                                CurrPositions = Some newModinfo },[]
+                | _ -> model, []
+        | _ -> model, []
 
     | UpdateNewName (currName,newName) ->
         match model.CurrPositions with
@@ -97,9 +122,11 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                  { model with CurrPositions = Some newCurrPos }, []
         | _ -> model,[]
 
-    | Reset(ResetInstructionNotObtained str)->
+    | ResetInstruction str ->
         model, ( str |>
                  ( User.Types.GiveResetInstruction >> Cmd.ofMsg ))
-    | Reset(ResetInstructionObtained instruction)->
-        { model with CurrInstruction = Ok instruction}, []
+    | NewPage (page,delay) ->
+        let msg =
+            Elmish.Navigation.Navigation.newUrl(Global.toHash(page))
+        model, msg
         
