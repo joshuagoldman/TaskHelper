@@ -115,26 +115,34 @@ let updateCurrPositionsTestable (currInstruction : Data.InstructionData)
                 newModInfo
                 |> ajustAfterNewModinfo currInstruction
         | _ when newName.IsSome && delOrReg.IsNone ->
-            currModInfo
-            |> Seq.map (fun info ->
-                ()
-                |> function
-                    | _ when info.Names.CurrName.Trim() = currName.Trim() ->
-                        { info with Names = {
-                                        CurrName = newName.Value
-                                        NewName = None
-                                    }}
-                    | _ when info.Names.CurrName.Trim() = newName.Value.Trim() ->
-                        { info with Names = {
-                                        CurrName = currName
-                                        NewName = None
-                                    }}
-                    | _ -> info
-                )
-                
-            |>  fun newModinfo ->
-                newModinfo
-                |> ajustAfterNewModinfo currInstruction
+            let isNewNameValid =
+                currInstruction.Data
+                |> Seq.exists (fun part ->
+                    part.Title.Trim() = newName.Value)
+            ()
+            |> function
+                | _ when isNewNameValid = true ->
+                    currModInfo
+                    |> Seq.map (fun info ->
+                        ()
+                        |> function
+                            | _ when info.Names.CurrName.Trim() = currName.Trim() ->
+                                { info with Names = {
+                                                CurrName = newName.Value
+                                                NewName = None
+                                            }}
+                            | _ when info.Names.CurrName.Trim() = newName.Value.Trim() ->
+                                { info with Names = {
+                                                CurrName = currName
+                                                NewName = None
+                                            }}
+                            | _ -> info
+                        )
+                        
+                    |>  fun newModinfo ->
+                        newModinfo
+                        |> ajustAfterNewModinfo currInstruction
+                | _ -> currInstruction,currModInfo
         | _ -> currInstruction, currModInfo
 
 let getCurrentDelOrReg model ( part : Data.partData ) =

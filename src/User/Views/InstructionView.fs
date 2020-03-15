@@ -162,7 +162,7 @@ let partPositionoptions model
                 | _ -> false
             ()
             |> function
-                | _ when info.Names.CurrName <> currPart.Title &&
+                | _ when info.Names.CurrName.Trim() <> currPart.Title.Trim() &&
                          delOrReg = true ->
                     Some ( info.Names.CurrName.Trim() )
                 | _ -> None
