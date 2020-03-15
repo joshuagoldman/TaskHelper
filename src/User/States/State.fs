@@ -23,7 +23,7 @@ let urlUpdate (result : UserPage option) model =
 
 let init() : Model * Cmd<Msg> =
     {
-        AllUsers = HasNostStartedYet
+        User = HasNostStartedYet
         Id = 0
         LoginMessage = "Please log on!"
         UserFromLogin =
@@ -52,7 +52,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with UserData = InProgress }, Cmd.batch
                                                     (Logic.getUserDataUpdate InProgress
                                                     |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                                                    |> Seq.append [Cmd.fromAsync (Logic.loadInstructionItems model)])
+                                                    |> Seq.append [Cmd.fromAsync (Logic.loadInstructionItems model.Id)])
                                                     
     | LoadedInstructions (Finished (Error error)) ->
         { model with UserData = Resolved ( Error error)}, Cmd.batch
@@ -79,23 +79,26 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                                 ]
                                                             )
                                                             |> Seq.append (NewAdd.Logic.createNewInstructionSequence items)
-                                                    )
-                                                        
-                                                            
-                                                        
+                                                    )                                        
     | LoadedUsers Started ->
-        { model with AllUsers = InProgress } , Cmd.batch
+        let (username,password) =
+            getLoginInfo model
+
+        let userValidationMsg =
+            getUserValidationMsg username password
+                    
+        { model with User = InProgress } , Cmd.batch
                                                     (Logic.loginAttempt model InProgress
                                                     |> Seq.map (fun msg -> Cmd.ofMsg msg )
-                                                    |> Seq.append [Cmd.fromAsync Logic.loadUserItems])
+                                                    |> Seq.append [userValidationMsg])
                                                   
                                                         
     | LoadedUsers (Finished (Error error)) ->
-        { model with AllUsers = Resolved ( Error error)}, Cmd.batch
+        { model with User = Resolved ( Error error)}, Cmd.batch
                                                                 (Logic.loginAttempt model (Resolved ( Error error))
                                                                 |> Seq.map (fun msg -> Cmd.ofMsg msg ))
     | LoadedUsers (Finished (Ok items)) ->
-        { model with AllUsers = Resolved ( Ok items)}, Cmd.batch
+        { model with User = Resolved ( Ok items)}, Cmd.batch
                                                             (Logic.loginAttempt model (Resolved ( Ok items))
                                                             |> Seq.map (fun msg -> Cmd.ofMsg msg ))
                                                                                     
@@ -220,3 +223,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                     | _ -> []
             | _ -> []
         model, msg
+
+    | NewInstructionToSave(instruction,instructionId) ->
+        model,[]
+        //let usrId = model.Id |> string
+        //Logic.saveInstructionToDatabase (instruction,instructionId) usrId

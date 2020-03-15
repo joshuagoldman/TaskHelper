@@ -133,82 +133,78 @@ let loadData ( status : Data.Deferred<Result<UserData,string>> ) =
         | Ok result -> Ok result                
         | Error err -> err |> Error
 
-let getUserData result ( model : User.Types.Model ) =
-    result
-    |> Seq.tryFind (fun user -> user.Id = model.Id  )
-    |> function
-       | res when res <> None -> res.Value
-       | _ ->
-            {
-                Id = 0
-                Instructions =
-                    seq
-                        [
-                            {
-                                Title = ""
-                                Data =
-                                    seq
-                                        [
-                                            {
-                                                InstructionTxt = ""
-                                                InstructionVideo = ""
-                                                Title = ""
-                                            }
-                                        ]
-                            }
-                        ]
+//let getUserData result ( model : User.Types.Model ) =
+//    result
+//    |> Seq.tryFind (fun user -> user.Id = model.Id  )
+//    |> function
+//       | res when res <> None -> res.Value
+//       | _ ->
+//            {
+//                Id = 0
+//                Instructions =
+//                    seq
+//                        [
+//                            {
+//                                Title = ""
+//                                Data =
+//                                    seq
+//                                        [
+//                                            {
+//                                                InstructionTxt = ""
+//                                                InstructionVideo = ""
+//                                                Title = ""
+//                                            }
+//                                        ]
+//                            }
+//                        ]
 
-            }
+//            }
 
-let jsonDecodingInstructions jsonString model =
+let jsonDecodingInstructions jsonString =
     let decodingObj = parseUserData jsonString
 
     match decodingObj with
     | Ok result ->
-        LoadedInstructions (Finished (Ok (getUserData result model)))
+        result
+        |> Array.item 0
+        |> fun usrdata ->
+            LoadedInstructions (Finished (Ok (usrdata)))
     | Error result ->
         LoadedInstructions (Finished (Error result))
 
-let jsonDecodingUsers jsonString =
+let jsonDecodingUser jsonString =
     let decodingObj = LoginInfoArrayDecoder jsonString
 
     match decodingObj with
     | Ok result ->
         result
-        |> Array.map (fun o -> { Username = o.Username ; Password = o.Password ; Id = o.Id} : LoginInfo )
-        |> fun arr -> arr |> Array.toSeq |> (Ok >> Finished >> LoadedUsers)
+        |> Array.item 0
+        |> (Ok >> Finished >> LoadedUsers)
     | Error result ->
-        LoadedUsers (Finished (Error result))
+        LoadedUsers (Finished (Error ("possibly wrong username or password:\n" + result)))
 
 
-let loadInstructionItems model = async {
+let loadInstructionItems ( id : int ) = async {
         do! Async.Sleep 3000
         let! response = 
-            Http.request "http://localhost:3001/api/instructions"
+            Http.request ("http://localhost:3001/api/users/" + (id |> string))
             |> Http.method GET
             |> Http.header (Headers.contentType "application/json")
             |> Http.send
         match response.statusCode with
         | 200 ->
-            return jsonDecodingInstructions (response.responseText
-                                            |> fun x -> x.Replace( """[{"array_to_json":""", "")
-                                            |> fun x -> x.Substring(0, x.LastIndexOf("}]"))) model
+            return ( jsonDecodingInstructions response.responseText )
             
         | _ ->
             return LoadedInstructions (Finished (Error ("Could not get api, status code: " +
                                                         (response.statusCode |> string))))  
     }
 
-let instructionToSql ( ids : string ) instruction =
-    let id =
-        ids.Substring(0,ids.LastIndexOf("_"))
-
-    let instructionId =
-        ids.Substring(ids.LastIndexOf("_"), ids |> String.length |> fun len-> len - 1)
+let instructionToSql userId ( instructionId : string ) instruction =
 
     let sqlInstructionVars =
         seq[
-            id
+            userId
             instructionId
             instruction.Title
         ]
@@ -235,7 +231,8 @@ type PostInstructionInfo =
 //[<Import("*", "../../server/model/instructions")>]
 //let postObj : PostInstructionInfo = jsNative
 
-let saveInstructionToDatabase ( status : Result<Data.InstructionData,string> ) ids =
+let saveInstructionToDatabase ( status : Result<Data.InstructionData * string,string> )
+                                userId =
  
 
     let insertInstructionAsync sqlCommand = async{
@@ -250,8 +247,8 @@ let saveInstructionToDatabase ( status : Result<Data.InstructionData,string> ) i
     }
     
     match status with
-    | Ok instruction ->
-       let sqlCommand = instructionToSql ids instruction
+    | Ok (instruction,instructionId) ->
+       let sqlCommand = instructionToSql userId instructionId instruction
        ( insertInstructionAsync sqlCommand)
        |> Async.RunSynchronously
 
@@ -469,21 +466,53 @@ let saveUserData
         | None -> seq[Cmd.Empty]
 
 
-let loadUserItems = async {
+let loadUserItems user password = async {
     do! Async.Sleep 3000
     let! response = 
-        Http.request "http://localhost:3001/api/users"
+        Http.request ("http://localhost:3001/api/users/" + user + "/" + password)
         |> Http.method GET
         |> Http.header (Headers.contentType "application/json")
         |> Http.send
-    match response.statusCode with
-    | 200 ->
-        return jsonDecodingUsers (response.responseText)
+
+    let msg =
+        ()
+        |> function
+           | _ when response.statusCode = 200 ->
+                ()
+                |>function
+                    | _ when response.responseText = "[]" ->
+                        LoadedUsers (Finished (Error ("Wrong user name or password ")))
+                    | _ -> 
+                        jsonDecodingUser (response.responseText)
         
-    | _ ->
-        return LoadedUsers (Finished (Error ("Could not get api, status code: " +
-                                                    (response.statusCode |> string))))
+           | _ ->
+                LoadedUsers (Finished (Error ("Could not get api, status code: " +
+                                                            (response.statusCode |> string))))
+    return msg
 }
+
+
+let getLoginInfo model =
+    let getValues obj =
+        match obj with
+        | Validity.Valid str -> Some str
+        | Validity.Invalid -> None
+    (getValues model.UserFromLogin.Username, getValues model.UserFromLogin.Password)
+
+let getUserValidationMsg ( username : string Option )
+                         ( password : string Option ) =
+    ()
+    |> function
+        | _ when username.IsNone ->
+            LoadedUsers (Finished (Error ("Invalid user name")))
+            |> Cmd.ofMsg
+        | _ when password.IsNone ->
+            LoadedUsers (Finished (Error ("Invalid password")))
+            |> Cmd.ofMsg
+        
+        | _ ->
+             loadUserItems username.Value password.Value
+             |> Cmd.fromAsync
 
 let getUserDataUpdate ( userData : Data.Deferred<Result<Data.UserData, string>> ) =
     match userData with
@@ -518,7 +547,7 @@ let existOrNot compareVal result =
      | Invalid ->
          None
 
-let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<seq<LoginInfo>, string>> ) =
+let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<LoginInfo, string>> ) =
     match status with
     | HasNostStartedYet ->
         seq[
@@ -528,48 +557,21 @@ let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<se
         
         
     | InProgress ->
-        seq["loading all users" |> User.Types.LoginMessages]
+        seq["loading user" |> User.Types.LoginMessages]
         
     | Resolved response ->
         let spinnerMessage =
             style.visibility.hidden |> LoginSpinnerMsg
 
         match response with
-        | Ok result ->
-
-            let usernameMatchExists = existOrNot model.UserFromLogin.Username result
-              
-            ()
-            |> function
-               | _ when usernameMatchExists <> None ->
-                    match model.UserFromLogin.Password with
-                    | Valid password ->
-                        password
-                        |> function
-                           | _ when password = usernameMatchExists.Value.Password ->
-                                seq
-                                    [
-                                        usernameMatchExists.Value.Id |> NewUserId
-                                        usernameMatchExists.Value.Id |> (Part.Types.NewUserIdMsg >>
-                                                                         Instruction.Types.PartMsg >>
-                                                                         User.Types.InstructionMsg)
-                                        User.Types.LoadedInstructions Started
-                                    ]
-                           | _ -> seq[
-                                    "Wrong password for the given user name" |> LoginMessages
-                                    spinnerMessage
-                                  ]
-                    | _ -> seq[
-                                "The password provided is invalid" |> LoginMessages
-                                spinnerMessage
-                            ]
-               | _ -> seq[
-                            "The user name provided is invalid" |> LoginMessages
-                            spinnerMessage
-                      ]
-                        
-                        
-                        
+        | Ok loginInfo ->
+            seq[
+                    loginInfo.Id |> NewUserId
+                    loginInfo.Id |> (Part.Types.NewUserIdMsg >>
+                                     Instruction.Types.PartMsg >>
+                                     User.Types.InstructionMsg)
+                    User.Types.LoadedInstructions Started
+            ]       
         | Error err -> seq[err|> User.Types.LoginMessages ; spinnerMessage]
         
 

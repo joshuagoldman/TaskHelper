@@ -13,7 +13,7 @@ type NewUserPage =
 type Msg =
     | LoginAttemptMsg of string * string
     | LoadedInstructions of AsyncOperationEvent<Result<UserData, string>>
-    | LoadedUsers of AsyncOperationEvent<Result<seq<LoginInfo>, string>>
+    | LoadedUsers of AsyncOperationEvent<Result<LoginInfo, string>>
     | UserDataMsg of string 
     | InstructionMsg of Instruction.Types.Msg
     | InstructionSearchMsg of InstructionSearch.Types.Msg
@@ -29,9 +29,10 @@ type Msg =
     | ChangePage of NewUserPage
     | NewAddNewCurrentInstruction of Option<string>
     | GiveResetInstruction of string
+    | NewInstructionToSave of Data.InstructionData * string
 type Model =
     {
-      AllUsers : Data.Deferred<Result<seq<LoginInfo>, string>>
+      User : Data.Deferred<Result<LoginInfo, string>>
       UserFromLogin : ValidationLoginInfo
       LoginMessage : string
       Id : int
