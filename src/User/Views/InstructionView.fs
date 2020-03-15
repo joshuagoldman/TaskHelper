@@ -130,7 +130,8 @@ let modElements ( part : Data.partData ) model dispatch =
                                 Html.input[
                                     prop.className "input is-info"
                                     prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
-                                    prop.type' "info"
+                                    prop.type'.text
+                                    prop.value ( Logic.newnameValue model part )
                                     prop.placeholder part.Title
                                 ]
                             ]
@@ -148,14 +149,22 @@ let modElements ( part : Data.partData ) model dispatch =
 
 let partPositionoptions model
                         ( currPart : Data.partData ) =
-    match model.CurrInstruction with
-    | Ok instruction ->
-        instruction.Data
-        |> Seq.map (fun part ->
+    match model.CurrPositions with
+    | Some modInfo ->
+        modInfo
+        |> Seq.map (fun info ->
+            let delOrReg =
+                match info.DelOrReg with
+                | Some button ->
+                    match button with
+                    | Delete _ -> true
+                    | Regret _ -> false
+                | _ -> false
             ()
             |> function
-                | _ when part.Title <> currPart.Title ->
-                    Some part.Title
+                | _ when info.Names.CurrName <> currPart.Title &&
+                         delOrReg = true ->
+                    Some ( info.Names.CurrName.Trim() )
                 | _ -> None
         )
         |> Seq.choose id

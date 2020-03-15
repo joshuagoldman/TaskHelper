@@ -275,3 +275,18 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
                     (newInstruction,newModinfo)
             Some result
         | _ -> None
+
+let newnameValue model ( part : Data.partData ) =
+    match model.CurrPositions with
+    | Some modificationInfo ->
+        modificationInfo
+        |> Seq.tryFind (fun info ->
+            info.Names.CurrName.Trim() = part.Title.Trim())
+        |> function
+            | res when res.IsSome ->
+                match res.Value.Names.NewName with
+                | Some newName ->
+                    newName 
+                | _ -> ""
+            | _ -> ""
+    | _ -> ""
