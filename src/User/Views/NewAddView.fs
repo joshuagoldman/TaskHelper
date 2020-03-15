@@ -96,15 +96,7 @@ let uploadDuet model dispatch name =
     ]
 
 let info ( model : NewAdd.Types.Model ) =
-    Html.div[
-        prop.style[
-            style.marginLeft 30
-            style.color.black
-        ]
-        prop.children(
-            model.NewAddMessages
-        )
-    ]
+    model.NewAddMessages
 
 let spinner ( model : NewAdd.Types.Model ) =
     Html.div[
@@ -128,52 +120,63 @@ let uploadButton model dispatch =
         ]
         prop.children[
             Html.div[
-                prop.className "control"
+                prop.className "column"
                 prop.children[
-                    Html.button[
-                        prop.className "button is-light"
-                        prop.onClick (fun _ -> User.Logic.isUploadable model dispatch)
+                    Html.div[
+                        prop.className "control"
                         prop.children[
-                            str "Upload files"
+                            Html.button[
+                                prop.className "button is-light"
+                                prop.onClick (fun _ -> User.Logic.isUploadable model dispatch)
+                                prop.children[
+                                    str "Upload files"
+                                ]
+                            ]
                         ]
                     ]
                 ]
             ]
-            info model
             Html.div[
-                prop.className "select"
-                prop.onChange (fun ev -> NewAdd.Logic.newInstructionSelected (ev : Types.Event) dispatch)
+                prop.className "column is-6"
                 prop.children[
-                    Html.select[
-                        prop.children(
-                            model.InstructionList
-                            |> function
-                                | res when res.IsSome ->
-                                    res.Value
-                                    |> Seq.map (fun instruction ->
-                                        Html.option[
-                                            str instruction
-                                        ])
-                                | _ -> seq[Html.none]
-                            |> Seq.append(
-                                    Html.option[
-                                        str "New"
-                                    ]
-                                    |> fun x -> seq[x]
-                                ) 
-                        )
+                    Html.div[
+                        prop.className "select"
+                        prop.onChange (fun ev -> NewAdd.Logic.newInstructionSelected (ev : Types.Event) dispatch)
+                        prop.children[
+                            Html.select[
+                                prop.children(
+                                    model.InstructionList
+                                    |> function
+                                        | res when res.IsSome ->
+                                            res.Value
+                                            |> Seq.map (fun instruction ->
+                                                Html.option[
+                                                    str instruction
+                                                ])
+                                        | _ -> seq[Html.none]
+                                    |> Seq.append(
+                                            Html.option[
+                                                str "New"
+                                            ]
+                                            |> fun x -> seq[x]
+                                        ) 
+                                )
+                            ]
+                        ]
                     ]
                 ]
             ]
         ]
     ]
+    |> fun x ->
+        Seq.append (seq[x]) (info model)
 
 let root model ( dispatch : User.Types.Msg -> unit ) =
     Html.div[
         prop.children(
             uploadDuet model dispatch "instructions"
             |> Seq.append (uploadDuet model dispatch "videos")
-            |> Seq.append [ uploadButton model dispatch ]
+            |> Seq.append (uploadButton model dispatch)
         )
             
     ]

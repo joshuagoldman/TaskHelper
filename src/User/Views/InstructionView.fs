@@ -357,7 +357,44 @@ let showAllInstructionParts model dispatch =
               ]
           ]  
         ]
-           
+
+let modificationElements model dispatch =
+    model.PartNameModificationInput.Visible
+    |> function
+        | visibility when visibility = style.visibility.visible ->
+            Html.div[
+                prop.className "columns is-centered"
+                prop.style[
+                    model.PartNameModificationInput.Visible
+                ]
+                prop.children[
+                    Html.div[
+                        prop.className "column is-1"
+                        ]
+                    Html.div[
+                        prop.className "column"
+                        prop.onClick (fun _ -> Logic.modifyNames model dispatch)
+                        prop.children[
+                            modificationButtons model dispatch "Modify Names" false
+                        ]
+                    ]
+                    Html.div[
+                        prop.className "column is-4"
+                        prop.onClick (fun _ ->
+                            match model.CurrInstruction with
+                            | Ok instruction ->
+                                instruction.Title
+                                |> ( ResetInstruction
+                                        >> dispatch )
+                            | _ -> ())
+                        prop.children[
+                            modificationButtons model dispatch "Reset" false
+                        ]
+                    ]
+                ]
+            ]
+        | _ -> Html.none
+  
 let root model dispatch =
   Html.div[
     prop.children(
@@ -372,7 +409,7 @@ let root model dispatch =
                       ]
                   ]
                   Html.div[
-                      prop.className "column"
+                      prop.className "column is-3"
                       //prop.onClick (fun _ -> Logic.startSaving model dispatch)
                       prop.children[
                           modificationButtons model dispatch "Save" model.DeleteButton.Disable
@@ -387,37 +424,9 @@ let root model dispatch =
               ]
           ]
           |> fun x ->
-            [
-                x
-                Html.div[
-                    prop.className "columns"
-                    prop.style[
-                        model.PartNameModificationInput.Visible
-                    ]
-                    prop.children[
-                        Html.div[
-                            prop.className "column"
-                            prop.onClick (fun _ -> Logic.modifyNames model dispatch)
-                            prop.children[
-                                modificationButtons model dispatch "Modify Names" false
-                            ]
-                        ]
-                        Html.div[
-                            prop.className "column"
-                            prop.onClick (fun _ ->
-                                match model.CurrInstruction with
-                                | Ok instruction ->
-                                    instruction.Title
-                                    |> ( ResetInstruction
-                                         >> dispatch )
-                                | _ -> ())
-                            prop.children[
-                                modificationButtons model dispatch "Reset" false
-                            ]
-                        ]
-                    ]
-                ]
+            seq[x
+                modificationElements model dispatch
             ]
-          |> fun l -> List.append l  (showAllInstructionParts model dispatch )
+          |> fun l -> Seq.append l (showAllInstructionParts model dispatch )
     )
   ]
