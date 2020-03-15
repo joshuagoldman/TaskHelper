@@ -335,8 +335,8 @@ let showAllInstructionParts model dispatch =
     match model.CurrInstruction with
     | Ok partRes ->
         match model.CurrInstruction with
-        |Ok instRes ->
-            partRes.Data
+        |Ok (instRes,_) ->
+            instRes.Data
             |> Seq.toList
             |> List.map (fun part ->
                             allPartsView part instRes model dispatch)
@@ -382,7 +382,7 @@ let modificationElements model dispatch =
                         prop.className "column is-4"
                         prop.onClick (fun _ ->
                             match model.CurrInstruction with
-                            | Ok instruction ->
+                            | Ok (instruction,_) ->
                                 instruction.Title
                                 |> ( ResetInstruction
                                         >> dispatch )

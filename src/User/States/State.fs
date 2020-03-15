@@ -207,12 +207,13 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         let msg =
             match model.UserData with
             | Resolved (Ok data) ->
-                data.Instructions
-                |> Seq.tryFind (fun instruction ->
+                Seq.zip data.Instructions [0..data.Instructions |> Seq.length |> fun x -> x - 1]
+                |> Seq.tryFind (fun (instruction,pos) ->
                     instruction.Title = str)
                 |> function
                     | res when res.IsSome ->
-                        res.Value
+                        let (instr,id) = res.Value |> fun  (a,b) -> (a,b |> string)
+                        (instr,id)
                         |> (Instruction.Types.NewInstruction2Show >>
                             User.Types.InstructionMsg >>
                             Cmd.ofMsg) 

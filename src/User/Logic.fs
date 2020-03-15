@@ -74,26 +74,27 @@ let go2PartOrInstruction dispatch result =
         
             
             
-    | InstructionSearch.Types.Instruction (instruction, _) ->
-        Instruction.Types.NewInstruction2Show instruction
+    | InstructionSearch.Types.Instruction (instruction,id,_) ->
+        (instruction,id)
+        |> Instruction.Types.NewInstruction2Show 
         |> User.Types.InstructionMsg
         |> dispatch
 
 let WritePartOrInstruction result =
     match result with
     | InstructionSearch.Types.Part (partData, _, _, _) -> partData.Title
-    | InstructionSearch.Types.Instruction (instruction, _) -> instruction.Title
+    | InstructionSearch.Types.Instruction (instruction, _,_) -> instruction.Title
 
 let choosePage page =
     match page with
     | InstructionSearch.Types.Part (_, _, _, _) ->
                 Global.Part
-    | InstructionSearch.Types.Instruction (_,_) ->
+    | InstructionSearch.Types.Instruction (_,_,_) ->
                 Global.Instruction
 
 let searchInfo info (keyWord : string) =
     match info with
-    | InstructionSearch.Types.Instruction (instruction, _) -> instruction.Title.ToLower().Contains keyWord && keyWord <> ""
+    | InstructionSearch.Types.Instruction (instruction, _,_) -> instruction.Title.ToLower().Contains keyWord && keyWord <> ""
     | InstructionSearch.Types.Part (partData, _, _, _) -> partData.Title.ToLower().Contains keyWord && keyWord <> ""
 
 let loadInitData data =
@@ -108,8 +109,9 @@ let loadInitData data =
         |> Seq.item 0
     seq
         [
-            (initInstruction |>
+            ((initInstruction,"0") |>
              (Instruction.Types.NewInstruction2Show >> User.Types.InstructionMsg))
+
             ((initPart,initInstruction) |>
              (Part.Types.NewPart2Show >>
               Instruction.Types.PartMsg >>
@@ -248,8 +250,8 @@ let saveInstructionToDatabase ( status : Result<Data.InstructionData,string> ) i
     }
     
     match status with
-    | Ok result ->
-       let sqlCommand = instructionToSql ids result
+    | Ok instruction ->
+       let sqlCommand = instructionToSql ids instruction
        ( insertInstructionAsync sqlCommand)
        |> Async.RunSynchronously
 
@@ -318,8 +320,8 @@ let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>) 
             {
                 Title = instructionToAppend.Value.Title
                 Data = newParts
-            }
-        | res -> res
+            }, id
+        | res -> res,id
     |> Instruction.Types.NewInstruction2Show
     |> User.Types.InstructionMsg
     |> fun x -> seq[x]
@@ -764,7 +766,7 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                         (prop.style[
                                     style.color.black
                                     style.fontWeight.bold
-                                    style.fontSize 15
+                                    style.fontSize 13
                         ] )
                 ]
             let secondMessage = 
@@ -779,7 +781,7 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                                 (prop.style[
                                     style.color.indianRed
                                     style.fontWeight.bold
-                                    style.fontSize 15
+                                    style.fontSize 13
                                 ])
                         ] 
 
@@ -791,7 +793,7 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                                 (prop.style[
                                     style.color.indianRed
                                     style.fontWeight.bold
-                                    style.fontSize 15
+                                    style.fontSize 13
                                 ])
                         ])
                 |> Seq.collect (fun components -> components)
@@ -803,7 +805,7 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                         (prop.style[
                             style.color.black
                             style.fontWeight.bold
-                            style.fontSize 15
+                            style.fontSize 13
                         ])
                     divWithStyle
                         None
@@ -811,7 +813,7 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                         (prop.style[
                             style.color.indianRed
                             style.fontWeight.bold
-                            style.fontSize 15
+                            style.fontSize 13
                         ])
                     divWithStyle
                         None
@@ -819,7 +821,7 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                         (prop.style[
                             style.color.black
                             style.fontWeight.bold
-                            style.fontSize 15
+                            style.fontSize 13
                         ])
                     divWithStyle
                         None
@@ -827,7 +829,7 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                         (prop.style[
                             style.color.indianRed
                             style.fontWeight.bold
-                            style.fontSize 15
+                            style.fontSize 13
                         ])
                 ]
 
@@ -860,7 +862,7 @@ let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormDat
                     (prop.style[
                         style.color.indianRed
                         style.fontWeight.bold
-                        style.fontSize 15
+                        style.fontSize 13
                     ])
             ]
             |> Some 
@@ -884,7 +886,7 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                     (prop.style[
                         style.color.black
                         style.fontWeight.bold
-                        style.fontSize 15
+                        style.fontSize 13
                     ])
             ]
             |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg )
@@ -920,7 +922,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                         (prop.style[
                             style.color.indianRed
                             style.fontWeight.bold
-                            style.fontSize 15
+                            style.fontSize 13
                         ])
                 ]
                 |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
@@ -932,7 +934,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                         (prop.style[
                             style.color.indianRed
                             style.fontWeight.bold
-                            style.fontSize 15
+                            style.fontSize 13
                         ])
                 ]
                 |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
@@ -946,7 +948,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                 (prop.style[
                     style.color.indianRed
                     style.fontWeight.bold
-                    style.fontSize 15
+                    style.fontSize 13
                 ])
         ]
         |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
