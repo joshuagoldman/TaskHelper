@@ -33,10 +33,26 @@ let chooseSideMenuHref name =
     | _ -> Global.InstructionSearch
 
 let clearIfSearchButton dispatch name =
+    let clearNewAddInfoMsg =
+        Html.none
+        |> fun y -> seq[y]
+        |> (NewAdd.Types.NewAddInfoMsg >>
+            User.Types.NewAddMsg)
+
     match name with
     | "Search Instruction" ->  InstructionSearch.Types.ClearSearchResult
-                               |> ( User.Types.InstructionSearchMsg >> dispatch)
-    | _ -> ()
+                               |> User.Types.InstructionSearchMsg
+                               |> fun x ->
+                                    seq[
+                                        x
+                                        clearNewAddInfoMsg
+                                    ]
+                                    |> Seq.iter (fun msg -> msg |> dispatch )
+    | _ ->
+         seq[
+            clearNewAddInfoMsg
+         ]
+         |> Seq.iter (fun msg -> msg |> dispatch )
 
 let menuButton model dispatch name =
 

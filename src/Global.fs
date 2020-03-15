@@ -30,11 +30,18 @@ let toHash page =
 ///<remarks>logindelay</remarks>
 let divWithStyle ( className : Option<string> ) msg properties =
     Html.div[
-        prop.className ( if className.IsSome then className.Value else "columns is-centered" )
-        properties
+        prop.className "columns is-centered"
         prop.children[
-            Html.br[]
-            str msg
+            Html.div[
+                prop.className "column"
+            ]
+            Html.div[
+                prop.className ( if className.IsSome then className.Value else "column is-11" )
+                properties
+                prop.children[
+                    str msg
+                ]
+            ]
         ]
     ]
 

@@ -78,7 +78,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                                      |> Cmd.fromAsync)
                                                                 ]
                                                             )
-                                                            |> Seq.append [ NewAdd.Logic.createNewInstructionSequence items |> Cmd.ofMsg])
+                                                            |> Seq.append (NewAdd.Logic.createNewInstructionSequence items)
+                                                    )
                                                         
                                                             
                                                         

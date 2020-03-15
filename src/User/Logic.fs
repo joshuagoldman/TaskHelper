@@ -761,7 +761,11 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                     divWithStyle
                         None
                         "The following files did not have the the right file type:"
-                        (prop.style[style.color.black ; style.fontWeight.bold] )
+                        (prop.style[
+                                    style.color.black
+                                    style.fontWeight.bold
+                                    style.fontSize 15
+                        ] )
                 ]
             let secondMessage = 
                 res
@@ -772,15 +776,23 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                             divWithStyle
                                 None
                                 vid.name
-                                (prop.style[style.color.indianRed ; style.fontWeight.bold] )
-                        ]
+                                (prop.style[
+                                    style.color.indianRed
+                                    style.fontWeight.bold
+                                    style.fontSize 15
+                                ])
+                        ] 
 
                     | NewAdd.Types.InstructionTxt (instrctn,_,msgType) ->
                         seq[
                             divWithStyle
                                 None
                                 instrctn.name
-                                (prop.style[style.color.indianRed ; style.fontWeight.bold] )
+                                (prop.style[
+                                    style.color.indianRed
+                                    style.fontWeight.bold
+                                    style.fontSize 15
+                                ])
                         ])
                 |> Seq.collect (fun components -> components)
             let finalMessage =
@@ -788,19 +800,35 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                     divWithStyle
                         None
                         "Allowed video formats are:"
-                        (prop.style[style.color.black ; style.fontWeight.bold] )
+                        (prop.style[
+                            style.color.black
+                            style.fontWeight.bold
+                            style.fontSize 15
+                        ])
                     divWithStyle
                         None
                         ".mpeg, .mp4, .ogg, .avi."
-                        (prop.style[style.color.indianRed ; style.fontWeight.bold] )
+                        (prop.style[
+                            style.color.indianRed
+                            style.fontWeight.bold
+                            style.fontSize 15
+                        ])
                     divWithStyle
                         None
                         "For instruction text files:"
-                        (prop.style[style.color.black ; style.fontWeight.bold] )
+                        (prop.style[
+                            style.color.black
+                            style.fontWeight.bold
+                            style.fontSize 15
+                        ])
                     divWithStyle
                         None
                         ".md (Markdown)"
-                        (prop.style[style.color.indianRed ; style.fontWeight.bold] )
+                        (prop.style[
+                            style.color.indianRed
+                            style.fontWeight.bold
+                            style.fontSize 15
+                        ])
                 ]
 
             finalMessage
@@ -829,7 +857,11 @@ let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormDat
                 divWithStyle
                     None
                     "צריך לבחור אותו כמות של קבצי וידאו ומארקדבן"
-                    (prop.style[style.color.blueViolet ; style.fontWeight.bold])
+                    (prop.style[
+                        style.color.indianRed
+                        style.fontWeight.bold
+                        style.fontSize 15
+                    ])
             ]
             |> Some 
 
@@ -849,7 +881,11 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                 divWithStyle
                     None
                     "Data will now be saved"
-                    (prop.style[style.color.indianRed ; style.fontWeight.bold])
+                    (prop.style[
+                        style.color.black
+                        style.fontWeight.bold
+                        style.fontSize 15
+                    ])
             ]
             |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg )
             |> fun x ->
@@ -881,7 +917,11 @@ let isUploadable ( model : NewAdd.Types.Model )
                     divWithStyle
                         None
                         "לא היה הבחרת קביצה, ומספר זהות לא קיימת"
-                        (prop.style[style.color.indianRed ; style.fontWeight.bold])
+                        (prop.style[
+                            style.color.indianRed
+                            style.fontWeight.bold
+                            style.fontSize 15
+                        ])
                 ]
                 |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
             | _ when res |> Seq.length = 0 ->
@@ -889,7 +929,11 @@ let isUploadable ( model : NewAdd.Types.Model )
                     divWithStyle
                         None
                         ("לא היה הבחרת קביצה")
-                        (prop.style[style.color.indianRed ; style.fontWeight.bold])
+                        (prop.style[
+                            style.color.indianRed
+                            style.fontWeight.bold
+                            style.fontSize 15
+                        ])
                 ]
                 |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
             | _  ->
@@ -899,7 +943,11 @@ let isUploadable ( model : NewAdd.Types.Model )
             divWithStyle
                 None
                 "לא היה הבחרת קביצה"
-                (prop.style[style.color.indianRed ; style.fontWeight.bold])
+                (prop.style[
+                    style.color.indianRed
+                    style.fontWeight.bold
+                    style.fontSize 15
+                ])
         ]
         |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
 
