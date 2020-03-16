@@ -22,7 +22,7 @@ type modificationInfo = {
 }
 
 type Msg =
-    | NewInstruction2Show of Data.InstructionData * string
+    | NewInstruction2Show of Data.InstructionData
     | PartMsg of Part.Types.Msg
     | ErrorMsg of string
     | ModifyInstructionMsg of IStyleAttribute
@@ -42,7 +42,7 @@ type InstructionMode  =
 type Model =
     {
         InstructionErrorMessage : AppearanceAttributes
-        CurrInstruction : Result<Data.InstructionData * string,string>
+        CurrInstruction : Result<Data.InstructionData,string>
         CurrPart : Part.Types.Model
         CurrPositions : Option<seq<modificationInfo>>
         CurrTempInstruction : Option<InstructionData>

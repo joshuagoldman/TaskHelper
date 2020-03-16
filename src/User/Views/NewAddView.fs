@@ -177,6 +177,5 @@ let root model ( dispatch : User.Types.Msg -> unit ) =
             uploadDuet model dispatch "instructions"
             |> Seq.append (uploadDuet model dispatch "videos")
             |> Seq.append (uploadButton model dispatch)
-        )
-            
+        )    
     ]

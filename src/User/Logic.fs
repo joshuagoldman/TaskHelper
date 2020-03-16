@@ -317,19 +317,25 @@ let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>) 
             {
                 Title = instructionToAppend.Value.Title
                 Data = newParts
-            }, id
+            }
         | res -> res,id
     |> Instruction.Types.NewInstruction2Show
     |> User.Types.InstructionMsg
-    |> fun x -> seq[x]
-                |> Seq.append(
-                        UserPage.Instruction
-                        |> User.Types.NoDelay
-                        |> (User.Types.ChangePage)
-                        |> fun y -> seq[y]
-                    )
-                |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                |> Cmd.batch
+    |> fun x ->
+        let turnToModMode =
+            style.visibility.visible
+            |> Instruction.Types.ModifyInstructionMsg
+            |> User.Types.InstructionMsg
+        let changeToInstructionMsg =
+            (UserPage.Instruction, 2000)
+            |> User.Types.Delay
+            |> (User.Types.ChangePage)
+        let msgs =
+            seq[
+                turnToModMode
+                changeToInstructionMsg
+            ]
+        msgs
 
 let saveAsync ( fileInfo : (Types.File * NewAdd.Types.ModificationType) )
               ( media : NewAdd.Types.MediaChoiceFormData ) = async{
@@ -893,15 +899,11 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
             ]
             |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg )
             |> fun x ->
-                medias
-                |> Seq.map (fun media ->
-                         media
-                         |> (SavingHasNostStartedYet >>
-                             SavingWillBegin >>
-                             NewAdd.Types.CreateNewDataMsg >>
-                             User.Types.NewAddMsg)
-                )
-                |> fun y -> Seq.append [x] y
+                let instructionCreationMsg =
+                    medias
+                    |> createInstructionFromFile
+                seq[x]
+                |> Seq.append instructionCreationMsg
                 |> Seq.iter (fun msg -> (msg |> dispatch))
                         
         | res ->

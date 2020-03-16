@@ -28,7 +28,7 @@ let init () : Model * Cmd<Msg> =
 
 let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
     match msg with
-    | NewInstruction2Show (instruction,id) ->
+    | NewInstruction2Show instruction ->
         let delOrReg  =
             "Delete"
             |> ( Delete >> Some )
@@ -44,7 +44,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                     DelOrReg = delOrReg
                     Names = names
                 })
-        { model with CurrInstruction = Ok (instruction,id) ;
+        { model with CurrInstruction = Ok instruction ;
                      CurrPositions = Some newModInfo }, []
     | PartMsg msg ->
         let (parModel, partModelCmd) = Part.State.update msg model.CurrPart
@@ -62,7 +62,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                         { model.DeleteButton with Disable = isDisabled } }, []
     | NewModificationInfo (delOrReg,currName,newName) ->
         match model.CurrInstruction with
-        | Ok (instruction,id) ->
+        | Ok (instruction) ->
             match model.CurrPositions with
             | Some modinfo ->
                 let (newInstruction,newModInfo) =
@@ -71,14 +71,14 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                                                       delOrReg
                                                       currName
                                                       newName
-                { model with CurrInstruction = Ok (newInstruction,id)
+                { model with CurrInstruction = Ok (newInstruction)
                              CurrPositions = Some newModInfo}, []
             | _ -> model,[]
         | _ -> model,[]
 
     | ImplementNewNames ->
         match model.CurrInstruction with
-        | Ok (instruction,id) ->
+        | Ok instruction ->
             let result =
                 Logic.implementNewNamesTestable instruction model.CurrPositions
             let kattenJansson =
@@ -106,7 +106,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                 | res when res.IsSome ->
                     let (newInstruction,newModinfo) =
                         res.Value |> fun (a,b) -> (a,b)
-                    {model with CurrInstruction = Ok (newInstruction,id) ;
+                    {model with CurrInstruction = Ok newInstruction ;
                                 CurrPositions = Some newModinfo },[]
                 | _ -> model, []
         | _ -> model, []
