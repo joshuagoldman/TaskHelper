@@ -181,24 +181,22 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             match model.UserData with
             | Resolved (Ok data) ->
                 let dataIsNew =
-                    data.Instructions
-                    |> Seq.length
-                    |> function pos ->
-                        (None,pos |> string |> fun x -> usrId + "_" + x) |>
-                        ( NewAdd.Types.NewCurrentInstructionMsg >>
-                          User.Types.NewAddMsg >> Cmd.ofMsg )
-
+                    (None, usrId)
+                    |>(Some >>
+                       NewAdd.Types.NewCurrentInstructionMsg >>
+                       User.Types.NewAddMsg >> Cmd.ofMsg )
                 titleOpt
                 |> function
                     | res when res.IsSome ->
-                        Seq.zip data.Instructions ( Global.getPositionSequence data.Instructions )
-                        |> Seq.tryFind (fun (instruction,_) -> instruction.Title = titleOpt.Value)
+                        data.Instructions
+                        |> Seq.tryFind (fun (instruction) -> instruction.Title = titleOpt.Value)
                         |> function
                             | res when res.IsSome ->
                                 res.Value
-                                |> fun (instr,pos) ->
-                                    (Some instr,pos |> string |> fun x -> usrId + "_" + x) |>
-                                    ( NewAdd.Types.NewCurrentInstructionMsg >>
+                                |> fun instr ->
+                                    (Some instr,usrId) |>
+                                    ( Some >>
+                                      NewAdd.Types.NewCurrentInstructionMsg >>
                                       User.Types.NewAddMsg >> Cmd.ofMsg )
                             | _ -> dataIsNew
                     | _ -> dataIsNew

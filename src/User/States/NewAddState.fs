@@ -20,7 +20,7 @@ let init () : Model * Cmd<Msg> =
        VideosUploadInput = defaultAppearanceAttributes
        InstructionTxtUploadInput = defaultAppearanceAttributes
        InstructionList = None
-       CurrentInstructionWId = None
+       CurrentInstruction = None
     }, []
 
 let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
@@ -60,14 +60,11 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     | NewFilesChosenMsg (files,type') ->
         { model with NewInstructionData =
                         (User.Logic.extractMedia model.NewInstructionData files type' |> Some)}, []
-    | ChangeFileStatus (media,newStatus) ->
-        Logic.changeFileStatus model media newStatus
+    | ChangeFileStatus (media) ->
+        Logic.changeFileStatus model media
     | NewInstructionsListMsg sequence ->
         { model with InstructionList = Some sequence }, Cmd.none
-    | NewCurrentInstructionMsg (instr,id) ->
-        let newInstructionData =
-            NewAdd.Logic.modifyFileData model.NewInstructionData instr id
-        { model with CurrentInstructionWId = Some (instr,id)
-                     NewInstructionData = newInstructionData}, Cmd.none
+    | NewCurrentInstructionMsg instrWId ->
+        { model with CurrentInstruction = instrWId }, Cmd.none
 
        

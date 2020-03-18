@@ -336,7 +336,7 @@ let showAllInstructionParts model dispatch =
     | Ok partRes ->
         match model.CurrInstruction with
         |Ok (instRes,_) ->
-            instRes.Data
+            (instRes.Data)
             |> Seq.toList
             |> List.map (fun part ->
                             allPartsView part instRes model dispatch)

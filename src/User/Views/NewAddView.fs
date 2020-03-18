@@ -23,9 +23,9 @@ let alternative ( model : NewAdd.Types.Model ) dispatch name =
                         prop.name "resume"
                         prop.multiple true
                         prop.onChange (fun ev -> User.Logic.fileHandle (ev : Types.Event)
-                                                                        model.CurrentInstructionWId
-                                                                        dispatch
-                                                                        name)
+                                                                        model.CurrentInstruction
+                                                                        name
+                                                                        dispatch)
                     ]
                     Html.span[
                         prop.className "file-cta"
