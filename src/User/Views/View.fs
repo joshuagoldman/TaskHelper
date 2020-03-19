@@ -174,6 +174,23 @@ let navbar model dispatch =
             
         ]
 
+let popup ( model : User.Types.Model) dispatch =
+    match model.PopUp with
+    | Some popup ->
+        let button =
+            match popup.Button with
+            | Some button ->
+                button
+            | _ -> Html.none
+        Html.div[
+            popup.Style 
+            prop.children(
+                (seq[button])
+                |> Seq.append popup.Messages
+            )
+        ]
+    | None -> Html.none
+
 let root model dispatch  =
     Html.div[
         prop.style[
@@ -183,6 +200,7 @@ let root model dispatch  =
             style.height 1024
         ]
         prop.children[
+            popup model dispatch
             navbar model dispatch
             body model dispatch
         ]

@@ -66,5 +66,6 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
         { model with InstructionList = Some sequence }, Cmd.none
     | NewCurrentInstructionMsg instrWId ->
         { model with CurrentInstruction = instrWId }, Cmd.none
+    | _ -> model,[]
 
        

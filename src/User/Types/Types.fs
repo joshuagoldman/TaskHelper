@@ -10,6 +10,19 @@ type NewUserPage =
     | NoDelay of UserPage
     | Delay of UserPage * int
 
+type PopUpSettings<'t> =
+    | DefaultWithMsg of seq<ReactElement> * 't
+    | OptionalWithMsg of IReactProperty * seq<ReactElement>
+    | DefaultWithButton of seq<ReactElement> * string * 't
+    | DefaultTemporary of IReactProperty * seq<ReactElement> * int
+
+type PopUpControl =
+    {
+        Style : IReactProperty
+        Button : ReactElement option
+        Messages : seq<ReactElement>
+    }
+
 type Msg =
     | LoginAttemptMsg of string * string
     | LoadedInstructions of AsyncOperationEvent<Result<UserData, string>>
@@ -30,6 +43,7 @@ type Msg =
     | NewAddNewCurrentInstruction of Option<string>
     | GiveResetInstruction of string
     | NewInstructionToSave of Data.InstructionData * string
+    | PopUpMsg of PopUpSettings<Msg -> unit> Option
 type Model =
     {
       User : Data.Deferred<Result<LoginInfo, string>>
@@ -42,4 +56,5 @@ type Model =
       UserData : Data.Deferred<Result<UserData, string>>
       Instruction: Instruction.Types.Model
       LoginSpinner : AppearanceAttributes
+      PopUp : PopUpControl Option
     }

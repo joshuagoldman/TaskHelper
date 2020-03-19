@@ -113,6 +113,9 @@ let findPartPosition partTitle ( instruction : Data.InstructionData ) =
             |> fun (_,pos) -> pos
         | _ -> 0
 
+//let makePartMediaInfoVisibleOrInvisible part visible dispatch =
+    
+
 let modElements ( part : Data.partData ) model dispatch =
     let modificationControl =
         Html.div[
@@ -130,6 +133,7 @@ let modElements ( part : Data.partData ) model dispatch =
                                 Html.input[
                                     prop.className "input is-info"
                                     prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
+                                    //prop.onMouseOver(fun _ ->  )
                                     prop.type'.text
                                     prop.value ( Logic.newnameValue model part )
                                     prop.placeholder part.Title
@@ -266,7 +270,7 @@ let delOrRegbutton model part dispatch =
 
 let allPartsView ( part : Data.partData )
                  ( instruction : Data.InstructionData )
-                 (  model : Instruction.Types.Model )
+                 ( model : Instruction.Types.Model )
                    dispatch=
     model.PartNameModificationInput.Visible
     |>function 

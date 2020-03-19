@@ -107,15 +107,35 @@ let loadInitData data =
         |> Seq.item 0
         |> fun x -> x.Data
         |> Seq.item 0
+
+    let newPartMsgChaining initPart initInstruction =
+        (initPart,initInstruction) |>
+        (
+            Part.Types.NewPart2Show >>
+            Instruction.Types.PartMsg >>
+            User.Types.InstructionMsg
+        )
+
+    let newInstr2ShowFuncChaining initInstruction id =
+        (initInstruction, id |> string ) |>
+        (
+            Instruction.Types.NewInstruction2Show >>
+            User.Types.InstructionMsg
+        )
+
+    let initNewAddInstruction id =
+        (None,id |> string) |>
+        (
+            Some >>
+            NewAdd.Types.NewCurrentInstructionMsg >>
+            User.Types.NewAddMsg
+        )
+        
     seq
         [
-            (initInstruction,data.Id |> string) |>
-             (Instruction.Types.NewInstruction2Show >> User.Types.InstructionMsg)
-
-            ((initPart,initInstruction) |>
-             (Part.Types.NewPart2Show >>
-              Instruction.Types.PartMsg >>
-              User.Types.InstructionMsg))
+            data.Id |> newInstr2ShowFuncChaining initInstruction
+            initInstruction |> newPartMsgChaining initPart
+            data.Id |> initNewAddInstruction
         ]
 
                        
@@ -847,7 +867,18 @@ let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormDat
                         style.fontSize 13
                     ])
             ]
-            |> Some 
+            |> Some
+
+let provideNewAddPopUp dispatch msgs =
+    let funcChaining dispatch msgs =
+        (msgs,dispatch) |>
+        (
+            User.Types.PopUpSettings.DefaultWithMsg >>
+            Some >>
+            User.Types.PopUpMsg 
+        )
+    msgs
+    |> funcChaining dispatch
 
 let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                         ( model : NewAdd.Types.Model )
@@ -864,14 +895,14 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
             seq[
                 divWithStyle
                     None
-                    "Data will now be saved"
+                    "Shortly you'll be directed to modify the intruction"
                     (prop.style[
                         style.color.black
                         style.fontWeight.bold
-                        style.fontSize 13
+                        style.fontSize 15
                     ])
             ]
-            |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg )
+            |> provideNewAddPopUp dispatch
             |> fun x ->
                         match model.CurrentInstruction with
                         | Some instrOptWId ->
@@ -887,8 +918,8 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
         | res ->
             res
             |> Seq.collect (fun msgs -> msgs.Value)
-            |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
-  
+            |> provideNewAddPopUp dispatch
+            |> dispatch
 
 let isUploadable ( model : NewAdd.Types.Model )
                    dispatch =
@@ -919,7 +950,10 @@ let isUploadable ( model : NewAdd.Types.Model )
                             style.fontSize 13
                         ])
                 ]
-                |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
+                |> fun x ->
+                    x
+                    |> provideNewAddPopUp dispatch
+                    |> dispatch
             | _  ->
                 decideIfUploadValid res model dispatch
     | None ->
@@ -933,7 +967,10 @@ let isUploadable ( model : NewAdd.Types.Model )
                     style.fontSize 13
                 ])
         ]
-        |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
+        |> fun x ->
+            x
+            |> provideNewAddPopUp dispatch
+            |> dispatch
 
 let changeFileStatus ( model : NewAdd.Types.Model ) media =
 

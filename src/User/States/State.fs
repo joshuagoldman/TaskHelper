@@ -8,10 +8,12 @@ open Global
 open Data
 open Types
 open Fable.React
+open Fable.React.Helpers
 open Browser
 open Thoth.Json
 open Logic
 open Feliz
+open Elmish.React
 
 let urlUpdate (result : UserPage option) model =
     match result with
@@ -38,6 +40,7 @@ let init() : Model * Cmd<Msg> =
         Instruction = Instruction.State.init() |> fun (a,b) -> a
         LoginSpinner =
             { Controls.defaultAppearanceAttributes with Visible = style.visibility.hidden }
+        PopUp = None
     }, []
 
 let matchValidity validityObject =
@@ -189,7 +192,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                 |> function
                     | res when res.IsSome ->
                         data.Instructions
-                        |> Seq.tryFind (fun (instruction) -> instruction.Title = titleOpt.Value)
+                        |> Seq.tryFind (fun (instruction) ->
+                            instruction.Title.Trim() = titleOpt.Value.Trim())
                         |> function
                             | res when res.IsSome ->
                                 res.Value
@@ -226,3 +230,59 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         model,[]
         //let usrId = model.Id |> string
         //Logic.saveInstructionToDatabase (instruction,instructionId) usrId
+
+    | PopUpMsg settings ->
+        match settings with
+        | Some settings ->
+            match settings with
+            | DefaultWithMsg (str,dispatch) ->
+                let style =
+                    prop.style[
+                        style.zIndex 1
+                        Feliz.style.right 200
+                        style.width 500
+                        style.height 300
+                        style.margin 200
+                        style.position.absolute
+                        style.backgroundColor.aquaMarine
+                        Feliz.style.opacity 0.85
+                    ]
+
+
+                let button =
+                    Html.a[
+                        prop.className "button"
+                        prop.style[
+                            Feliz.style.backgroundColor "white"
+                            Feliz.style.fontSize 18
+                            Feliz.style.borderRadius 10
+                        ]
+                        prop.onClick (fun _ -> None |> ( PopUpMsg >> dispatch ) )
+                        prop.children[
+                            Fable.React.Helpers.str "Ok"
+                        ]
+                    ]
+
+                let popupSettings =
+                    {
+                        Style = style
+                        Button = Some button
+                        Messages = str
+                    }
+                    |> Some
+
+                { model with PopUp = popupSettings},[]
+
+            | OptionalWithMsg(style,divs) ->
+                let popup =
+                    {
+                        Style = style
+                        Button = None
+                        Messages = divs
+                    }
+                    |> Some
+                {model with PopUp = popup},[]
+            | _ ->
+                { model with PopUp = None},[]
+        | None ->
+            { model with PopUp = None},[]
