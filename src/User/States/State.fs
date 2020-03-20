@@ -235,31 +235,35 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         match settings with
         | Some settings ->
             match settings with
-            | DefaultWithMsg (str,dispatch) ->
+            | DefaultWithButton (str,dispatch,positions) ->
                 let style =
                     prop.style[
                         style.zIndex 1
-                        Feliz.style.right 200
-                        style.width 500
-                        style.height 300
-                        style.margin 200
+                        Feliz.style.left ( positions.X |> int )
+                        Feliz.style.top ( positions.Y |> int )
                         style.position.absolute
-                        style.backgroundColor.aquaMarine
-                        Feliz.style.opacity 0.85
+                        style.backgroundColor.white
+                        style.borderRadius 20
+                        style.opacity 0.90
                     ]
 
-
                 let button =
-                    Html.a[
-                        prop.className "button"
-                        prop.style[
-                            Feliz.style.backgroundColor "white"
-                            Feliz.style.fontSize 18
-                            Feliz.style.borderRadius 10
-                        ]
-                        prop.onClick (fun _ -> None |> ( PopUpMsg >> dispatch ) )
+                    Html.div[
+                        prop.className "columns is-centered"
                         prop.children[
-                            Fable.React.Helpers.str "Ok"
+                            Html.a[
+                                prop.className "button"
+                                prop.style[
+                                    Feliz.style.margin 30
+                                    Feliz.style.backgroundColor "grey"
+                                    Feliz.style.fontSize 18
+                                    Feliz.style.borderRadius 10
+                                ]
+                                prop.onClick (fun _ -> None |> ( PopUpMsg >> dispatch ) )
+                                prop.children[
+                                    Fable.React.Helpers.str "Ok"
+                                ]
+                            ]
                         ]
                     ]
 
@@ -273,7 +277,21 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
                 { model with PopUp = popupSettings},[]
 
-            | OptionalWithMsg(style,divs) ->
+            | OptionalWithMsg (divs,positions,styles) ->
+                let style =
+                    [
+                        style.zIndex 1
+                        Feliz.style.left ( positions.X |> int )
+                        Feliz.style.top ( positions.Y |> int )
+                        style.position.absolute
+                        style.backgroundColor.white
+                        style.borderRadius 20
+                        style.opacity 0.85
+                    ]
+                    |> List.append (styles |> Seq.toList)
+                    |> prop.style
+
+
                 let popup =
                     {
                         Style = style

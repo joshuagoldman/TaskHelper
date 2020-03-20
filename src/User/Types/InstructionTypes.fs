@@ -6,6 +6,7 @@ open Data
 open Elmish
 open Feliz
 open Fable.React
+open Browser
 
 type DeleteInfo =
     | Delete of string
@@ -35,6 +36,7 @@ type Msg =
     | NewFileAddMsg of ReactElement
     | ResetInstruction of string
     | NewPage of Global.Page * int Option
+    | HoverPartMsg of Data.partData * Types.MouseEvent * IStyleAttribute
 type InstructionMode  =
 | Regular
 | Modification

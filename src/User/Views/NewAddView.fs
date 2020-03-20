@@ -127,7 +127,7 @@ let uploadButton model dispatch =
                         prop.children[
                             Html.button[
                                 prop.className "button is-light"
-                                prop.onClick (fun _ -> User.Logic.isUploadable model dispatch)
+                                prop.onClick (fun e -> User.Logic.isUploadable model e dispatch)
                                 prop.children[
                                     str "Upload files"
                                 ]

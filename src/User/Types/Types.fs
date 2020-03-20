@@ -10,10 +10,14 @@ type NewUserPage =
     | NoDelay of UserPage
     | Delay of UserPage * int
 
+type Position = {
+    X : float
+    Y : float
+}
+
 type PopUpSettings<'t> =
-    | DefaultWithMsg of seq<ReactElement> * 't
-    | OptionalWithMsg of IReactProperty * seq<ReactElement>
-    | DefaultWithButton of seq<ReactElement> * string * 't
+    | DefaultWithButton of seq<ReactElement> * 't * Position
+    | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
     | DefaultTemporary of IReactProperty * seq<ReactElement> * int
 
 type PopUpControl =

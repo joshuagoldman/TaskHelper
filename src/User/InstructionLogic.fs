@@ -8,6 +8,7 @@ open Feliz
 open Browser
 open Fable.Core.JsInterop
 open Elmish.Navigation
+open Elmish
 
 let modifyOrNot model dispatch =
     model.PartNameModificationInput.Visible
@@ -298,3 +299,42 @@ let newnameValue model ( part : Data.partData ) =
                 | _ -> ""
             | _ -> ""
     | _ -> ""
+
+let hoverMessageFuncChaining args =
+    args |>
+    (
+        User.Types.OptionalWithMsg >>
+        Some >>
+        User.Types.PopUpMsg >>
+        Cmd.ofMsg
+    )
+
+let createHoverMessageCommponents ( part : Data.partData )
+                                  ( ev : Types.MouseEvent )
+                                    visible =
+    let positions =
+        {
+            User.Types.Position.X = ( ev?pageX : float )
+            User.Types.Position.Y = ( ev?pageY : float )
+        }
+
+    let divs =
+        seq[
+            Global.divWithStyle
+                    None
+                    ("Instruction Video:" + part.InstructionVideo)
+                    (prop.style[style.fontSize 10])
+
+            Global.divWithStyle
+                    None
+                    ("Instruction Text:" + part.InstructionTxt)
+                    (prop.style[style.fontSize 10])
+        ]
+
+    seq[
+        visible
+        style.left ( positions.X |> int )
+        style.top ( positions.Y |> int )
+    ]
+    |> fun styles ->
+        divs,positions,styles

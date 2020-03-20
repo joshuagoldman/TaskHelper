@@ -869,11 +869,18 @@ let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormDat
             ]
             |> Some
 
-let provideNewAddPopUp dispatch msgs =
+let provideNewAddPopUp ( ev : Types.Event )
+                         dispatch
+                         msgs =
+    let positions =
+        {
+            X = ( ev?pageX : float )
+            Y = ( ev?pageY : float )
+        }
     let funcChaining dispatch msgs =
-        (msgs,dispatch) |>
+        (msgs,dispatch,positions) |>
         (
-            User.Types.PopUpSettings.DefaultWithMsg >>
+            User.Types.PopUpSettings.DefaultWithButton >>
             Some >>
             User.Types.PopUpMsg 
         )
@@ -881,6 +888,7 @@ let provideNewAddPopUp dispatch msgs =
     |> funcChaining dispatch
 
 let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
+                        ( ev : Types.MouseEvent )
                         ( model : NewAdd.Types.Model )
                           dispatch =
 
@@ -902,7 +910,7 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                         style.fontSize 15
                     ])
             ]
-            |> provideNewAddPopUp dispatch
+            |> provideNewAddPopUp ev dispatch
             |> fun x ->
                         match model.CurrentInstruction with
                         | Some instrOptWId ->
@@ -918,10 +926,11 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
         | res ->
             res
             |> Seq.collect (fun msgs -> msgs.Value)
-            |> provideNewAddPopUp dispatch
+            |> provideNewAddPopUp ev dispatch
             |> dispatch
 
 let isUploadable ( model : NewAdd.Types.Model )
+                 ( ev : Types.MouseEvent )
                    dispatch =
     match model.NewInstructionData with
     | Some res ->
@@ -952,10 +961,10 @@ let isUploadable ( model : NewAdd.Types.Model )
                 ]
                 |> fun x ->
                     x
-                    |> provideNewAddPopUp dispatch
+                    |> provideNewAddPopUp ev dispatch
                     |> dispatch
             | _  ->
-                decideIfUploadValid res model dispatch
+                decideIfUploadValid res ev model dispatch
     | None ->
         seq[
             divWithStyle
@@ -969,7 +978,7 @@ let isUploadable ( model : NewAdd.Types.Model )
         ]
         |> fun x ->
             x
-            |> provideNewAddPopUp dispatch
+            |> provideNewAddPopUp ev dispatch
             |> dispatch
 
 let changeFileStatus ( model : NewAdd.Types.Model ) media =

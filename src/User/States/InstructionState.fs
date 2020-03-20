@@ -129,4 +129,11 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         let msg =
             Elmish.Navigation.Navigation.newUrl(Global.toHash(page))
         model, msg
+    | HoverPartMsg (part,ev,visible) ->
+        let usrMsg =
+            visible
+            |> Logic.createHoverMessageCommponents part ev
+            |> Logic.hoverMessageFuncChaining
+
+        model, usrMsg
         
