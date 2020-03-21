@@ -133,8 +133,11 @@ let modElements ( part : Data.partData ) model dispatch =
                                 Html.input[
                                     prop.className "input is-info"
                                     prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
-                                    prop.onMouseOver(fun ev ->
+                                    prop.onMouseEnter(fun ev ->
                                         (part,ev,style.visibility.visible) 
+                                        |> (Instruction.Types.HoverPartMsg >> dispatch))
+                                    prop.onMouseLeave(fun ev ->
+                                        (part,ev,style.visibility.hidden) 
                                         |> (Instruction.Types.HoverPartMsg >> dispatch))
                                     prop.type'.text
                                     prop.value ( Logic.newnameValue model part )

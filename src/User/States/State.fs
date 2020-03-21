@@ -285,7 +285,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         Feliz.style.top ( positions.Y |> int )
                         style.position.absolute
                         style.backgroundColor.white
-                        style.borderRadius 20
+                        style.borderRadius 10
                         style.opacity 0.85
                     ]
                     |> List.append (styles |> Seq.toList)

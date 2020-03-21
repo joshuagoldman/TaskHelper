@@ -318,23 +318,31 @@ let createHoverMessageCommponents ( part : Data.partData )
             User.Types.Position.Y = ( ev?pageY : float )
         }
 
+    let style =
+        prop.style[
+            style.fontSize 10
+            style.color.black
+            style.fontWeight.bold
+            style.margin 1
+        ]
+
     let divs =
         seq[
             Global.divWithStyle
-                    None
-                    ("Instruction Video:" + part.InstructionVideo)
-                    (prop.style[style.fontSize 10])
+                    (Some "columns is-gapless")
+                    ("Instruction Video: " + part.InstructionVideo.Replace("Videos/",""))
+                    style
 
             Global.divWithStyle
-                    None
-                    ("Instruction Text:" + part.InstructionTxt)
-                    (prop.style[style.fontSize 10])
+                    (Some "columns is-gapless")
+                    ("Instruction Text: " + part.InstructionTxt)
+                    style
         ]
 
     seq[
         visible
-        style.left ( positions.X |> int )
-        style.top ( positions.Y |> int )
+        Feliz.style.left ( positions.X |> int )
+        Feliz.style.top ( positions.Y |> int )
     ]
     |> fun styles ->
         divs,positions,styles
