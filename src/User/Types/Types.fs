@@ -6,19 +6,18 @@ open Controls
 open Feliz
 open Browser
 
-type NewUserPage =
+type NewUserPage<'t> =
     | NoDelay of UserPage
     | Delay of UserPage * int
+
+type RecursiveAction<'t,'u> =
+    | First of 't
+    | Second of 'u
 
 type Position = {
     X : float
     Y : float
 }
-
-type PopUpSettings<'t> =
-    | DefaultWithButton of seq<ReactElement> * 't * Position
-    | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
-    | DefaultTemporary of IReactProperty * seq<ReactElement> * int
 
 type PopUpControl =
     {
@@ -26,6 +25,11 @@ type PopUpControl =
         Button : ReactElement option
         Messages : seq<ReactElement>
     }
+
+type PopUpSettings<'t> =
+    | DefaultWithButton of seq<ReactElement> * 't * Position
+    | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
+    | DefaultNewPage of seq<ReactElement> * NewUserPage<'t> * Position
 
 type Msg =
     | LoginAttemptMsg of string * string
@@ -43,7 +47,7 @@ type Msg =
     | LoadInstructions of UserData
     | LoginSpinnerMsg of IStyleAttribute
     | NewUserDataToAddMsg of Data.InstructionData
-    | ChangePage of NewUserPage
+    | ChangePage of NewUserPage<Msg -> unit>
     | NewAddNewCurrentInstruction of Option<string>
     | GiveResetInstruction of string
     | NewInstructionToSave of Data.InstructionData * string

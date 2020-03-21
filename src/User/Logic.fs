@@ -869,6 +869,28 @@ let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormDat
             ]
             |> Some
 
+let provideNewAddPopUpWait ( ev : Types.Event )
+                             wait
+                             msgs =
+    let positions =
+        {
+            X = ( ev?pageX : float )
+            Y = ( ev?pageY : float )
+        }
+    let newPage =
+        ( Global.UserPage.Instruction,wait)
+        |> Delay
+
+    let funcChaining newPage msgs =
+        (msgs,newPage,positions) |>
+        (
+            User.Types.PopUpSettings.DefaultNewPage >>
+            Some >>
+            User.Types.PopUpMsg 
+        )
+    msgs
+    |> funcChaining newPage
+
 let provideNewAddPopUp ( ev : Types.Event )
                          dispatch
                          msgs =
@@ -903,14 +925,14 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
             seq[
                 divWithStyle
                     None
-                    "Shortly you'll be directed to modify the intruction"
+                    "Shortly you'll be directed to modify the instruction"
                     (prop.style[
                         style.color.black
                         style.fontWeight.bold
                         style.fontSize 15
                     ])
             ]
-            |> provideNewAddPopUp ev dispatch
+            |> provideNewAddPopUpWait ev 2000
             |> fun x ->
                         match model.CurrentInstruction with
                         | Some instrOptWId ->
@@ -947,7 +969,10 @@ let isUploadable ( model : NewAdd.Types.Model )
                             style.fontSize 13
                         ])
                 ]
-                |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg >> dispatch )
+                |> fun x ->
+                    x
+                    |> provideNewAddPopUp ev dispatch
+                    |> dispatch
             | _ when res |> Seq.length = 0 ->
                 seq[
                     divWithStyle
@@ -1023,4 +1048,108 @@ let fileHandle (ev : Types.Event)
             |> fun medias -> (medias,name)
             |> ( NewAdd.Types.NewFilesChosenMsg >>
                     User.Types.NewAddMsg >> dispatch )
-        | _ -> () 
+        | _ -> ()
+
+let getPopupWindow ( popupSettings : PopUpSettings<Msg -> unit> ) =
+    let defaultStyle positions =
+        prop.style[
+            style.zIndex 1
+            Feliz.style.left ( positions.X |> int )
+            Feliz.style.top ( positions.Y |> int )
+            style.position.absolute
+            style.backgroundColor.white
+            style.borderRadius 20
+            style.opacity 0.90
+        ]
+    match popupSettings with
+    | DefaultWithButton (str,dispatch,positions) ->
+        
+        let style = defaultStyle positions
+
+        let button =
+            Html.div[
+                prop.className "columns is-centered"
+                prop.children[
+                    Html.a[
+                        prop.className "button"
+                        prop.style[
+                            Feliz.style.margin 30
+                            Feliz.style.backgroundColor "grey"
+                            Feliz.style.fontSize 18
+                            Feliz.style.borderRadius 10
+                        ]
+                        prop.onClick (fun _ -> None |> ( PopUpMsg >> dispatch ) )
+                        prop.children[
+                            Fable.React.Helpers.str "Ok"
+                        ]
+                    ]
+                ]
+            ]
+
+        let popupNoMsgs =
+            (
+                {
+                    Style = style
+                    Button = Some button
+                    Messages = str
+                },
+                Cmd.none
+            )
+            |> Some
+
+        popupNoMsgs
+
+    | OptionalWithMsg (divs,positions,styles) ->
+        let style =
+            [
+                style.zIndex 1
+                Feliz.style.left ( positions.X |> int )
+                Feliz.style.top ( positions.Y |> int )
+                style.position.absolute
+                style.backgroundColor.white
+                style.borderRadius 10
+                style.opacity 0.85
+            ]
+            |> List.append (styles |> Seq.toList)
+            |> prop.style
+
+
+        let popupNoMsg =
+            (
+                {
+                    Style = style
+                    Button = None
+                    Messages = divs
+                },
+                Cmd.none
+            )
+            |> Some
+
+        popupNoMsg
+
+    | DefaultNewPage (divs,newPage,positions) ->
+        let style = defaultStyle positions
+        let popupNoMsg =
+            {
+                Style = style
+                Button = None
+                Messages = divs
+            }
+
+        let delayedPopupKill =
+            None |>
+            (
+                User.Types.PopUpMsg >>
+                delayedMessage 2000 >>
+                Cmd.fromAsync
+            )
+
+        let msgs =
+            seq[
+                ( newPage |> (User.Types.ChangePage >> Cmd.ofMsg) )
+                delayedPopupKill
+                
+            ]
+            |> Cmd.batch
+
+        (popupNoMsg,msgs) |> Some

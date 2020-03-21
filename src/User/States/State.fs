@@ -179,6 +179,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             let msg =
                 Elmish.Navigation.Navigation.newUrl(Global.toHash(User(page)))
             { model with CurrentPage = page}, msg
+
     | NewAddNewCurrentInstruction titleOpt ->
             let usrId = model.Id |> string
             match model.UserData with
@@ -232,75 +233,18 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         //Logic.saveInstructionToDatabase (instruction,instructionId) usrId
 
     | PopUpMsg settings ->
+        let standardResult =
+            { model with PopUp = None},[]
+
         match settings with
         | Some settings ->
-            match settings with
-            | DefaultWithButton (str,dispatch,positions) ->
-                let style =
-                    prop.style[
-                        style.zIndex 1
-                        Feliz.style.left ( positions.X |> int )
-                        Feliz.style.top ( positions.Y |> int )
-                        style.position.absolute
-                        style.backgroundColor.white
-                        style.borderRadius 20
-                        style.opacity 0.90
-                    ]
+            let popupOpt =
+                Logic.getPopupWindow settings
+            
+            match popupOpt with
+            | Some (popup,msg) ->
+                { model with PopUp = Some popup}, msg
+            | _ -> standardResult
 
-                let button =
-                    Html.div[
-                        prop.className "columns is-centered"
-                        prop.children[
-                            Html.a[
-                                prop.className "button"
-                                prop.style[
-                                    Feliz.style.margin 30
-                                    Feliz.style.backgroundColor "grey"
-                                    Feliz.style.fontSize 18
-                                    Feliz.style.borderRadius 10
-                                ]
-                                prop.onClick (fun _ -> None |> ( PopUpMsg >> dispatch ) )
-                                prop.children[
-                                    Fable.React.Helpers.str "Ok"
-                                ]
-                            ]
-                        ]
-                    ]
-
-                let popupSettings =
-                    {
-                        Style = style
-                        Button = Some button
-                        Messages = str
-                    }
-                    |> Some
-
-                { model with PopUp = popupSettings},[]
-
-            | OptionalWithMsg (divs,positions,styles) ->
-                let style =
-                    [
-                        style.zIndex 1
-                        Feliz.style.left ( positions.X |> int )
-                        Feliz.style.top ( positions.Y |> int )
-                        style.position.absolute
-                        style.backgroundColor.white
-                        style.borderRadius 10
-                        style.opacity 0.85
-                    ]
-                    |> List.append (styles |> Seq.toList)
-                    |> prop.style
-
-
-                let popup =
-                    {
-                        Style = style
-                        Button = None
-                        Messages = divs
-                    }
-                    |> Some
-                {model with PopUp = popup},[]
-            | _ ->
-                { model with PopUp = None},[]
         | None ->
-            { model with PopUp = None},[]
+            standardResult
