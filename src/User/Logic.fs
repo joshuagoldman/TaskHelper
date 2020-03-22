@@ -371,17 +371,18 @@ let getNewMediaFormData oldMedia newFileInfo =
         (instrctn,newFileInfo)
         |> NewAdd.Types.InstructionTxt
 
-let funcChaining media status =
-    status |>
-    (
-        getNewMediaFormData media >>
+let funcChaining media positions status =
+    status
+    |> getNewMediaFormData media
+    |> fun media -> (media,positions) |>
+    ( 
         NewAdd.Types.ChangeFileStatus >>
         User.Types.NewAddMsg
     )
 
 let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
-              ( usrId )
-              ( instructionId ) = async{
+                positions
+                dbIds = async{
 
     let fileInfo =
         match media with
@@ -396,7 +397,7 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
     fData.append("fname", fileInfo.name)
 
     let! response =
-        Http.request ("http://localhost:8080/" + usrId + "/InstrId_" + instructionId )
+        Http.request ("http://localhost:8080/usr_" + dbIds.UserId + "/instrId_" + dbIds.InstructionId )
         |> Http.method POST
         |> Http.content (BodyContent.Form fData)
         |> Http.header (Headers.contentType fileInfo.``type``)
@@ -412,7 +413,7 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
                 ("file was succesfully saved")
                 ( prop.style[ style.color.green ; style.fontWeight.bold ] )
             |> NewAdd.Types.IsUploading.YesSuceeded
-            |> funcChaining media
+            |> funcChaining media positions
             
         )
     | _ ->
@@ -423,7 +424,7 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
                      ( response.statusCode |> string ) + response.responseText)
                      ( prop.style[ style.color.red ; style.fontWeight.bold ] )
                 |> NewAdd.Types.IsUploading.Yes
-                |> funcChaining media
+                |> funcChaining media positions
         )
 }
 
@@ -438,7 +439,7 @@ let saveUserData
             "File is uploading"
             (prop.style[style.color.black ; style.fontWeight.bold] )
         |> NewAdd.Types.IsUploading.Yes
-        |> funcChaining media
+        |> funcChaining media positions
         |> fun x ->
             let funcChaining info =
                 info |>
@@ -455,9 +456,9 @@ let saveUserData
             ]
             |> Seq.map ( fun msg -> msg |> Cmd.ofMsg )
 
-    | SavingInProgress (media,dbId,positions) ->
-        dbId.InstructionId
-        |> saveAsync media dbId.InstructionId 
+    | SavingInProgress (media,dbIds,positions) ->
+        dbIds
+        |> saveAsync media positions
         |> Cmd.fromAsync
         |> fun x -> seq[x]
 
@@ -727,6 +728,26 @@ let currFilesInfo ( filesOption : Option<seq<NewAdd.Types.MediaChoiceFormData>> 
                 seq[Html.div[prop.children[str "No files chosen"]]]
             | _ -> extractFileNames files name
     | None -> seq[Html.div[prop.children[str "No files chosen"]]]
+
+let uploadStatus ( filesOption : Option<seq<NewAdd.Types.MediaChoiceFormData>> ) =
+
+    let message status =
+        match status with
+        | NewAdd.Types.IsUploading.No msg -> msg
+        | NewAdd.Types.IsUploading.Yes msg -> msg
+        | NewAdd.Types.IsUploading.YesSuceeded msg -> msg
+
+    match filesOption with
+    | Some files ->
+        files
+        |> Seq.map (fun media ->
+            match media with
+            | NewAdd.Types.Video (_,status) ->
+                message status
+            | NewAdd.Types.InstructionTxt (_,status) ->
+                message status)
+        |> Some
+    | None -> None
 
 let infoText ( model : NewAdd.Types.Model ) dispatch name =
     Html.div[
@@ -1031,7 +1052,9 @@ let isUploadable ( model : NewAdd.Types.Model )
             |> provideNewAddPopUp ev
             |> dispatch
 
-let changeFileStatus ( model : NewAdd.Types.Model ) media =
+let changeFileStatus ( model : NewAdd.Types.Model )
+                       media
+                       positions =
 
     let (fileName,newStatus) =
         match media with
@@ -1053,11 +1076,26 @@ let changeFileStatus ( model : NewAdd.Types.Model ) media =
                 then (file,newStatus) |> NewAdd.Types.Video
                 else currMedia)
         |> fun x ->
-            { model with NewInstructionData = Some x }, []
-
+            let reactElOpt =
+                uploadStatus (x |> Some )
+            match reactElOpt with
+            | Some reactEl ->
+                let funcChaining info =
+                    info |>
+                    (
+                        PopUpSettings.DefaultWithButton >>
+                        Some >>
+                        User.Types.PopUpMsg
+                    )
+                let msg =
+                    (reactEl,positions)
+                    |> funcChaining
+                    |> Cmd.ofMsg
+                { model with NewInstructionData = Some x }, msg
+            | _ -> model,[]
     | _ -> model,[]
 
-let fileHandle (ev : Types.Event)
+let fileHandle ( ev : Types.Event)
                ( infoOpt : option<Option<Data.InstructionData> * string>  )
                  name
                  dispatch =

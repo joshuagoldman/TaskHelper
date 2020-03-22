@@ -60,8 +60,8 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     | NewFilesChosenMsg (files,type') ->
         { model with NewInstructionData =
                         (User.Logic.extractMedia model.NewInstructionData files type' |> Some)}, []
-    | ChangeFileStatus (media) ->
-        Logic.changeFileStatus model media
+    | ChangeFileStatus (media,positions) ->
+        Logic.changeFileStatus model media positions
     | NewInstructionsListMsg sequence ->
         { model with InstructionList = Some sequence }, Cmd.none
     | NewCurrentInstructionMsg instrWId ->
