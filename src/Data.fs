@@ -122,6 +122,11 @@ type AsyncOperationEvent<'t> =
     | Started 
     | Finished of 't
 
+type eventWithDIspatch<'t> ={
+    ev : Browser.Types.MouseEvent
+    dispatch : 't -> unit 
+}
+
 let errorPart =
         {
             InstructionVideo = ""

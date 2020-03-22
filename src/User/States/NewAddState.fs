@@ -66,6 +66,46 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
         { model with InstructionList = Some sequence }, Cmd.none
     | NewCurrentInstructionMsg instrWId ->
         { model with CurrentInstruction = instrWId }, Cmd.none
+    | SaveNewData (parts,id,instrName,ev) ->
+        match model.NewInstructionData with
+        | Some medias ->
+            let matchMaking str =
+                medias
+                |> Seq.exists (fun media ->
+                    match media with
+                    | NewAdd.Types.Video (vid,_) ->
+                        vid.name = str
+                    | NewAdd.Types.InstructionTxt (instr,_) ->
+                        instr.name = str)
+            parts
+            |> Seq.forall (fun part ->
+                matchMaking part.InstructionTxt &&
+                matchMaking part.InstructionVideo)
+            |> function
+                | res when res = true ->
+                    let funcChaining info =
+                        info |>
+                        (
+                            Data.SavingHasNostStartedYet >>
+                            Data.SavingOnGoing >>
+                            NewAdd.Types.CreateNewDataMsg >>
+                            User.Types.NewAddMsg
+                        )
+                    medias
+                    |> Seq.map (fun media ->
+                        (media,Some id,Some instrName)
+                        |> funcChaining
+                        |> Cmd.ofMsg)
+                    |> Cmd.batch
+                    |> fun msg ->
+                        model,msg
+                | _ ->
+                    "Not all necesarry media exists!"
+                    |> Logic.errorPopupMsg ev
+                    |> Cmd.ofMsg
+                    |> fun msg ->
+                        model,msg
+        | None -> model,[]
     | _ -> model,[]
 
        

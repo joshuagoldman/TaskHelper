@@ -178,9 +178,21 @@ let popup ( model : User.Types.Model) dispatch =
     match model.PopUp with
     | Some popup ->
         let button =
-            match popup.Button with
-            | Some button ->
-                button
+            match popup.ButtonSettings with
+            | Some settings ->
+                Html.div[
+                    prop.className "columns is-centered"
+                    prop.children[
+                        Html.a[
+                            prop.className "button"
+                            prop.style ( settings |> Seq.toList )
+                            prop.onClick (fun _ -> None |> ( User.Types.PopUpMsg >> dispatch ) )
+                            prop.children[
+                                Fable.React.Helpers.str "Ok"
+                            ]
+                        ]
+                    ]
+                ]
             | _ -> Html.none
         Html.div[
             popup.Style 

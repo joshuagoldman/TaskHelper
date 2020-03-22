@@ -6,7 +6,7 @@ open Controls
 open Feliz
 open Browser
 
-type NewUserPage<'t> =
+type NewUserPage =
     | NoDelay of UserPage
     | Delay of UserPage * int
 
@@ -19,17 +19,17 @@ type Position = {
     Y : float
 }
 
-type PopUpControl =
+type PopUpControl<'t> =
     {
         Style : IReactProperty
-        Button : ReactElement option
+        ButtonSettings : option<seq<IStyleAttribute>>
         Messages : seq<ReactElement>
     }
 
-type PopUpSettings<'t> =
-    | DefaultWithButton of seq<ReactElement> * 't * Position
+type PopUpSettings =
+    | DefaultWithButton of seq<ReactElement> * Position
     | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
-    | DefaultNewPage of seq<ReactElement> * NewUserPage<'t> * Position
+    | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
 
 type Msg =
     | LoginAttemptMsg of string * string
@@ -47,11 +47,14 @@ type Msg =
     | LoadInstructions of UserData
     | LoginSpinnerMsg of IStyleAttribute
     | NewUserDataToAddMsg of Data.InstructionData
-    | ChangePage of NewUserPage<Msg -> unit>
+    | ChangePage of NewUserPage
     | NewAddNewCurrentInstruction of Option<string>
     | GiveResetInstruction of string
     | NewInstructionToSave of Data.InstructionData * string
-    | PopUpMsg of PopUpSettings<Msg -> unit> Option
+    | PopUpMsg of PopUpSettings Option
+    | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
+                                               Option<seq<Instruction.Types.modificationInfo>> *
+                                               Types.MouseEvent
 type Model =
     {
       User : Data.Deferred<Result<LoginInfo, string>>
@@ -64,5 +67,5 @@ type Model =
       UserData : Data.Deferred<Result<UserData, string>>
       Instruction: Instruction.Types.Model
       LoginSpinner : AppearanceAttributes
-      PopUp : PopUpControl Option
+      PopUp : PopUpControl<Msg> Option
     }

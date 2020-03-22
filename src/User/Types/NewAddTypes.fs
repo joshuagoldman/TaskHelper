@@ -37,6 +37,7 @@ type Msg =
     | ChangeFileStatus of MediaChoiceFormData
     | NewInstructionsListMsg of seq<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>
+    | SaveNewData of seq<Data.partData> * string * string * Types.MouseEvent
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>

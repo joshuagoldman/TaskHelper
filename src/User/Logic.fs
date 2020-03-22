@@ -22,6 +22,26 @@ open Browser
 open Feliz
 open Instruction.Logic
 
+let getPositions ev =
+    let positions =
+        {
+            X = ( ev?pageX : float )
+            Y = ( ev?pageY : float )
+        }
+    positions
+
+let errorPopupMsg ev str =
+    divWithStyle
+        None
+        str
+        (prop.style[style.fontWeight.bold;style.color.black])
+    |> fun x -> seq[x]
+    |> fun div ->
+        (div,getPositions ev)
+        |> (User.Types.DefaultWithButton >>
+            Some >>
+            User.Types.PopUpMsg)
+
 /// <summary>When login has succeeded, a delay occurrs in order to let the user
 /// read login user information.</summary>
 ///<c>logindelay</c>
@@ -252,8 +272,17 @@ type PostInstructionInfo =
 //let postObj : PostInstructionInfo = jsNative
 
 let saveInstructionToDatabase ( status : Result<Data.InstructionData * string,string> )
-                                userId =
+                                userId
+                                positions
+                                dispatch =
  
+    let funcChaining popupInfo =
+        popupInfo |>
+        (
+            User.Types.DefaultWithButton >>
+            Some >>
+            User.Types.PopUpMsg
+        )
 
     let insertInstructionAsync sqlCommand = async{
         //let response = postObj.insert sqlCommand ""
@@ -262,7 +291,10 @@ let saveInstructionToDatabase ( status : Result<Data.InstructionData * string,st
         //    response
         //    |> NewAdd.Types.NewAddInfoMsg
         //    |> Cmd.ofMsg
-        return (seq[str "Loading User Data"] |> NewAdd.Types.NewAddInfoMsg |> Cmd.ofMsg)
+        return (
+            (seq[str "Loading User Data"],positions)
+            |> funcChaining
+            |> Cmd.ofMsg)
         
     }
     
@@ -274,8 +306,8 @@ let saveInstructionToDatabase ( status : Result<Data.InstructionData * string,st
 
 
     | Error err ->
-        seq[str err]
-        |> NewAdd.Types.NewAddInfoMsg
+        (seq[str err],positions)
+        |> funcChaining
         |> Cmd.ofMsg
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
@@ -892,22 +924,21 @@ let provideNewAddPopUpWait ( ev : Types.Event )
     |> funcChaining newPage
 
 let provideNewAddPopUp ( ev : Types.Event )
-                         dispatch
                          msgs =
     let positions =
         {
             X = ( ev?pageX : float )
             Y = ( ev?pageY : float )
         }
-    let funcChaining dispatch msgs =
-        (msgs,dispatch,positions) |>
+    let funcChaining msgs =
+        (msgs,positions) |>
         (
             User.Types.PopUpSettings.DefaultWithButton >>
             Some >>
             User.Types.PopUpMsg 
         )
     msgs
-    |> funcChaining dispatch
+    |> funcChaining
 
 let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                         ( ev : Types.MouseEvent )
@@ -948,7 +979,7 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
         | res ->
             res
             |> Seq.collect (fun msgs -> msgs.Value)
-            |> provideNewAddPopUp ev dispatch
+            |> provideNewAddPopUp ev
             |> dispatch
 
 let isUploadable ( model : NewAdd.Types.Model )
@@ -971,7 +1002,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                 ]
                 |> fun x ->
                     x
-                    |> provideNewAddPopUp ev dispatch
+                    |> provideNewAddPopUp ev
                     |> dispatch
             | _ when res |> Seq.length = 0 ->
                 seq[
@@ -986,7 +1017,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                 ]
                 |> fun x ->
                     x
-                    |> provideNewAddPopUp ev dispatch
+                    |> provideNewAddPopUp ev
                     |> dispatch
             | _  ->
                 decideIfUploadValid res ev model dispatch
@@ -1003,7 +1034,7 @@ let isUploadable ( model : NewAdd.Types.Model )
         ]
         |> fun x ->
             x
-            |> provideNewAddPopUp ev dispatch
+            |> provideNewAddPopUp ev
             |> dispatch
 
 let changeFileStatus ( model : NewAdd.Types.Model ) media =
@@ -1050,7 +1081,7 @@ let fileHandle (ev : Types.Event)
                     User.Types.NewAddMsg >> dispatch )
         | _ -> ()
 
-let getPopupWindow ( popupSettings : PopUpSettings<Msg -> unit> ) =
+let getPopupWindow ( popupSettings : PopUpSettings ) =
     let defaultStyle positions =
         prop.style[
             style.zIndex 1
@@ -1062,35 +1093,24 @@ let getPopupWindow ( popupSettings : PopUpSettings<Msg -> unit> ) =
             style.opacity 0.90
         ]
     match popupSettings with
-    | DefaultWithButton (str,dispatch,positions) ->
+    | DefaultWithButton (str,positions) ->
         
         let style = defaultStyle positions
 
-        let button =
-            Html.div[
-                prop.className "columns is-centered"
-                prop.children[
-                    Html.a[
-                        prop.className "button"
-                        prop.style[
-                            Feliz.style.margin 30
-                            Feliz.style.backgroundColor "grey"
-                            Feliz.style.fontSize 18
-                            Feliz.style.borderRadius 10
-                        ]
-                        prop.onClick (fun _ -> None |> ( PopUpMsg >> dispatch ) )
-                        prop.children[
-                            Fable.React.Helpers.str "Ok"
-                        ]
-                    ]
-                ]
+        let buttonSettings =
+            seq[
+                Feliz.style.margin 30
+                Feliz.style.backgroundColor "grey"
+                Feliz.style.fontSize 18
+                Feliz.style.borderRadius 10
             ]
+
 
         let popupNoMsgs =
             (
                 {
                     Style = style
-                    Button = Some button
+                    ButtonSettings = Some buttonSettings
                     Messages = str
                 },
                 Cmd.none
@@ -1118,7 +1138,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<Msg -> unit> ) =
             (
                 {
                     Style = style
-                    Button = None
+                    ButtonSettings = None
                     Messages = divs
                 },
                 Cmd.none
@@ -1132,7 +1152,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<Msg -> unit> ) =
         let popupNoMsg =
             {
                 Style = style
-                Button = None
+                ButtonSettings = None
                 Messages = divs
             }
 
