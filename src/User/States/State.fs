@@ -249,78 +249,10 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         | None ->
             standardResult
     | CompareNewSaveWithCurrentInstructions (instruction,instructionInfo,ev) ->
-        match model.UserData with
-        | Resolved( Ok data) ->
-            let result =
-                Logic.newSaveDecisions instruction
-                                        instructionInfo
-                                        data.Instructions
-            let popupMsg info =
-                info |>
-                (
-                    User.Types.PopUpSettings.DefaultWithButton >>
-                    Some >>
-                    User.Types.PopUpMsg
-                )
-            let msg =
-                match result with
-                | SaveNew (newInstr,instrId) ->
-                    let dbIds =
-                        {
-                            UserId = data.Id |> string
-                            InstructionId = instrId
-                        }
-                    (
-                        newInstr,
-                        dbIds,
-                        getPositions ev
-                    )
-                    |> (NewAdd.Types.SaveNewData >>
-                        User.Types.NewAddMsg >>
-                        Cmd.ofMsg)
-                    |> fun msg1 ->
-                        let instr2DbMsg =
-                            (getPositions ev)
-                            |> Logic.saveInstructionToDatabase
-                                                    newInstr
-                                                    dbIds
-                        seq [
-                            msg1
-                            instr2DbMsg
-                        ]
-                        |> Cmd.batch
-                | SaveExistingNoNewFIles (newInstr,instrId) ->
-                    let dbIds =
-                        {
-                            UserId = data.Id |> string
-                            InstructionId = instrId
-                        }
-                    let positions =
-                        getPositions ev
-                    positions
-                    |> Logic.saveInstructionToDatabase newInstr dbIds 
-                | SaveExisitngNewFIles (newInstr,instrId) ->
-                    let dbIds =
-                        {
-                            UserId = data.Id |> string
-                            InstructionId = instrId
-                        }
-                    (
-                        newInstr,
-                        dbIds,
-                        getPositions ev
-                    )
-                    |> NewAdd.Types.SaveNewData
-                    |> (User.Types.NewAddMsg >>
-                        Cmd.ofMsg)
-                | InstructionIsDelete divs ->
-                    (divs, getPositions ev)
-                    |> popupMsg
-                    |> Cmd.ofMsg
-                | NoUserData divs ->
-                    (divs, getPositions ev)
-                    |> popupMsg
-                    |> Cmd.ofMsg
-            model,msg   
-        |   _ ->
-            model,[]
+        let msg =
+            Logic.savingChoices
+                        model.UserData
+                        ev
+                        instruction
+                        instructionInfo
+        model,msg

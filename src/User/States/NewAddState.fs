@@ -67,46 +67,11 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     | NewCurrentInstructionMsg instrWId ->
         { model with CurrentInstruction = instrWId }, Cmd.none
     | SaveNewData (newInstr,dbIds,positions) ->
-        
-        match model.NewInstructionData with
-        | Some medias ->
-            let matchMaking str =
-                medias
-                |> Seq.exists (fun media ->
-                    match media with
-                    | NewAdd.Types.Video (vid,_) ->
-                        vid.name = str
-                    | NewAdd.Types.InstructionTxt (instr,_) ->
-                        instr.name = str)
-            newInstr.Data
-            |> Seq.forall (fun part ->
-                matchMaking part.InstructionTxt &&
-                matchMaking part.InstructionVideo)
-            |> function
-                | res when res = true ->
-                    let funcChaining info =
-                        info |>
-                        (
-                            Data.SavingHasNostStartedYet >>
-                            Data.SavingOnGoing >>
-                            NewAdd.Types.CreateNewDataMsg >>
-                            User.Types.NewAddMsg
-                        )
-                    medias
-                    |> Seq.map (fun media ->
-                        (media,dbIds,positions)
-                        |> funcChaining
-                        |> Cmd.ofMsg)
-                    |> Cmd.batch
-                    |> fun msg ->
-                        model,msg
-                | _ ->
-                    "Not all necesarry media exists!"
-                    |> Logic.errorPopupMsg positions
-                    |> Cmd.ofMsg
-                    |> fun msg ->
-                        model,msg
-        | None -> model,[]
-    | _ -> model,[]
+        let msg =
+            NewAdd.Logic.saveNewData model.NewInstructionData
+                                     newInstr
+                                     dbIds
+                                     positions
+        model,msg
 
        

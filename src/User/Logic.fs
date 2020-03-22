@@ -970,8 +970,6 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                             |> Seq.append instructionCreationMsg
                             |> Seq.iter (fun msg -> (msg |> dispatch))
                         | _ -> ()
-                        
-                        
         | res ->
             res
             |> Seq.collect (fun msgs -> msgs.Value)
@@ -1170,9 +1168,9 @@ let getPopupWindow ( popupSettings : PopUpSettings ) =
 
         (popupNoMsg,msgs) |> Some
 
-let newSaveDecisions instruction
-                     ( instructionInfo : seq<Instruction.Types.modificationInfo> Option )
-                     userDataInstructions =
+let savingChoicesTestable instruction
+                          ( instructionInfo : seq<Instruction.Types.modificationInfo> Option )
+                          userDataInstructions =
 
     let compareWithExistingInstruction newInstruction =
         Seq.zip userDataInstructions [0..userDataInstructions |> Seq.length]
@@ -1248,3 +1246,81 @@ let newSaveDecisions instruction
             (prop.style[style.fontWeight.bold;style.color.black])
         |> fun x -> seq[x]
         |> User.Types.newSaveResult.NoUserData
+
+
+let savingChoices userDataOpt ev instruction instructionInfo =
+    match userDataOpt with
+    | Resolved( Ok data) ->
+        let result =
+            savingChoicesTestable instruction
+                                  instructionInfo
+                                  data.Instructions
+        let popupMsg info =
+            info |>
+            (
+                User.Types.PopUpSettings.DefaultWithButton >>
+                Some >>
+                User.Types.PopUpMsg
+            )
+        let msg =
+            match result with
+            | SaveNew (newInstr,instrId) ->
+                let dbIds =
+                    {
+                        UserId = data.Id |> string
+                        InstructionId = instrId
+                    }
+                (
+                    newInstr,
+                    dbIds,
+                    getPositions ev
+                )
+                |> (NewAdd.Types.SaveNewData >>
+                    User.Types.NewAddMsg >>
+                    Cmd.ofMsg)
+                |> fun msg1 ->
+                    let instr2DbMsg =
+                        (getPositions ev)
+                        |> saveInstructionToDatabase
+                                            newInstr
+                                            dbIds
+                    seq [
+                        msg1
+                        instr2DbMsg
+                    ]
+                    |> Cmd.batch
+            | SaveExistingNoNewFIles (newInstr,instrId) ->
+                let dbIds =
+                    {
+                        UserId = data.Id |> string
+                        InstructionId = instrId
+                    }
+                let positions =
+                    getPositions ev
+                positions
+                |> saveInstructionToDatabase newInstr dbIds 
+            | SaveExisitngNewFIles (newInstr,instrId) ->
+                let dbIds =
+                    {
+                        UserId = data.Id |> string
+                        InstructionId = instrId
+                    }
+                (
+                    newInstr,
+                    dbIds,
+                    getPositions ev
+                )
+                |> NewAdd.Types.SaveNewData
+                |> (User.Types.NewAddMsg >>
+                    Cmd.ofMsg)
+            | InstructionIsDelete divs ->
+                (divs, getPositions ev)
+                |> popupMsg
+                |> Cmd.ofMsg
+            | NoUserData divs ->
+                (divs, getPositions ev)
+                |> popupMsg
+                |> Cmd.ofMsg
+        msg   
+    |   _ ->
+        []
