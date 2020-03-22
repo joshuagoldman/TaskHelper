@@ -248,11 +248,13 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
         | None ->
             standardResult
-    | CompareNewSaveWithCurrentInstructions (instruction,instructionInfo,ev) ->
+    | CompareNewSaveWithCurrentInstructions (instruction,instructionInfo,positions) ->
         let msg =
             Logic.savingChoices
                         model.UserData
-                        ev
+                        positions
                         instruction
                         instructionInfo
+
+        let a = ""
         model,msg

@@ -2,6 +2,7 @@ module Global
 
 open Feliz
 open Fable.React
+open Browser
 
 type UserPage =
     | Part
@@ -43,6 +44,22 @@ let divWithStyle ( className : Option<string> ) msg properties =
                 ]
             ]
         ]
+    ]
+
+let divWithFileName ( file : Types.File ) =
+    Html.div[
+        prop.className "columns is-centered"
+        prop.children[
+            Html.div[
+                prop.className "column"
+                prop.children[
+                    divWithStyle
+                        None
+                        file.name
+                        (prop.style[Feliz.style.color "black" ; Feliz.style.fontWeight 700])
+                ]
+            ]
+       ]
     ]
 
 let getPositionSequence ( sequence : seq<'t> ) =

@@ -136,4 +136,17 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             |> Logic.hoverMessageFuncChaining
 
         model, usrMsg
+    | SaveData (instructionOpt,newInstructionData,positions) ->
+        match instructionOpt with
+        | Ok result ->
+            let instruction =
+                result |> fun (a,_) -> a
+            let msg =
+                (instruction,newInstructionData,positions) |>
+                (
+                   User.Types.CompareNewSaveWithCurrentInstructions >>
+                   Cmd.ofMsg
+                )
+            model, msg
+        | _ -> model,[]
         

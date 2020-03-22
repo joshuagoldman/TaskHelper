@@ -37,6 +37,9 @@ type Msg =
     | ResetInstruction of string
     | NewPage of Global.Page * int Option
     | HoverPartMsg of Data.partData * Types.MouseEvent * IStyleAttribute
+    | SaveData of Result<Data.InstructionData * string,string> *
+                  option<seq<modificationInfo>> *
+                  Position
 type InstructionMode  =
 | Regular
 | Modification

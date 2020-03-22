@@ -56,7 +56,7 @@ type Msg =
     | PopUpMsg of PopUpSettings Option
     | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
                                                Option<seq<Instruction.Types.modificationInfo>> *
-                                               Types.MouseEvent
+                                               Position
 type Model =
     {
       User : Data.Deferred<Result<LoginInfo, string>>

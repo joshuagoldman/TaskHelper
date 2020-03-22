@@ -61,6 +61,5 @@ let saveNewData newInstrDataOpt
                 |> fun msg ->
                     msg
     | None -> []
-    | _ -> []
 
 
