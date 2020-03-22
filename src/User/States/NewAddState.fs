@@ -66,7 +66,8 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
         { model with InstructionList = Some sequence }, Cmd.none
     | NewCurrentInstructionMsg instrWId ->
         { model with CurrentInstruction = instrWId }, Cmd.none
-    | SaveNewData (parts,id,instrName,ev) ->
+    | SaveNewData (newInstr,dbIds,positions) ->
+        
         match model.NewInstructionData with
         | Some medias ->
             let matchMaking str =
@@ -77,7 +78,7 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
                         vid.name = str
                     | NewAdd.Types.InstructionTxt (instr,_) ->
                         instr.name = str)
-            parts
+            newInstr.Data
             |> Seq.forall (fun part ->
                 matchMaking part.InstructionTxt &&
                 matchMaking part.InstructionVideo)
@@ -93,7 +94,7 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
                         )
                     medias
                     |> Seq.map (fun media ->
-                        (media,Some id,Some instrName)
+                        (media,dbIds,positions)
                         |> funcChaining
                         |> Cmd.ofMsg)
                     |> Cmd.batch
@@ -101,7 +102,7 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
                         model,msg
                 | _ ->
                     "Not all necesarry media exists!"
-                    |> Logic.errorPopupMsg ev
+                    |> Logic.errorPopupMsg positions
                     |> Cmd.ofMsg
                     |> fun msg ->
                         model,msg

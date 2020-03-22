@@ -249,77 +249,78 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         | None ->
             standardResult
     | CompareNewSaveWithCurrentInstructions (instruction,instructionInfo,ev) ->
-
-        let compareWithExistingInstruction newInstruction =
-            match model.UserData with
-            | Resolved( Ok data) ->
-                data.Instructions
-                |> Seq.tryFind (fun existInstr ->
-                    existInstr.Title.Trim() = instruction.Title.Trim())
-                |> function
-                    | res when res.IsSome ->
-                        newInstruction.Data
-                        |> Seq.filter (fun part ->
-                            res.Value.Data
-                            |> Seq.forall (fun partComp ->
-                                part.Title.Trim() <> partComp.Title.Trim()
-                            ))
-                        |> function 
-                            | newParts when newParts |> Seq.length <> 0 ->
-                                (
-                                    newParts,
-                                    data.Id |> string,
-                                    instruction.Title,
-                                    ev
-                                )
-                                |> (NewAdd.Types.SaveNewData >> User.Types.NewAddMsg)
-                                |> Cmd.ofMsg
-                                
-                            | _ ->
-                                ""
-                                |> errorPopupMsg ev
-                                |> Cmd.ofMsg
-                    | _ ->
-                        ""
-                        |> errorPopupMsg ev
-                        |> Cmd.ofMsg
-            | _ -> []
-        
-        match instructionInfo with
-        | Some modInfos ->
-            instruction.Data
-            |> Seq.map (fun part ->
-                modInfos
-                |> Seq.tryFind (fun modInfo ->
-                    modInfo.Names.CurrName.Trim() = part.Title.Trim())
-                |> function
-                    | res when res.IsSome ->
-                        match res.Value.DelOrReg with
-                        | Some delInfo ->
-                            match delInfo with
-                            | Instruction.Types.Delete _ ->
-                                Some part
-                            | Instruction.Types.Regret _ ->
-                                None
-                        | _ -> None
-                    | _ -> None)
-            |> Seq.choose id 
-            |> function
-                | res when res |> Seq.length <> 0 ->
-                    { instruction with Data = res }
-                    |> compareWithExistingInstruction
-                    |> fun msg ->
-                        model,msg
-                | _ ->
-                    ("You are attempting to save an empty instruction.
-                    Click the delete button if you wish to delete the instruction")
-                    |> errorPopupMsg ev
+        match model.UserData with
+        | Resolved( Ok data) ->
+            let result =
+                Logic.newSaveDecisions instruction
+                                        instructionInfo
+                                        data.Instructions
+            let popupMsg info =
+                info |>
+                (
+                    User.Types.PopUpSettings.DefaultWithButton >>
+                    Some >>
+                    User.Types.PopUpMsg
+                )
+            let msg =
+                match result with
+                | SaveNew (newInstr,instrId) ->
+                    let dbIds =
+                        {
+                            UserId = data.Id |> string
+                            InstructionId = instrId
+                        }
+                    (
+                        newInstr,
+                        dbIds,
+                        getPositions ev
+                    )
+                    |> (NewAdd.Types.SaveNewData >>
+                        User.Types.NewAddMsg >>
+                        Cmd.ofMsg)
+                    |> fun msg1 ->
+                        let instr2DbMsg =
+                            (getPositions ev)
+                            |> Logic.saveInstructionToDatabase
+                                                    newInstr
+                                                    dbIds
+                        seq [
+                            msg1
+                            instr2DbMsg
+                        ]
+                        |> Cmd.batch
+                | SaveExistingNoNewFIles (newInstr,instrId) ->
+                    let dbIds =
+                        {
+                            UserId = data.Id |> string
+                            InstructionId = instrId
+                        }
+                    let positions =
+                        getPositions ev
+                    positions
+                    |> Logic.saveInstructionToDatabase newInstr dbIds 
+                | SaveExisitngNewFIles (newInstr,instrId) ->
+                    let dbIds =
+                        {
+                            UserId = data.Id |> string
+                            InstructionId = instrId
+                        }
+                    (
+                        newInstr,
+                        dbIds,
+                        getPositions ev
+                    )
+                    |> NewAdd.Types.SaveNewData
+                    |> (User.Types.NewAddMsg >>
+                        Cmd.ofMsg)
+                | InstructionIsDelete divs ->
+                    (divs, getPositions ev)
+                    |> popupMsg
                     |> Cmd.ofMsg
-                    |> fun msg ->
-                        model,msg
-        | _ ->
-            "No media has been loaded, re-upload your shit"
-            |> errorPopupMsg ev
-            |> Cmd.ofMsg
-            |> fun msg ->
-                model,msg
+                | NoUserData divs ->
+                    (divs, getPositions ev)
+                    |> popupMsg
+                    |> Cmd.ofMsg
+            model,msg   
+        |   _ ->
+            model,[]

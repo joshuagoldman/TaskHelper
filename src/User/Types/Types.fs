@@ -14,11 +14,6 @@ type RecursiveAction<'t,'u> =
     | First of 't
     | Second of 'u
 
-type Position = {
-    X : float
-    Y : float
-}
-
 type PopUpControl<'t> =
     {
         Style : IReactProperty
@@ -30,6 +25,13 @@ type PopUpSettings =
     | DefaultWithButton of seq<ReactElement> * Position
     | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
     | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
+
+type newSaveResult =
+    | SaveNew of Data.InstructionData * string
+    | SaveExistingNoNewFIles of Data.InstructionData * string
+    | SaveExisitngNewFIles of Data.InstructionData * string
+    | InstructionIsDelete of seq<ReactElement>
+    | NoUserData of seq<ReactElement>
 
 type Msg =
     | LoginAttemptMsg of string * string

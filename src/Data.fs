@@ -127,6 +127,16 @@ type eventWithDIspatch<'t> ={
     dispatch : 't -> unit 
 }
 
+type DBIds = {
+    UserId : string
+    InstructionId : string
+}
+
+type Position = {
+    X : float
+    Y : float
+}
+
 let errorPart =
         {
             InstructionVideo = ""

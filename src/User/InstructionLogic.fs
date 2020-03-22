@@ -314,8 +314,8 @@ let createHoverMessageCommponents ( part : Data.partData )
                                     visible =
     let positions =
         {
-            User.Types.Position.X = ( ev?pageX : float )
-            User.Types.Position.Y = ( ev?pageY : float )
+            Data.Position.X = ( ev?pageX : float )
+            Data.Position.Y = ( ev?pageY : float )
         }
 
     let style =

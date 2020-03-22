@@ -29,18 +29,7 @@ let getPositions ev =
             Y = ( ev?pageY : float )
         }
     positions
-
-let errorPopupMsg ev str =
-    divWithStyle
-        None
-        str
-        (prop.style[style.fontWeight.bold;style.color.black])
-    |> fun x -> seq[x]
-    |> fun div ->
-        (div,getPositions ev)
-        |> (User.Types.DefaultWithButton >>
-            Some >>
-            User.Types.PopUpMsg)
+    
 
 /// <summary>When login has succeeded, a delay occurrs in order to let the user
 /// read login user information.</summary>
@@ -66,6 +55,20 @@ let delayedMessage time ( msg : 'msg ) =
 
         return(msg)
     }
+
+let errorPopupMsg positions str =
+    let popUpDiv =
+        Global.divWithStyle
+            None
+            str
+            (prop.style[style.color.black;style.fontWeight.bold])
+        |> fun x -> seq[x]
+    (popUpDiv,positions) |>
+    (
+        User.Types.DefaultWithButton >>
+        Some >>
+        User.Types.PopUpMsg
+    )
 
 let spinner =
     Html.div[
@@ -271,10 +274,9 @@ type PostInstructionInfo =
 //[<Import("*", "../../server/model/instructions")>]
 //let postObj : PostInstructionInfo = jsNative
 
-let saveInstructionToDatabase ( status : Result<Data.InstructionData * string,string> )
-                                userId
-                                positions
-                                dispatch =
+let saveInstructionToDatabase ( instruction : Data.InstructionData )
+                                ids
+                                positions =
  
     let funcChaining popupInfo =
         popupInfo |>
@@ -298,17 +300,9 @@ let saveInstructionToDatabase ( status : Result<Data.InstructionData * string,st
         
     }
     
-    match status with
-    | Ok (instruction,instructionId) ->
-       let sqlCommand = instructionToSql userId instructionId instruction
-       ( insertInstructionAsync sqlCommand)
-       |> Async.RunSynchronously
-
-
-    | Error err ->
-        (seq[str err],positions)
-        |> funcChaining
-        |> Cmd.ofMsg
+    let sqlCommand = instructionToSql ids.UserId ids.InstructionId instruction
+    ( insertInstructionAsync sqlCommand)
+    |> Async.RunSynchronously
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                               ( instruction2Add : option<Data.InstructionData> * string ) =
@@ -387,7 +381,7 @@ let funcChaining media status =
 
 let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
               ( usrId )
-              ( instructionName ) = async{
+              ( instructionId ) = async{
 
     let fileInfo =
         match media with
@@ -402,7 +396,7 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
     fData.append("fname", fileInfo.name)
 
     let! response =
-        Http.request ("http://localhost:8080/" + usrId + "/" + instructionName)
+        Http.request ("http://localhost:8080/" + usrId + "/InstrId_" + instructionId )
         |> Http.method POST
         |> Http.content (BodyContent.Form fData)
         |> Http.header (Headers.contentType fileInfo.``type``)
@@ -435,10 +429,10 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
 
 
 let saveUserData
-        ( status : SaveDataProgress<NewAdd.Types.MediaChoiceFormData * string option * string option,
+        ( status : SaveDataProgress<NewAdd.Types.MediaChoiceFormData * DBIds * Position,
                                         option<seq<NewAdd.Types.MediaChoiceFormData>>> ) =
     match status with 
-    | SavingHasNostStartedYet (media,None,None) ->
+    | SavingHasNostStartedYet (media,dbIds,positions) ->
         divWithStyle
             None
             "File is uploading"
@@ -446,24 +440,26 @@ let saveUserData
         |> NewAdd.Types.IsUploading.Yes
         |> funcChaining media
         |> fun x ->
+            let funcChaining info =
+                info |>
+                (
+                    SavingInProgress >>
+                    SavingOnGoing >>
+                    NewAdd.Types.CreateNewDataMsg >>
+                    User.Types.NewAddMsg
+                )
             seq[
                 x
-                (media,None,None) |> ( SavingInProgress >>
-                                 SavingOnGoing >>
-                                 NewAdd.Types.CreateNewDataMsg >>
-                                 User.Types.NewAddMsg)
+                (media,dbIds,positions)
+                |> funcChaining
             ]
             |> Seq.map ( fun msg -> msg |> Cmd.ofMsg )
 
-    | SavingInProgress (media,id,instrName) ->
-        ()
-        |> function
-            | _ when id.IsSome && instrName.IsSome ->
-                instrName.Value
-                |> saveAsync media id.Value
-                |> Cmd.fromAsync
-                |> fun x -> seq[x]
-            | _ -> seq[Cmd.none]
+    | SavingInProgress (media,dbId,positions) ->
+        dbId.InstructionId
+        |> saveAsync media dbId.InstructionId 
+        |> Cmd.fromAsync
+        |> fun x -> seq[x]
 
     | SavingResolved mediasOpt ->
         match mediasOpt with
@@ -1173,3 +1169,82 @@ let getPopupWindow ( popupSettings : PopUpSettings ) =
             |> Cmd.batch
 
         (popupNoMsg,msgs) |> Some
+
+let newSaveDecisions instruction
+                     ( instructionInfo : seq<Instruction.Types.modificationInfo> Option )
+                     userDataInstructions =
+
+    let compareWithExistingInstruction newInstruction =
+        Seq.zip userDataInstructions [0..userDataInstructions |> Seq.length]
+        |> Seq.tryFind (fun (existInstr,_) ->
+            existInstr.Title.Trim() = instruction.Title.Trim())
+        |> function
+            | res when res.IsSome ->
+                let (existingInstr,pos) =
+                    res.Value
+                    |> fun (x,y) -> (x,y)
+                let instrId =
+                    pos |> string
+                newInstruction.Data
+                |> Seq.filter (fun part ->
+                    existingInstr.Data
+                    |> Seq.forall (fun partComp ->
+                        part.Title.Trim() <> partComp.Title.Trim()
+                    ))
+                |> function 
+                    | newParts when newParts |> Seq.length <> 0 ->
+                        (newInstruction,instrId)
+                        |> User.Types.newSaveResult.SaveExisitngNewFIles
+                            
+                    | _ ->
+                        (newInstruction,instrId)
+                        |> User.Types.SaveExistingNoNewFIles
+            | _ ->
+                let newInstrId =
+                    userDataInstructions
+                    |> Seq.length
+                    |> fun x -> x + 1
+                    |> string
+                (newInstruction,newInstrId)
+                |> User.Types.SaveNew
+    
+    match instructionInfo with
+    | Some modInfos ->
+        instruction.Data
+        |> Seq.map (fun part ->
+            modInfos
+            |> Seq.tryFind (fun modInfo ->
+                modInfo.Names.CurrName.Trim() = part.Title.Trim())
+            |> function
+                | res when res.IsSome ->
+                    match res.Value.DelOrReg with
+                    | Some delInfo ->
+                        match delInfo with
+                        | Instruction.Types.Delete _ ->
+                            Some part
+                        | Instruction.Types.Regret _ ->
+                            None
+                    | _ -> None
+                | _ -> None)
+        |> Seq.choose id 
+        |> function
+            | res when res |> Seq.length <> 0 ->
+                { instruction with Data = res }
+                |> compareWithExistingInstruction
+                
+            | _ ->
+                divWithStyle
+                    None
+                    ("You are attempting to save an empty instruction.
+                    Click the delete button if you wish to delete the instruction")
+                    (prop.style[style.fontWeight.bold;style.color.black])
+                |> fun x -> seq[x]
+                |> User.Types.newSaveResult.InstructionIsDelete
+                
+    | _ ->
+        divWithStyle
+            None
+            "No media has been loaded, re-upload your shit"
+            (prop.style[style.fontWeight.bold;style.color.black])
+        |> fun x -> seq[x]
+        |> User.Types.newSaveResult.NoUserData
