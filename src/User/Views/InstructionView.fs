@@ -315,23 +315,31 @@ let allPartsView ( part : Data.partData )
     
 let instructionTitleView title =
     Html.div[
-        prop.className "columns is-centered"
+        prop.className "column"
+        prop.style[
+            style.margin 5
+        ]
         prop.children[
-            quarterDiv
             Html.div[
-                prop.className "column"
-                prop.style[
-                    style.margin 5
-                    style.fontSize 23
-                    style.color.black
-                ]
+                prop.className "field"
                 prop.children[
-                    str title
+                    Html.div[
+                        prop.className "control"
+                        prop.children[
+                            Html.input[
+                                prop.className "input is-info"
+                                //prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
+                                prop.type'.text
+                                //prop.value ( Logic.newnameValue model part )
+                                prop.placeholder title
+                            ]
+                        ]
+                    ]
                 ]
             ]
-            quarterDiv
         ]
     ]
+    
 
 let ShowFileUpload model dispatch =
     model.PartNameModificationInput.Visible

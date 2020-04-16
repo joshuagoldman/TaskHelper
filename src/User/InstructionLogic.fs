@@ -10,6 +10,7 @@ open Fable.Core.JsInterop
 open Elmish.Navigation
 open Elmish
 
+
 let modifyOrNot model dispatch =
     model.PartNameModificationInput.Visible
     |> function

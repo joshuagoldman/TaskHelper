@@ -349,17 +349,25 @@ let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
         let turnToModMode =
             style.visibility.visible
             |> Instruction.Types.ModifyInstructionMsg
-            |> User.Types.InstructionMsg
+            |> fun msg1 ->
+                seq[
+                    msg1
+                    (false |>
+                     Instruction.Types.DeleteButtonEnablenMsg)
+                ]
+            |> Seq.map (fun msg -> msg |> User.Types.InstructionMsg)
         let changeToInstructionMsg =
             (UserPage.Instruction, 2000)
             |> User.Types.Delay
             |> (User.Types.ChangePage)
         let msgs =
-            seq[
-                x
-                turnToModMode
-                changeToInstructionMsg
-            ]
+            turnToModMode
+            |> Seq.append(
+                    seq[
+                        x
+                        changeToInstructionMsg
+                    ]
+                )
         msgs
 
 let getNewMediaFormData oldMedia newFileInfo =
@@ -384,26 +392,26 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
                 positions
                 dbIds = async{
 
-    let fileInfo =
+    let (fileInfo,folder) =
         match media with
         | NewAdd.Types.Video (vid,_) ->
-            vid
+            vid,"Videos"
         | NewAdd.Types.InstructionTxt (instrctn,_) ->
-            instrctn
+            instrctn,"Instructions"
 
     let fData =
         FormData.Create()
 
-    fData.append("fname", fileInfo.name)
+    fData.append("fileName", fileInfo.name)
+    fData.append("type", fileInfo.``type``)
+    fData.append("folder", folder)
+    fData.append("file", fileInfo)
 
     let! response =
-        Http.request ("http://localhost:8080/usr_" + dbIds.UserId + "/instrId_" + dbIds.InstructionId )
+        Http.request ("http://localhost:3001/upload" )
         |> Http.method POST
         |> Http.content (BodyContent.Form fData)
-        |> Http.header (Headers.contentType fileInfo.``type``)
         |> Http.send
-
-    console.log("post ended")
 
     let getNewMedia newStatus =
         match media with
@@ -417,7 +425,7 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
         let newStatus =
             divWithStyle
                 None
-                ("file was succesfully saved")
+                response.responseText
                 ( prop.style[
                     style.color.red
                     style.fontWeight.bold
