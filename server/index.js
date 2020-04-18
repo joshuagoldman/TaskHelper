@@ -39,7 +39,7 @@ app.post("/upload", (req, res, next) => {
         if(err)
          res.send(err);
         else
-        res.send(fileInfo);
+        res.send(`Saved file ${fileInfo.Name} on ${fileInfo.Path}`);
     })
 });
 

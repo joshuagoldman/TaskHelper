@@ -72,10 +72,7 @@ let errorPopupMsg positions str =
 
 let spinner =
     Html.div[
-        prop.className "column is-5"
-        prop.style[
-            style.marginTop 15
-        ]
+        prop.className "column is-2"
         prop.children[
             Html.i[
                 prop.className "fa fa-cog fa-spin fa-2x"
@@ -388,10 +385,10 @@ let getNewMediaFormData oldMedia newFileInfo =
         (instrctn,newFileInfo)
         |> NewAdd.Types.InstructionTxt
 
-let funcChaining media positions status =
+let funcChainingIsUploading media positions status =
     status
     |> getNewMediaFormData media
-    |> fun media -> (media,positions) |>
+    |> fun newMedia -> (newMedia,positions) |>
     ( 
         NewAdd.Types.ChangeFileStatus >>
         User.Types.NewAddMsg
@@ -423,30 +420,26 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
         |> Http.content (BodyContent.Form fData)
         |> Http.send
 
-    let getNewMedia newStatus =
-        match media with
-        | NewAdd.Types.Video (vid,_) ->
-           (vid,newStatus) |> NewAdd.Types.Video
-        | NewAdd.Types.InstructionTxt (instrctn,_) ->
-            (instrctn,newStatus) |> NewAdd.Types.Video
-
     match response.statusCode with
     | 200 ->
         let newStatus =
-            divWithStyle
-                None
-                response.responseText
-                ( prop.style[
+            Html.div[
+                prop.className "column is-11"
+                prop.style[
                     style.color.red
                     style.fontWeight.bold
                     style.fontSize 12
                     style.maxWidth 400
-                       ] )
+                    style.margin 5
+                   ]
+                prop.children[
+                    str response.responseText
+                ]
+            ]
             |> NewAdd.Types.IsUploading.YesSuceeded
         return (
                 newStatus
-                |> funcChaining media positions
-            
+                |> funcChainingIsUploading media positions
         )
     | _ ->
         let msg =
@@ -469,7 +462,7 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
             |> NewAdd.Types.IsUploading.No
         return (
                 newStatus
-                |> funcChaining media positions
+                |> funcChainingIsUploading media positions
         )
 }
 
@@ -485,19 +478,23 @@ let saveUserData
                 vid.name
             | NewAdd.Types.InstructionTxt (instr,_) ->
                 instr.name
-        divWithStyle
-            None
-            ("File " + name +  " is uploading")
-            (prop.style[
-                style.color.black
+        Html.div[
+            prop.className "column is-5"
+            prop.style[
+                style.color.red
                 style.fontWeight.bold
-                style.fontSize 11
+                style.fontSize 12
                 style.maxWidth 400
-            ] )
+                style.margin 5
+               ]
+            prop.children[
+                str ("File \"" + name +  "\" is uploading")
+            ]
+        ]
         |> NewAdd.Types.IsUploading.Yes
-        |> funcChaining media positions
+        |> funcChainingIsUploading media positions
         |> fun x ->
-            let funcChaining info =
+            let funcChainingSavingInProgress info =
                 info |>
                 (
                     SavingInProgress >>
@@ -508,7 +505,7 @@ let saveUserData
             seq[
                 x
                 (media,dbIds,positions)
-                |> funcChaining
+                |> funcChainingSavingInProgress
             ]
             |> Seq.map ( fun msg -> msg |> Cmd.ofMsg )
 
@@ -552,38 +549,7 @@ let saveUserData
                     |> Cmd.ofMsg
                     |> fun x -> seq[x]
                 | _ ->
-                    medias
-                    |> Seq.map (fun media ->
-                        let funcChaining info =
-                            info |>
-                            (
-                                NewAdd.Types.ChangeFileStatus >>
-                                User.Types.NewAddMsg >>
-                                Cmd.ofMsg
-                            )
-                        match media with
-                        | NewAdd.Types.Video (file,_) ->
-                            divWithFileName file
-                            |> NewAdd.Types.IsUploading.No
-                            |> fun status ->
-                                (file,status)
-                                |> NewAdd.Types.Video
-                                |> fun video ->
-                                    (video,positions)
-                                    |> funcChaining
-                                    
-                        | NewAdd.Types.InstructionTxt (file,_) ->
-                            divWithFileName file
-                            |> NewAdd.Types.IsUploading.No
-                            |> fun status ->
-                                (file,status)
-                                |> NewAdd.Types.Video
-                                |> fun instr ->
-                                    (instr,positions)
-                                    |> funcChaining
-                        )
-
-                    
+                    seq[Cmd.Empty]
         | None -> seq[Cmd.Empty]
 
 
@@ -728,7 +694,7 @@ let isuploading result =
             spinner
             msg
         ]
-    | NewAdd.Types.IsUploading.No msg ->
+    | NewAdd.Types.IsUploading.YesSuceeded msg ->
         msg
         |> fun x -> seq[x]
     | _ -> seq[
@@ -742,26 +708,27 @@ let isuploading result =
 let filenameWStatus file =
     let getInfo ( file : Types.File )
                   status =
+
+        let fileNameDiv =
+            Html.div[
+                prop.className "column"
+                prop.children[
+                    str file.name
+                ]
+            ]
+            |> fun x -> seq[x]
         Html.div[
             prop.className "columns is-centered"
+            prop.style[
+                style.fontWeight.bold
+                style.fontSize 12
+                style.maxWidth 1500
+                style.margin 5
+               ]
             prop.children(
-               isuploading status
-               |> Seq.append(
-                    Html.div[
-                        prop.className "column"
-                        prop.style[
-                            style.color.black
-                            style.fontWeight.bold
-                            style.fontSize 13
-                            style.margin 20
-                        ]
-                        prop.children[
-                            str file.name
-                        ]
-                    ]
-                |> fun x -> seq[x]
-               )
-            )
+                isuploading status
+                |> Seq.append fileNameDiv
+            )  
         ]
         
     match file with
@@ -1118,6 +1085,26 @@ let isUploadable ( model : NewAdd.Types.Model )
             |> provideNewAddPopUp ev
             |> dispatch
 
+let testttt data =
+    data
+    |> Seq.map (fun media ->
+        match media with
+        | NewAdd.Types.Video (file,status) ->
+            let info =
+                match status with
+                | NewAdd.Types.IsUploading.Yes _ ->
+                    "yes"
+                | _ -> "no"
+            file.name + " : " + info + "\n"
+        | NewAdd.Types.InstructionTxt (file,status) ->
+            let info =
+                match status with
+                | NewAdd.Types.IsUploading.Yes _ ->
+                    "yes"
+                | _ -> "no"
+            file.name + " : " + info + "\n")
+        |> String.concat ""
+
 let changeFileStatus ( model : NewAdd.Types.Model )
                        media
                        positions =
@@ -1134,33 +1121,32 @@ let changeFileStatus ( model : NewAdd.Types.Model )
         |> Seq.map (fun currMedia ->
             match currMedia with
             | NewAdd.Types.Video (file,_) ->
-                if file.name = fileName
+                if file.name.Replace(" ","") = fileName.Replace(" ","")
                 then (file,newStatus) |> NewAdd.Types.Video
                 else currMedia
             | NewAdd.Types.InstructionTxt (file,_) ->
-                if file.name = fileName
+                if file.name.Replace(" ","") = fileName.Replace(" ","")
                 then (file,newStatus) |> NewAdd.Types.InstructionTxt
                 else currMedia)
         |> fun x ->
-            let reactElOpt =
+            let testInfo =
+                testttt x
+            console.log(testInfo)
+            let reactEl =
                 x
-                |> Seq.map (fun media -> filenameWStatus media)
-                |> Some
-            match reactElOpt with
-            | Some reactEl ->
-                let funcChaining info =
-                    info |>
-                    (
-                        PopUpSettings.DefaultWithButton >>
-                        Some >>
-                        User.Types.PopUpMsg
-                    )
-                let msg =
-                    (reactEl,positions)
-                    |> funcChaining
-                    |> Cmd.ofMsg
-                { model with NewInstructionData = Some x }, msg
-            | _ -> model,[]
+                |> Seq.map (fun newMedia -> filenameWStatus newMedia)
+            let funcChaining info =
+                info |>
+                (
+                    PopUpSettings.DefaultWithButton >>
+                    Some >>
+                    User.Types.PopUpMsg
+                )
+            let msg =
+                (reactEl,positions)
+                |> funcChaining
+                |> Cmd.ofMsg
+            { model with NewInstructionData = Some x }, msg
     | _ -> model,[]
 
 let fileHandle ( ev : Types.Event)
