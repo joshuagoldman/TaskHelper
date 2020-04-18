@@ -31,6 +31,7 @@
     "fs": "0.0.1-security",
     "http": "0.0.0",
     "http-server": "^0.12.1",
+    "joi": "^14.3.1",
     "lts": "^1.2.0",
     "multer": "^1.4.2",
     "native-dns-cache": "0.0.2",

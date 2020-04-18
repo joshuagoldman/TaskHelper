@@ -243,6 +243,38 @@ let loadInstructionItems ( id : int ) = async {
                                                         (response.statusCode |> string))))  
     }
 
+let sqlCommandToDB sqlCommand positions = async{
+    do! Async.Sleep 3000
+    let! response =
+        Http.request ("http://localhost:3001/" )
+        |> Http.method POST
+        |> Http.content (BodyContent.Text sqlCommand)
+        |> Http.send
+
+    let funcChaining positions msg =
+        (msg,positions) |>
+        (
+            PopUpSettings.DefaultWithButton >>
+            Some >>
+            User.Types.PopUpMsg
+        )
+
+    let newStatus =
+        divWithStyle
+            None
+            response.responseText
+            ( prop.style[
+                style.color.red
+                style.fontWeight.bold
+                style.fontSize 12
+                style.maxWidth 400
+                   ] )
+        |> fun x -> seq[x]
+        |> funcChaining positions
+        
+    return newStatus
+}
+
 let instructionToSql userId ( instructionId : string ) instruction =
 
     let sqlInstructionVars =
@@ -254,55 +286,32 @@ let instructionToSql userId ( instructionId : string ) instruction =
     let instructionInsert =
         String.Format(
             "INSERT INTO instructions ( id, instruction_id, title )
-             VALUES ( {0}, {1}, {2});\n", sqlInstructionVars )
+             VALUES ( {0}, {1}, '{2}');", sqlInstructionVars )
 
     let partInsert =
         instruction.Data
         |> Seq.map (fun part ->
               String.Format(
                 "INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
-                VALUES ( {0}, {1}, {2}, {3});\n",
+                VALUES ( {0}, '{1}', '{2}', '{3}');",
                 seq[instructionId ; part.InstructionVideo ; part.InstructionTxt ; part.Title]
               ))
         |> String.concat ""
 
     instructionInsert + partInsert
 
-type PostInstructionInfo =
-    abstract insert : string -> string -> string
-
-//[<Import("*", "../../server/model/instructions")>]
-//let postObj : PostInstructionInfo = jsNative
-
 let saveInstructionToDatabase ( instruction : Data.InstructionData )
-                                ids
-                                positions =
+                              ( ids : DBIds )
+                              ( positions : Position ) =
  
-    let funcChaining popupInfo =
-        popupInfo |>
-        (
-            User.Types.DefaultWithButton >>
-            Some >>
-            User.Types.PopUpMsg
-        )
+    let sqlCommand =
+        instructionToSql
+            ids.UserId
+            ids.InstructionId
+            instruction
 
-    let insertInstructionAsync sqlCommand = async{
-        //let response = postObj.insert sqlCommand ""
-        do! Async.Sleep 4000
-        //return(
-        //    response
-        //    |> NewAdd.Types.NewAddInfoMsg
-        //    |> Cmd.ofMsg
-        return (
-            (seq[str "Loading User Data"],positions)
-            |> funcChaining
-            |> Cmd.ofMsg)
-        
-    }
-    
-    let sqlCommand = instructionToSql ids.UserId ids.InstructionId instruction
-    ( insertInstructionAsync sqlCommand)
-    |> Async.RunSynchronously
+    positions
+    |> sqlCommandToDB sqlCommand
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                               ( instruction2Add : option<Data.InstructionData> * string ) =
@@ -407,6 +416,7 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
     fData.append("folder", folder)
     fData.append("file", fileInfo)
 
+    do! Async.Sleep 3000
     let! response =
         Http.request ("http://localhost:3001/upload" )
         |> Http.method POST
@@ -1388,7 +1398,8 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                     }
 
                 positions
-                |> saveInstructionToDatabase newInstr dbIds 
+                |> saveInstructionToDatabase newInstr dbIds
+                |> Cmd.fromAsync
             | SaveExisitngNewFIles (newInstr,instrId) ->
                 let dbIds =
                     {

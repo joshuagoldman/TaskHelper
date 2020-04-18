@@ -90,3 +90,16 @@ VALUES ( id, instructionId, instruction.Title);
 
 INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
 VALUES ( instructionId, instruction.InstructionVideo, 'Example Text 3', 'Example Part 3');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+                VALUES ( 1, 'my_life.mp4', 'my_life.txt', 'My Life');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+                VALUES ( 1, 'my_life.mp4', 'my_life.txt', 'My Life');
+
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title) VALUES ( 1, 'my_life.mp4', 'my_life.txt', 'My Life');
+INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title) VALUES ( 1, 'my_life.mp4', 'my_life.txt2', 'My Life2');
+
+DELETE FROM parts WHERE instruction_id = 1 AND instruction_video = 'my_life.mp4' AND instruction_txt = 'my_life.txt' AND part_title = 'My Life';
+DELETE FROM parts WHERE instruction_id = 1 AND instruction_video = 'my_life.mp4' AND instruction_txt = 'my_life.txt2' AND part_title = 'My Life2';
+
