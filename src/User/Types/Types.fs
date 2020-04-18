@@ -30,8 +30,11 @@ type newSaveResult =
     | SaveNew of Data.InstructionData * string
     | SaveExistingNoNewFIles of Data.InstructionData * string
     | SaveExisitngNewFIles of Data.InstructionData * string
+    | SaveExistingNewFilesAndTItles of Data.InstructionData * string
+    | SaveExistingPartsToDelete of Data.InstructionData * string
     | InstructionIsDelete of seq<ReactElement>
     | NoUserData of seq<ReactElement>
+    | ThatInstructionAlreadyExists of seq<ReactElement>
 
 type Msg =
     | LoginAttemptMsg of string * string

@@ -1175,6 +1175,7 @@ let getPopupWindow ( popupSettings : PopUpSettings ) =
             Feliz.style.top ( positions.Y |> int )
             style.position.absolute
             style.backgroundColor.white
+            style.fontSize 13
             style.borderRadius 20
             style.opacity 0.90
         ]
