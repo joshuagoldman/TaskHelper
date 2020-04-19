@@ -30,30 +30,25 @@ type DatabaseDeleteOptions =
     | DeleteInstruction of Data.InstructionData 
     | DeleteParts of seq<Data.partData>
 
-type NewPartsInstructions = 
+type DatabaseSavingOptions = 
     | NewFilesInstruction of Data.InstructionData
     | NewNameInstruction of Data.InstructionData
-    | PartsToDeleteInstruction of DatabaseDeleteOptions
+    | PartsToDeleteInstruction of DatabaseDeleteOptions   
 
-
+// Many discriminated union in order to facilitate unit testing
 type newSaveResult =
     | SaveNew of Data.InstructionData * string
-    | SaveExistingNewTitles of seq<NewPartsInstructions> * string
-    | SaveExisitngNewFIles of seq<NewPartsInstructions> * string
-    | SaveExistingNewFilesAndTItles of seq<NewPartsInstructions> * string
-    | SaveExistingNewFilesPartsToDelete of seq<NewPartsInstructions> * string
-    | SaveExistingNewTItlesPartsToDelete of seq<NewPartsInstructions> * string
-    | SaveExistingNewFilesAndTItlesPartsToDelete of seq<NewPartsInstructions> * string
-    | SaveExistingPartsToDelete of seq<NewPartsInstructions> * string
+    | SaveExistingNewTitles of seq<DatabaseSavingOptions> * string
+    | SaveExisitngNewFIles of seq<DatabaseSavingOptions> * string
+    | SaveExistingNewFilesAndTItles of seq<DatabaseSavingOptions> * string
+    | SaveExistingNewFilesPartsToDelete of seq<DatabaseSavingOptions> * string
+    | SaveExistingNewTItlesPartsToDelete of seq<DatabaseSavingOptions> * string
+    | SaveExistingNewFilesAndTItlesPartsToDelete of seq<DatabaseSavingOptions> * string
+    | SaveExistingPartsToDelete of seq<DatabaseSavingOptions> * string
     | InstructionIsDelete of seq<ReactElement>
     | NoUserData of seq<ReactElement>
     | ThatInstructionAlreadyExists of seq<ReactElement>
     | InstructionHasNotDistinctTitles of seq<ReactElement>
-
-type DatabaseSavingOptions =
-    | NewInstruction
-    | NewNames
-    | DeleteInstruction
 
 type Msg =
     | LoginAttemptMsg of string * string

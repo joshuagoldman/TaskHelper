@@ -257,15 +257,18 @@ let sqlCommandToDB sqlCommand positions = async{
         )
 
     let newStatus =
-        divWithStyle
-            None
-            response.responseText
-            ( prop.style[
+        Html.div[
+            prop.className "column is-1"
+            prop.style[
                 style.color.red
                 style.fontWeight.bold
                 style.fontSize 12
                 style.maxWidth 400
-                   ] )
+                   ] 
+            prop.children[
+                str response.responseText
+            ]
+        ]
         |> fun x -> seq[x]
         |> funcChaining positions
         
@@ -356,28 +359,25 @@ let instructionToSqlDelete userId
 
 let saveInstructionToDatabase ( ids : DBIds )
                               ( positions : Position )
-                              ( newPartsInstructions : NewPartsInstructions ) =
-
-    let getSqlCommandIfIsSome instrOpt
-                              ( args : 'a )
-                              ( sqlFunction : 'a -> 'b -> string )=
-        match instrOpt with
-        | Some instr ->
-            instr
-            |> sqlFunction args
-            |> Some
-        | _ -> None
-    let sqlCommand =
-        let infoSequence : seq<'a Option * ('a -> string)> =
-            seq[
-                ( newPartsInstructions.NewFilesInstruction , instructionToSqlSaveNew )
-                ( newPartsInstructions.NewNameInstruction, instructionToSqlNewNames )
-                ( newPartsInstructions.PartsToDeleteInstruction, instructionToSqlDelete )
-            ]
+                              ( databaseOptions : seq<DatabaseSavingOptions> ) =
+    let sqlCommands =
+        databaseOptions
+        |> Seq.map (fun option ->
+            match option with
+            | DatabaseSavingOptions.NewFilesInstruction instr ->
+                instr
+                |> instructionToSqlSaveNew ids.UserId ids.InstructionId
+            | DatabaseSavingOptions.NewNameInstruction instr ->
+                instr
+                |> instructionToSqlNewNames ids.InstructionId
+            | DatabaseSavingOptions.PartsToDeleteInstruction delOption ->
+                delOption
+                |> instructionToSqlDelete ids.UserId ids.InstructionId)
+        |> String.concat ""
         
             
     positions
-    |> sqlCommandToDB sqlCommand
+    |> sqlCommandToDB sqlCommands
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                               ( instruction2Add : option<Data.InstructionData> * string ) =
@@ -612,7 +612,6 @@ let saveUserData
             ()
             |> function
                 | _ when isUploadFinished = true ->
-                    console.log("all were success")
                     medias |>
                     ( NewAdd.Types.PostInstruction >> User.Types.NewAddMsg)
                     |> Cmd.ofMsg
@@ -1154,26 +1153,6 @@ let isUploadable ( model : NewAdd.Types.Model )
             |> provideNewAddPopUp ev
             |> dispatch
 
-let testttt data =
-    data
-    |> Seq.map (fun media ->
-        match media with
-        | NewAdd.Types.Video (file,status) ->
-            let info =
-                match status with
-                | NewAdd.Types.IsUploading.Yes _ ->
-                    "yes"
-                | _ -> "no"
-            file.name + " : " + info + "\n"
-        | NewAdd.Types.InstructionTxt (file,status) ->
-            let info =
-                match status with
-                | NewAdd.Types.IsUploading.Yes _ ->
-                    "yes"
-                | _ -> "no"
-            file.name + " : " + info + "\n")
-        |> String.concat ""
-
 let changeFileStatus ( model : NewAdd.Types.Model )
                        media
                        positions =
@@ -1198,9 +1177,6 @@ let changeFileStatus ( model : NewAdd.Types.Model )
                 then (file,newStatus) |> NewAdd.Types.InstructionTxt
                 else currMedia)
         |> fun x ->
-            let testInfo =
-                testttt x
-            console.log(testInfo)
             let reactEl =
                 x
                 |> Seq.map (fun newMedia -> filenameWStatus newMedia)
@@ -1471,14 +1447,14 @@ let savingChoicesTestable   instruction
                                     let info =
                                         seq[
                                             { newInstruction with Data = partsWithNewNames.Value }
-                                            |> User.Types.NewPartsInstructions.NewNameInstruction
+                                            |> User.Types.DatabaseSavingOptions.NewNameInstruction
 
                                             { newInstruction with Data = newFileParts.Value }
-                                            |> User.Types.NewPartsInstructions.NewFilesInstruction
+                                            |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
                                             partsToDelete.Value |>
                                             (DatabaseDeleteOptions.DeleteParts >>
-                                             User.Types.NewPartsInstructions.PartsToDeleteInstruction)
+                                             User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                         ]
 
                                     (info,instrId)
@@ -1489,10 +1465,10 @@ let savingChoicesTestable   instruction
                                      let info =
                                          seq[
                                              { newInstruction with Data = newFileParts.Value }
-                                             |> User.Types.NewPartsInstructions.NewFilesInstruction
+                                             |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
                                              { newInstruction with Data = partsWithNewNames.Value }
-                                             |> User.Types.NewPartsInstructions.NewFilesInstruction
+                                             |> User.Types.DatabaseSavingOptions.NewFilesInstruction
                                          ]
 
                                      (info,instrId)
@@ -1502,11 +1478,11 @@ let savingChoicesTestable   instruction
                                     let info =
                                         seq[
                                             { newInstruction with Data = newFileParts.Value }
-                                            |> User.Types.NewPartsInstructions.NewFilesInstruction
+                                            |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
                                             partsToDelete.Value |>
                                             (DatabaseDeleteOptions.DeleteParts >>
-                                             User.Types.NewPartsInstructions.PartsToDeleteInstruction)
+                                             User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                         ]
 
                                     (info,instrId)
@@ -1516,11 +1492,11 @@ let savingChoicesTestable   instruction
                                     let info =
                                         seq[
                                             { newInstruction with Data = partsWithNewNames.Value }
-                                            |> User.Types.NewPartsInstructions.NewFilesInstruction
+                                            |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
                                             partsToDelete.Value |>
                                             (DatabaseDeleteOptions.DeleteParts >>
-                                             User.Types.NewPartsInstructions.PartsToDeleteInstruction)
+                                             User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                         ]
 
                                     (info,instrId)
@@ -1529,7 +1505,7 @@ let savingChoicesTestable   instruction
                                 let info =
                                     seq[
                                         { newInstruction with Data = newFileParts.Value }
-                                        |> User.Types.NewPartsInstructions.NewFilesInstruction
+                                        |> User.Types.DatabaseSavingOptions.NewFilesInstruction
                                     ]
 
                                 (info,instrId)
@@ -1538,7 +1514,7 @@ let savingChoicesTestable   instruction
                                 let info =
                                     seq[
                                         { newInstruction with Data = partsWithNewNames.Value }
-                                        |> User.Types.NewPartsInstructions.NewFilesInstruction
+                                        |> User.Types.DatabaseSavingOptions.NewFilesInstruction
                                     ]
 
                                 (info,instrId)
@@ -1548,7 +1524,7 @@ let savingChoicesTestable   instruction
                                     seq[
                                         partsToDelete.Value |>
                                         (DatabaseDeleteOptions.DeleteParts >>
-                                         User.Types.NewPartsInstructions.PartsToDeleteInstruction)
+                                         User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                     ]
 
                                 (info,instrId)
@@ -1613,13 +1589,40 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             savingChoicesTestable instruction
                                   instructionInfo
                                   data.Instructions
-        let popupMsg info =
-            (info,positions) |>
+
+        let funcChaining positions msg =
+            (msg,positions) |>
             (
-                User.Types.PopUpSettings.DefaultWithButton >>
+                PopUpSettings.DefaultWithButton >>
                 Some >>
                 User.Types.PopUpMsg
             )
+
+        let newStatus statusMsg =
+            let msgDiv =
+                Html.div[
+                    prop.className "columns is-1"
+                    prop.style[
+                        style.margin 5
+                    ]
+                    prop.children[
+                        str statusMsg
+                    ]
+                ]
+            Html.div[
+                prop.className "columns is-centered"
+                prop.style[
+                    style.color.red
+                    style.fontWeight.bold
+                    style.fontSize 12
+                    style.maxWidth 400
+                       ]
+                prop.children[
+                    msgDiv
+                    spinner
+                ]
+            ]
+            |> fun x -> seq[x]
 
         let saveNewMsg newInstr instrId =
             let dbIds =
@@ -1641,45 +1644,72 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                     msg1
                 ]
                 |> Cmd.batch
-        let databaseMsg newInstr instrId  =
+        let databaseMsg instrId savingOptions  =
+            let dbIds =
+                {
+                    UserId = data.Id |> string
+                    InstructionId = instrId
+                }
+            let loadingMsg =
+                "Saving Changes..."
+
+            let popupMsg =
+                newStatus loadingMsg
+                |> funcChaining positions
+                |> Cmd.ofMsg
+
+            let dbMsg =
+                savingOptions
+                |> saveInstructionToDatabase dbIds positions
+                |> Cmd.fromAsync
+
+            seq[
+                popupMsg
+                dbMsg
+            ]
+            |> Cmd.batch
             
         let msg =
             match result with
             | SaveNew (newInstr,instrId) ->
-                newInstr
-                |> saveNewMsg instrId
-            | SaveExistingNoNewFIles (newInstr,instrId) ->
-                let dbIds =
-                    {
-                        UserId = data.Id |> string
-                        InstructionId = instrId
-                    }
-
-                positions
-                |> saveInstructionToDatabase newInstr dbIds
-                |> Cmd.fromAsync
-            | SaveExisitngNewFIles (newInstr,instrId) ->
-                let dbIds =
-                    {
-                        UserId = data.Id |> string
-                        InstructionId = instrId
-                    }
-                (
-                    newInstr,
-                    dbIds,
-                    positions
-                )
-                |> NewAdd.Types.SaveNewData
-                |> (User.Types.NewAddMsg >>
-                    Cmd.ofMsg)
-            | InstructionIsDelete divs ->
-                (divs, positions)
-                |> popupMsg
+                saveNewMsg newInstr instrId
+            | SaveExistingNewTitles (savingOptions,instrId) ->
+                savingOptions
+                |> databaseMsg instrId
+            | SaveExisitngNewFIles (savingOptions,instrId) ->
+                savingOptions
+                |> databaseMsg instrId
+            | SaveExistingNewFilesAndTItles (savingOptions,instrId) ->
+                savingOptions
+                |> databaseMsg instrId
+            | SaveExistingNewFilesPartsToDelete (savingOptions,instrId) ->
+                savingOptions
+                |> databaseMsg instrId
+            | SaveExistingNewTItlesPartsToDelete (savingOptions,instrId) ->
+                savingOptions
+                |> databaseMsg instrId
+            | SaveExistingNewFilesAndTItlesPartsToDelete (savingOptions,instrId) ->
+                savingOptions
+                |> databaseMsg instrId
+            | SaveExistingPartsToDelete (savingOptions,instrId) ->
+                savingOptions
+                |> databaseMsg instrId
+            | InstructionIsDelete errorMsg ->
+                errorMsg
+                |> funcChaining positions
                 |> Cmd.ofMsg
-            | NoUserData divs ->
-                (divs, positions)
-                |> popupMsg
+            | NoUserData errorMsg ->
+                errorMsg
+                |> funcChaining positions
                 |> Cmd.ofMsg
-        msg   
+            | ThatInstructionAlreadyExists errorMsg ->
+                errorMsg
+                |> funcChaining positions
+                |> Cmd.ofMsg
+            | InstructionHasNotDistinctTitles errorMsg ->
+                errorMsg
+                |> funcChaining positions
+                |> Cmd.ofMsg
+        msg
     |   _ ->
         []

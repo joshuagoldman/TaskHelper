@@ -369,7 +369,7 @@ let ``TestSavingChoices`` () =
         | _ -> false
     let fifth arg =
         match arg with
-        | User.Types.newSaveResult.SaveExistingNoNewFIles _ -> true
+        | User.Types.newSaveResult.SaveExistingNewTitles _ -> true
         | _ -> false
     let sixth arg =
         match arg with
