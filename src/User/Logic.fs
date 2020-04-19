@@ -1261,11 +1261,12 @@ let getPopupWindow ( popupSettings : PopUpSettings ) =
 
         (popupNoMsg,msgs) |> Some
 
-let savingChoicesTestable instruction
+let savingChoicesTestable   instruction
                           ( instructionInfo : seq<Instruction.Types.modificationInfo> Option )
-                          userDataInstructions =
+                            userDataInstructions =
 
-    let compareWithExistingInstruction newInstruction =
+    let compareWithExistingInstruction ( modeInfos : seq<Instruction.Types.modificationInfo> )
+                                         newInstruction =
         Seq.zip userDataInstructions [0..userDataInstructions |> Seq.length]
         |> Seq.tryFind (fun (existInstr,_) ->
             existInstr.Title.Trim() = instruction.Title.Trim())
@@ -1276,28 +1277,90 @@ let savingChoicesTestable instruction
                     |> fun (x,y) -> (x,y)
                 let instrId =
                     pos |> string
-                newInstruction.Data
-                |> Seq.filter (fun part ->
-                    existingInstr.Data
-                    |> Seq.forall (fun partComp ->
-                        part.Title.Trim() <> partComp.Title.Trim()
-                    ))
-                |> function 
-                    | newParts when newParts |> Seq.length <> 0 ->
-                        (newInstruction,instrId)
-                        |> User.Types.newSaveResult.SaveExisitngNewFIles
-                            
+
+                let allTitlesUnique =
+                    modeInfos
+                    |> Seq.map (fun modInfoToCompare ->
+                        match modInfoToCompare.Names.NewName with
+                        | Some nameToCompare ->
+                            modeInfos
+                            |> Seq.filter (fun modInfo ->
+                                match modInfo.Names.NewName with
+                                | Some name ->
+                                    let result =
+                                        name.Replace(" ", "") = nameToCompare.Replace(" ", "")
+                                    result
+                                | _ -> false)
+                            |> function
+                                | res when res |> Seq.length = 1 ->
+                                    None
+                                | _ -> Some nameToCompare 
+                        | _ -> None
+                            )
+                    |> Seq.choose id
+                    |> function
+                        | res when res |> Seq.length <> 0 ->
+                            res
+                            |> Seq.map (fun title ->
+                                "\"" + title + "\", ")
+                            |> String.concat ""
+                            |> fun str -> str.Substring(0,str.LastIndexOf(", "))
+                            |> Some
+                        | _ -> None
+                allTitlesUnique
+                |> function
+                    | res when res.IsSome ->
+                        let errorMsg =
+                            String.Format(
+                               "Instruction part title/titles: {0} are not unique for the instruction.
+                                 Kindly re-name all instruction part/parts that are not of distinct nature.",
+                                 res.Value
+                            )
+                        divWithStyle
+                            None
+                            errorMsg
+                            (prop.style[style.fontWeight.bold;style.color.black])
+                        |> fun x -> seq[x]
+                        |> User.Types.newSaveResult.InstructionHasNotDistinctTitles
                     | _ ->
-                        (newInstruction,instrId)
-                        |> User.Types.SaveExistingNoNewFIles
-            | _ ->
-                let newInstrId =
-                    userDataInstructions
-                    |> Seq.length
-                    |> fun x -> x + 1
-                    |> string
-                (newInstruction,newInstrId)
-                |> User.Types.SaveNew
+                        let newFIlesExist =
+                            modeInfos
+                            |> Seq.map (fun modInfo ->
+                                existingInstr.Data
+                                |> Seq.choose (fun part ->
+                                    part.Title.Replace(" ", "") = modInfo.Names.CurrName
+                                    |> function
+                                        | res when res = true ->
+                                            Some part
+                                        | _ -> None)
+                                |> function
+                                    | res when res |> Seq.length <> 0 ->
+                                        let partToTake =
+                                            res |> Seq.item 0
+                                        Some partToTake
+                                    | _ -> None )
+                        newInstruction.Data
+                        |> Seq.filter (fun part ->
+                            existingInstr.Data
+                            |> Seq.forall (fun partComp ->
+                                part.Title.Trim() <> partComp.Title.Trim()
+                            ))
+                        |> function 
+                            | newParts when newParts |> Seq.length <> 0 ->
+                                (newInstruction,instrId)
+                                |> User.Types.newSaveResult.SaveExisitngNewFIles
+                            
+                            | _ ->
+                                (newInstruction,instrId)
+                                |> User.Types.SaveExistingNoNewFIles
+                    | _ ->
+                        let newInstrId =
+                            userDataInstructions
+                            |> Seq.length
+                            |> fun x -> x + 1
+                            |> string
+                        (newInstruction,newInstrId)
+                        |> User.Types.SaveNew
     
     match instructionInfo with
     | Some modInfos ->
@@ -1321,7 +1384,7 @@ let savingChoicesTestable instruction
         |> function
             | res when res |> Seq.length <> 0 ->
                 { instruction with Data = res }
-                |> compareWithExistingInstruction
+                |> compareWithExistingInstruction modInfos
                 
             | _ ->
                 divWithStyle

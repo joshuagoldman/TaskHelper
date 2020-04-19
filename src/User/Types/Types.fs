@@ -35,6 +35,7 @@ type newSaveResult =
     | InstructionIsDelete of seq<ReactElement>
     | NoUserData of seq<ReactElement>
     | ThatInstructionAlreadyExists of seq<ReactElement>
+    | InstructionHasNotDistinctTitles of seq<ReactElement> 
 
 type Msg =
     | LoginAttemptMsg of string * string
