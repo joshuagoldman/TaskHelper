@@ -27,20 +27,29 @@ type PopUpSettings =
     | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
 
 type NewPartsInstructions = {
-    NewFilesInstruction : Data.InstructionData
-    NewNameInstruction : Data.InstructionData
+    NewFilesInstruction : Data.InstructionData Option
+    NewNameInstruction : Data.InstructionData Option
+    PartsToDeleteInstruction : Data.InstructionData Option
 }
 
 type newSaveResult =
     | SaveNew of Data.InstructionData * string
-    | SaveExistingNoNewFIles of Data.InstructionData * string
-    | SaveExisitngNewFIles of Data.InstructionData * string
+    | SaveExistingNewTitles of NewPartsInstructions * string
+    | SaveExisitngNewFIles of NewPartsInstructions * string
     | SaveExistingNewFilesAndTItles of NewPartsInstructions * string
-    | SaveExistingPartsToDelete of Data.InstructionData * string
+    | SaveExistingNewFilesPartsToDelete of NewPartsInstructions * string
+    | SaveExistingNewTItlesPartsToDelete of NewPartsInstructions * string
+    | SaveExistingNewFilesAndTItlesPartsToDelete of NewPartsInstructions * string
+    | SaveExistingPartsToDelete of NewPartsInstructions * string
     | InstructionIsDelete of seq<ReactElement>
     | NoUserData of seq<ReactElement>
     | ThatInstructionAlreadyExists of seq<ReactElement>
-    | InstructionHasNotDistinctTitles of seq<ReactElement> 
+    | InstructionHasNotDistinctTitles of seq<ReactElement>
+
+type DatabaseSavingOptions =
+    | NewInstruction
+    | NewNames
+    | DeleteInstruction
 
 type Msg =
     | LoginAttemptMsg of string * string

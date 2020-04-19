@@ -272,7 +272,7 @@ let sqlCommandToDB sqlCommand positions = async{
     return newStatus
 }
 
-let instructionToSql userId ( instructionId : string ) instruction =
+let instructionToSqlSaveNew userId ( instructionId : string ) instruction =
 
     let sqlInstructionVars =
         seq[
@@ -297,16 +297,67 @@ let instructionToSql userId ( instructionId : string ) instruction =
 
     instructionInsert + partInsert
 
+let instructionToSqlNewNames ( instructionId : string ) instruction =
+
+    let instructionInsert =
+        String.Format(
+            "UPDATE instructions SET title = '{0}' WHERE instruction_id = {1}",
+            instruction.Title,
+            instructionId
+        )
+
+    let partInsert =
+        instruction.Data
+        |> Seq.map (fun part ->
+              String.Format(
+                "UPDATE parts SET part_title = {0] WHERE instruction_id = {1} AND instruction_video = {2} AND instruction_txt = {3};",
+                seq[part.Title ; instructionId ; part.InstructionVideo ; part.InstructionTxt]
+              ))
+        |> String.concat ""
+
+    instructionInsert + partInsert
+
+let instructionToSqlDelete userId ( instructionId : string ) instruction =
+
+    let sqlInstructionVars =
+        seq[
+            userId
+            instructionId
+            instruction.Title
+        ]
+    let instructionDelete =
+        String.Format(
+            "DELETE FROM instructions ( id, instruction_id, title ) VALUES ( {0}, {1}, '{2}');",
+            sqlInstructionVars )
+
+    let partDelete =
+        instruction.Data
+        |> Seq.map (fun part ->
+              String.Format(
+                "DELETE FROM parts WHERE instruction_id = {0} AND instruction_video = {1} AND instruction_txt = {2} AND part_title = {3};",
+                seq[instructionId ; part.InstructionVideo ; part.InstructionTxt ; part.Title]
+              ))
+        |> String.concat ""
+
+    instructionDelete + partDelete
+
 let saveInstructionToDatabase ( instruction : Data.InstructionData )
                               ( ids : DBIds )
-                              ( positions : Position ) =
- 
-    let sqlCommand =
-        instructionToSql
-            ids.UserId
-            ids.InstructionId
-            instruction
+                              ( positions : Position )
+                                databaseOptions =
 
+    let sqlCommand =
+        match databaseOptions with
+        | User.Types.DatabaseSavingOptions.DeleteInstruction ->
+            instruction
+            |> instructionToSqlDelete ids.UserId  ids.InstructionId
+        | User.Types.DatabaseSavingOptions.NewInstruction ->
+            instruction
+            |> instructionToSqlSaveNew ids.UserId  ids.InstructionId
+        | User.Types.DatabaseSavingOptions.NewNames ->
+            instruction
+            |> instructionToSqlNewNames ids.InstructionId
+            
     positions
     |> sqlCommandToDB sqlCommand
 
@@ -1365,34 +1416,85 @@ let savingChoicesTestable   instruction
                                     partsWNewTitles |> Some
                                 | _ -> None
 
-                        ()
+                        let partsToDelete =
+                            existingInstr.Data
+                            |> Seq.choose (fun part ->
+                                modeInfos
+                                |> Seq.exists (fun modInfo ->
+                                    let isDelete =
+                                        match modInfo.DelOrReg with
+                                        | Some DelOrRegVal ->
+                                            match DelOrRegVal with
+                                            | Instruction.Types.DeleteInfo.Delete _ ->
+                                                false
+                                            | Instruction.Types.DeleteInfo.Regret _ ->
+                                                true
+                                        | _ -> false
+                                    let isNotSamTitle =
+                                        modInfo.Names.CurrName.Replace(" ", "") <>
+                                            part.Title.Replace(" ", "")
+
+                                    isDelete && isNotSamTitle)
+                                |> function
+                                    | isDelete when isDelete = true ->
+                                        Some part
+                                    | _ -> None)
+                            |> function
+                                | partsToDelete when partsToDelete |> Seq.length <> 0 ->
+                                    Some partsToDelete
+                                | _ -> None
+
+                        let getInstructionOpt ( partsOpt : seq<Data.partData> Option ) =
+                            if partsOpt.IsSome
+                            then { newInstruction with Data = partsWithNewNames.Value} |> Some
+                            else None
+
+                        let partsInstruction =
+                            let (instrToSendAwayNewNames,
+                                 instrToSendAwayNewFiles,
+                                 instrToSendAwayDeleteParts) =
+                                (
+                                    partsWithNewNames |> getInstructionOpt,
+                                    newFileParts |> getInstructionOpt,
+                                    partsToDelete |> getInstructionOpt
+                                )
+
+                            let newPartsInstruction = {
+                                NewFilesInstruction = instrToSendAwayNewFiles
+                                NewNameInstruction = instrToSendAwayNewNames
+                                PartsToDeleteInstruction = instrToSendAwayDeleteParts
+                            }
+
+                            newPartsInstruction
+
+                        (partsInstruction,instrId)
                         |> function
-                            | _ when partsWithNewNames.IsSome && newFileParts.IsSome ->
-                                let (instrToSendAwayNewNames,instrToSendAwayNewFiles) =
-                                    { newInstruction with Data = partsWithNewNames.Value},
-                                    { newInstruction with Data = newFileParts.Value}
-
-                                let newPartsInstruction = {
-                                    NewFilesInstruction = instrToSendAwayNewFiles
-                                    NewNameInstruction = instrToSendAwayNewNames
-                                }
-
-                                (newPartsInstruction,instrId)
-                                |> User.Types.newSaveResult.SaveExistingNewFilesAndTItles
-
-                            | _ when partsWithNewNames.IsSome ->
-                                let newNamesInstruction =
-                                    { newInstruction with Data = partsWithNewNames.Value}
-
-                                (newNamesInstruction, instrId)
-                                |> User.Types.newSaveResult.SaveExistingNoNewFIles
-                            
-                            | _ -> 
-                                let newFilesInstruction =
-                                    { newInstruction with Data = newFileParts.Value}
-
-                                (newFilesInstruction, instrId)
-                                |> User.Types.newSaveResult.SaveExistingNoNewFIles
+                            | info when partsWithNewNames.IsSome &&
+                                        newFileParts.IsSome &&
+                                        partsToDelete.IsSome ->
+                                     info
+                                     |> User.Types.newSaveResult.SaveExistingNewFilesAndTItlesPartsToDelete
+                            | info when partsWithNewNames.IsSome &&
+                                        newFileParts.IsSome ->
+                                     info
+                                     |> User.Types.newSaveResult.SaveExistingNewFilesAndTItles
+                            | info when newFileParts.IsSome &&
+                                        partsToDelete.IsSome ->
+                                    info
+                                    |> User.Types.newSaveResult.SaveExistingNewFilesPartsToDelete
+                            | info when newFileParts.IsSome &&
+                                        partsToDelete.IsSome ->
+                                    info
+                                    |> User.Types.newSaveResult.SaveExistingNewTItlesPartsToDelete
+                            | info when newFileParts.IsSome ->
+                                info
+                                |> User.Types.newSaveResult.SaveExisitngNewFIles
+                            | info when partsWithNewNames.IsSome ->
+                                info
+                                |> User.Types.newSaveResult.SaveExistingNewTitles
+                            | info ->
+                                info
+                                |> User.Types.newSaveResult.SaveExistingPartsToDelete
             | _ ->
                 let instrid =
                     userDataInstructions
@@ -1454,7 +1556,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                                   instructionInfo
                                   data.Instructions
         let popupMsg info =
-            info |>
+            (info,positions) |>
             (
                 User.Types.PopUpSettings.DefaultWithButton >>
                 Some >>
