@@ -1323,6 +1323,8 @@ let savingChoicesTestable   instruction
                         |> fun x -> seq[x]
                         |> User.Types.newSaveResult.InstructionHasNotDistinctTitles
                     | _ ->
+                        type PartStatus =
+                            | 
                         let newFIlesExist =
                             modeInfos
                             |> Seq.map (fun modInfo ->
@@ -1339,6 +1341,20 @@ let savingChoicesTestable   instruction
                                             res |> Seq.item 0
                                         Some partToTake
                                     | _ -> None )
+                            |> Seq.choose id
+                            |> function
+                                | res when res |> Seq.length > 0 ->
+                                    res |> Some
+                                | _ ->
+                                    None
+
+
+
+                        newFIlesExist
+                        |> function
+                            | newFiles when newFiles.IsSome ->
+                                
+                            | _ -> 
                         newInstruction.Data
                         |> Seq.filter (fun part ->
                             existingInstr.Data
