@@ -26,11 +26,16 @@ type PopUpSettings =
     | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
     | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
 
+type NewPartsInstructions = {
+    NewFilesInstruction : Data.InstructionData
+    NewNameInstruction : Data.InstructionData
+}
+
 type newSaveResult =
     | SaveNew of Data.InstructionData * string
     | SaveExistingNoNewFIles of Data.InstructionData * string
     | SaveExisitngNewFIles of Data.InstructionData * string
-    | SaveExistingNewFilesAndTItles of Data.InstructionData * string
+    | SaveExistingNewFilesAndTItles of NewPartsInstructions * string
     | SaveExistingPartsToDelete of Data.InstructionData * string
     | InstructionIsDelete of seq<ReactElement>
     | NoUserData of seq<ReactElement>
