@@ -26,21 +26,25 @@ type PopUpSettings =
     | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
     | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
 
-type NewPartsInstructions = {
-    NewFilesInstruction : Data.InstructionData Option
-    NewNameInstruction : Data.InstructionData Option
-    PartsToDeleteInstruction : Data.InstructionData Option
-}
+type DatabaseDeleteOptions =
+    | DeleteInstruction of Data.InstructionData 
+    | DeleteParts of seq<Data.partData>
+
+type NewPartsInstructions = 
+    | NewFilesInstruction of Data.InstructionData
+    | NewNameInstruction of Data.InstructionData
+    | PartsToDeleteInstruction of DatabaseDeleteOptions
+
 
 type newSaveResult =
     | SaveNew of Data.InstructionData * string
-    | SaveExistingNewTitles of NewPartsInstructions * string
-    | SaveExisitngNewFIles of NewPartsInstructions * string
-    | SaveExistingNewFilesAndTItles of NewPartsInstructions * string
-    | SaveExistingNewFilesPartsToDelete of NewPartsInstructions * string
-    | SaveExistingNewTItlesPartsToDelete of NewPartsInstructions * string
-    | SaveExistingNewFilesAndTItlesPartsToDelete of NewPartsInstructions * string
-    | SaveExistingPartsToDelete of NewPartsInstructions * string
+    | SaveExistingNewTitles of seq<NewPartsInstructions> * string
+    | SaveExisitngNewFIles of seq<NewPartsInstructions> * string
+    | SaveExistingNewFilesAndTItles of seq<NewPartsInstructions> * string
+    | SaveExistingNewFilesPartsToDelete of seq<NewPartsInstructions> * string
+    | SaveExistingNewTItlesPartsToDelete of seq<NewPartsInstructions> * string
+    | SaveExistingNewFilesAndTItlesPartsToDelete of seq<NewPartsInstructions> * string
+    | SaveExistingPartsToDelete of seq<NewPartsInstructions> * string
     | InstructionIsDelete of seq<ReactElement>
     | NoUserData of seq<ReactElement>
     | ThatInstructionAlreadyExists of seq<ReactElement>
