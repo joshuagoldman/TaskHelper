@@ -1348,13 +1348,14 @@ let savingChoicesTestable   instruction
                             |> fun str -> str.Substring(0,str.LastIndexOf(", "))
                             |> Some
                         | _ -> None
+
                 allTitlesUnique
                 |> function
                     | res when res.IsSome ->
                         let errorMsg =
                             String.Format(
                                "Instruction part title/titles: {0} are not unique for the instruction.
-                                 Kindly re-name all instruction part/parts that are not of distinct nature.",
+                                 Kindly re-name instruction part/parts such that all are of distinct nature.",
                                  res.Value
                             )
                         divWithStyle
@@ -1364,171 +1365,207 @@ let savingChoicesTestable   instruction
                         |> fun x -> seq[x]
                         |> User.Types.newSaveResult.InstructionHasNotDistinctTitles
                     | _ ->
-                        let newFileParts =
-                            newInstruction.Data
-                            |> Seq.map (fun newPart ->
-                                existingInstr.Data
-                                |> Seq.tryPick (fun part ->
-                                    part.Title.Replace(" ", "") = newPart.Title.Replace(" ", "")
-                                    |> function
-                                        | res when res = true ->
-                                            Some newPart
-                                        | _ -> None))
-                            |> Seq.choose id
-                            |> function
-                                | res when res |> Seq.length > 0 ->
-                                    res |> Some
-                                | _ ->
-                                    None
-                        let partsWithNewNames =
-                            existingInstr.Data
-                            |> Seq.choose (fun part ->
+                        let alreadyExistingInstruction =
+                            let newAndOldInstructionAreOfSameLength =
+                                existingInstr.Data |> Seq.length =
+                                    (newInstruction.Data |> Seq.length)
+
+                            let newAndOldInstructionHaveSameParts =
                                 newInstruction.Data
-                                |> Seq.tryFind (fun partNew ->
-                                    let nameDoesNotMatch =
-                                        partNew.Title.Replace(" ", "") <>
-                                            part.Title.Replace(" ", "")
-
-                                    let sameInstructionText =
-                                        part.InstructionTxt.Replace(" ", "") =
-                                            partNew.InstructionTxt.Replace(" ", "")
-
-                                    let sameVideo =
-                                        part.InstructionVideo.Replace(" ", "") =
-                                            partNew.InstructionVideo.Replace(" ", "")
-
-                                    nameDoesNotMatch &&
-                                    sameInstructionText &&
-                                    sameVideo
-                                    )
-                                |> function
-                                    | newTitlePart when newTitlePart.IsSome ->
-                                        newTitlePart
-                                    | _ -> None)
-                            |> function
-                                | partsWNewTitles when partsWNewTitles |> Seq.length <> 0 ->
-                                    partsWNewTitles |> Some
-                                | _ -> None
-
-                        let partsToDelete =
-                            existingInstr.Data
-                            |> Seq.choose (fun part ->
-                                modeInfos
-                                |> Seq.exists (fun modInfo ->
-                                    let isDelete =
-                                        match modInfo.DelOrReg with
-                                        | Some DelOrRegVal ->
-                                            match DelOrRegVal with
-                                            | Instruction.Types.DeleteInfo.Delete _ ->
-                                                false
-                                            | Instruction.Types.DeleteInfo.Regret _ ->
-                                                true
-                                        | _ -> false
-                                    let isNotSamTitle =
-                                        modInfo.Names.CurrName.Replace(" ", "") <>
-                                            part.Title.Replace(" ", "")
-
-                                    isDelete && isNotSamTitle)
-                                |> function
-                                    | isDelete when isDelete = true ->
-                                        Some part
-                                    | _ -> None)
-                            |> function
-                                | partsToDelete when partsToDelete |> Seq.length <> 0 ->
-                                    Some partsToDelete
-                                | _ -> None
-
-
+                                |> Seq.forall (fun newPart ->
+                                    existingInstr.Data
+                                    |> Seq.exists (fun part ->
+                                        let sameTitle =
+                                            newPart.Title.Replace(" ", "") =
+                                                part.Title.Replace(" ", "")
+                                        let sameInstructionText =
+                                            newPart.InstructionTxt.Replace(" ", "") =
+                                                part.InstructionTxt.Replace(" ", "")
+                                        let sameInstructionVideo =
+                                            newPart.InstructionVideo.Replace(" ", "") =
+                                                part.InstructionVideo.Replace(" ", "")
+                                        sameTitle &&
+                                        sameInstructionText &&
+                                        sameInstructionVideo))
+                            newAndOldInstructionAreOfSameLength &&
+                            newAndOldInstructionHaveSameParts
                         ()
                         |> function
-                            | _ when partsWithNewNames.IsSome &&
-                                        newFileParts.IsSome &&
-                                        partsToDelete.IsSome ->
-                                    let info =
-                                        seq[
-                                            { newInstruction with Data = partsWithNewNames.Value }
-                                            |> User.Types.DatabaseSavingOptions.NewNameInstruction
-
-                                            { newInstruction with Data = newFileParts.Value }
-                                            |> User.Types.DatabaseSavingOptions.NewFilesInstruction
-
-                                            partsToDelete.Value |>
-                                            (DatabaseDeleteOptions.DeleteParts >>
-                                             User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
-                                        ]
-
-                                    (info,instrId)
-                                    |> User.Types.newSaveResult.SaveExistingNewFilesAndTItlesPartsToDelete
-
-                            | _ when partsWithNewNames.IsSome &&
-                                     newFileParts.IsSome ->
-                                     let info =
-                                         seq[
-                                             { newInstruction with Data = newFileParts.Value }
-                                             |> User.Types.DatabaseSavingOptions.NewFilesInstruction
-
-                                             { newInstruction with Data = partsWithNewNames.Value }
-                                             |> User.Types.DatabaseSavingOptions.NewFilesInstruction
-                                         ]
-
-                                     (info,instrId)
-                                     |> User.Types.newSaveResult.SaveExistingNewFilesAndTItles
-                            | _ when newFileParts.IsSome &&
-                                     partsToDelete.IsSome ->
-                                    let info =
-                                        seq[
-                                            { newInstruction with Data = newFileParts.Value }
-                                            |> User.Types.DatabaseSavingOptions.NewFilesInstruction
-
-                                            partsToDelete.Value |>
-                                            (DatabaseDeleteOptions.DeleteParts >>
-                                             User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
-                                        ]
-
-                                    (info,instrId)
-                                    |> User.Types.newSaveResult.SaveExistingNewFilesPartsToDelete
-                            | _ when partsWithNewNames.IsSome &&
-                                     partsToDelete.IsSome ->
-                                    let info =
-                                        seq[
-                                            { newInstruction with Data = partsWithNewNames.Value }
-                                            |> User.Types.DatabaseSavingOptions.NewFilesInstruction
-
-                                            partsToDelete.Value |>
-                                            (DatabaseDeleteOptions.DeleteParts >>
-                                             User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
-                                        ]
-
-                                    (info,instrId)
-                                    |> User.Types.newSaveResult.SaveExistingNewTItlesPartsToDelete
-                            | _ when newFileParts.IsSome ->
-                                let info =
-                                    seq[
-                                        { newInstruction with Data = newFileParts.Value }
-                                        |> User.Types.DatabaseSavingOptions.NewFilesInstruction
-                                    ]
-
-                                (info,instrId)
-                                |> User.Types.newSaveResult.SaveExisitngNewFIles
-                            | _ when partsWithNewNames.IsSome ->
-                                let info =
-                                    seq[
-                                        { newInstruction with Data = partsWithNewNames.Value }
-                                        |> User.Types.DatabaseSavingOptions.NewFilesInstruction
-                                    ]
-
-                                (info,instrId)
-                                |> User.Types.newSaveResult.SaveExistingNewTitles
+                            | _ when alreadyExistingInstruction = true ->
+                                let errorMsg =
+                                    "Nothing to save!"
+                                divWithStyle
+                                    None
+                                    errorMsg
+                                    (prop.style[style.fontWeight.bold;style.color.black])
+                                |> fun x -> seq[x]
+                                |> User.Types.newSaveResult.ThatInstructionAlreadyExists
                             | _ ->
-                                let info =
-                                    seq[
-                                        partsToDelete.Value |>
-                                        (DatabaseDeleteOptions.DeleteParts >>
-                                         User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
-                                    ]
+                                let newFileParts =
+                                    newInstruction.Data
+                                    |> Seq.map (fun newPart ->
+                                        existingInstr.Data
+                                        |> Seq.tryPick (fun part ->
+                                            part.Title.Replace(" ", "") = newPart.Title.Replace(" ", "")
+                                            |> function
+                                                | res when res = true ->
+                                                    Some newPart
+                                                | _ -> None))
+                                    |> Seq.choose id
+                                    |> function
+                                        | res when res |> Seq.length > 0 ->
+                                            res |> Some
+                                        | _ ->
+                                            None
+                                let partsWithNewNames =
+                                    existingInstr.Data
+                                    |> Seq.choose (fun part ->
+                                        newInstruction.Data
+                                        |> Seq.tryFind (fun partNew ->
+                                            let nameDoesNotMatch =
+                                                partNew.Title.Replace(" ", "") <>
+                                                    part.Title.Replace(" ", "")
 
-                                (info,instrId)
-                                |> User.Types.newSaveResult.SaveExistingPartsToDelete
+                                            let sameInstructionText =
+                                                part.InstructionTxt.Replace(" ", "") =
+                                                    partNew.InstructionTxt.Replace(" ", "")
+
+                                            let sameVideo =
+                                                part.InstructionVideo.Replace(" ", "") =
+                                                    partNew.InstructionVideo.Replace(" ", "")
+
+                                            nameDoesNotMatch &&
+                                            sameInstructionText &&
+                                            sameVideo
+                                            )
+                                        |> function
+                                            | newTitlePart when newTitlePart.IsSome ->
+                                                newTitlePart
+                                            | _ -> None)
+                                    |> function
+                                        | partsWNewTitles when partsWNewTitles |> Seq.length <> 0 ->
+                                            partsWNewTitles |> Some
+                                        | _ -> None
+
+                                let partsToDelete =
+                                    existingInstr.Data
+                                    |> Seq.choose (fun part ->
+                                        modeInfos
+                                        |> Seq.exists (fun modInfo ->
+                                            let isDelete =
+                                                match modInfo.DelOrReg with
+                                                | Some DelOrRegVal ->
+                                                    match DelOrRegVal with
+                                                    | Instruction.Types.DeleteInfo.Delete _ ->
+                                                        false
+                                                    | Instruction.Types.DeleteInfo.Regret _ ->
+                                                        true
+                                                | _ -> false
+                                            let isNotSamTitle =
+                                                modInfo.Names.CurrName.Replace(" ", "") <>
+                                                    part.Title.Replace(" ", "")
+
+                                            isDelete && isNotSamTitle)
+                                        |> function
+                                            | isDelete when isDelete = true ->
+                                                Some part
+                                            | _ -> None)
+                                    |> function
+                                        | partsToDelete when partsToDelete |> Seq.length <> 0 ->
+                                            Some partsToDelete
+                                        | _ -> None
+
+
+                                ()
+                                |> function
+                                    | _ when partsWithNewNames.IsSome &&
+                                                newFileParts.IsSome &&
+                                                partsToDelete.IsSome ->
+                                            let info =
+                                                seq[
+                                                    { newInstruction with Data = partsWithNewNames.Value }
+                                                    |> User.Types.DatabaseSavingOptions.NewNameInstruction
+
+                                                    { newInstruction with Data = newFileParts.Value }
+                                                    |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+
+                                                    partsToDelete.Value |>
+                                                    (DatabaseDeleteOptions.DeleteParts >>
+                                                     User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
+                                                ]
+
+                                            (info,instrId)
+                                            |> User.Types.newSaveResult.SaveExistingNewFilesAndTItlesPartsToDelete
+
+                                    | _ when partsWithNewNames.IsSome &&
+                                             newFileParts.IsSome ->
+                                             let info =
+                                                 seq[
+                                                     { newInstruction with Data = newFileParts.Value }
+                                                     |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+
+                                                     { newInstruction with Data = partsWithNewNames.Value }
+                                                     |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                                 ]
+
+                                             (info,instrId)
+                                             |> User.Types.newSaveResult.SaveExistingNewFilesAndTItles
+                                    | _ when newFileParts.IsSome &&
+                                             partsToDelete.IsSome ->
+                                            let info =
+                                                seq[
+                                                    { newInstruction with Data = newFileParts.Value }
+                                                    |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+
+                                                    partsToDelete.Value |>
+                                                    (DatabaseDeleteOptions.DeleteParts >>
+                                                     User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
+                                                ]
+
+                                            (info,instrId)
+                                            |> User.Types.newSaveResult.SaveExistingNewFilesPartsToDelete
+                                    | _ when partsWithNewNames.IsSome &&
+                                             partsToDelete.IsSome ->
+                                            let info =
+                                                seq[
+                                                    { newInstruction with Data = partsWithNewNames.Value }
+                                                    |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+
+                                                    partsToDelete.Value |>
+                                                    (DatabaseDeleteOptions.DeleteParts >>
+                                                     User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
+                                                ]
+
+                                            (info,instrId)
+                                            |> User.Types.newSaveResult.SaveExistingNewTItlesPartsToDelete
+                                    | _ when newFileParts.IsSome ->
+                                        let info =
+                                            seq[
+                                                { newInstruction with Data = newFileParts.Value }
+                                                |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                            ]
+
+                                        (info,instrId)
+                                        |> User.Types.newSaveResult.SaveExisitngNewFIles
+                                    | _ when partsWithNewNames.IsSome ->
+                                        let info =
+                                            seq[
+                                                { newInstruction with Data = partsWithNewNames.Value }
+                                                |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                            ]
+
+                                        (info,instrId)
+                                        |> User.Types.newSaveResult.SaveExistingNewTitles
+                                    | _ ->
+                                        let info =
+                                            seq[
+                                                partsToDelete.Value |>
+                                                (DatabaseDeleteOptions.DeleteParts >>
+                                                 User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
+                                            ]
+
+                                        (info,instrId)
+                                        |> User.Types.newSaveResult.SaveExistingPartsToDelete
             | _ ->
                 let instrid =
                     userDataInstructions

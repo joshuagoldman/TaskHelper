@@ -63,7 +63,7 @@ app.post('/', (req,res) => {
         db.query(req.body.Queries, function (err,dbRes) {
             if(err.error)
                 res.send(err)
-            res.send("Changes were saved sucessfully!")
+            res.send("Changes were sucessfully updated!")
         });
     }
 });

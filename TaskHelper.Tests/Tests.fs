@@ -283,29 +283,49 @@ let ``TestSavingChoices`` () =
                                 ]
                            ) |> Some
 
-            getTestModInfo (seq[1;2;3;4;5])
+            getTestModInfo (seq[1;2;3;4;5;6])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
             |> Some
 
-            getTestModInfo (seq[1;2;3;4;5])
+            getTestModInfo (seq[1;0;3;4;5])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
             |> Some
 
-            getTestModInfo (seq[1;2;3;4;5])
+            getTestModInfo (seq[1;0;3;4;5;6])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
             |> Some
 
-            getTestModInfo (seq[1;2;3;4;5])
+            getTestModInfo (seq[1;0;3;4;5;6])
                            (
                                 seq[
-                                    ("Regret" |> Regret |> Some)
-                                    ("Regret" |> Regret |> Some)
-                                    ("Regret" |> Regret |> Some)
-                                    ("Regret" |> Regret |> Some)
-                                    ("Regret" |> Regret |> Some)
+                                ("Regret" |> Regret |> Some)
+                                ("Delete" |> Delete |> Some)
+                                ("Delete" |> Delete |> Some)
+                                ("Delete" |> Delete |> Some)
+                                ("Delete" |> Delete |> Some)
+                                ("Delete" |> Delete |> Some)
                                 ]
                            ) |> Some
-            None
+            getTestModInfo (seq[1;2;3;4;5;6])
+                        (
+                             seq[
+                             ("Delete" |> Delete |> Some)
+                             ("Delete" |> Delete |> Some)
+                             ("Delete" |> Delete |> Some)
+                             ("Delete" |> Delete |> Some)
+                             ("Regret" |> Regret |> Some)
+                             ]
+                        ) |> Some
+            getTestModInfo (seq[1;0;3;4;5])
+                        (
+                             seq[
+                             ("Delete" |> Delete |> Some)
+                             ("Delete" |> Delete |> Some)
+                             ("Delete" |> Delete |> Some)
+                             ("Delete" |> Delete |> Some)
+                             ("Regret" |> Regret |> Some)
+                             ]
+                        ) |> Some
         ]
 
     let instructionCases =
@@ -325,10 +345,10 @@ let ``TestSavingChoices`` () =
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[1;2;3;4;5]
+            seq[1;2;2;4;5]
             |> getInstructionSet
             |> fun instr ->
-                { instr with Title = "Instruction3"}
+                { instr with Title = "Instruction1"}
 
             seq[1;0;3;4;5]
             |> getInstructionSet
@@ -348,6 +368,15 @@ let ``TestSavingChoices`` () =
             seq[1;0;3;4;5;6]
             |> getInstructionSet
             |> fun instr ->
+                { instr with Title = "Instruction2"}
+            seq[1;2;3;4;5;6]
+            |> getInstructionSet
+            |> fun instr ->
+                { instr with Title = "Instruction2"}
+
+            seq[1;0;3;4;5]
+            |> getInstructionSet
+            |> fun instr ->
                 { instr with Title = "Instruction1"}
         ]
 
@@ -365,7 +394,7 @@ let ``TestSavingChoices`` () =
         | _ -> false
     let fourth arg =
         match arg with
-        | User.Types.newSaveResult.ThatInstructionAlreadyExists _ -> true
+        | User.Types.newSaveResult.InstructionHasNotDistinctTitles _ -> true
         | _ -> false
     let fifth arg =
         match arg with
@@ -381,9 +410,16 @@ let ``TestSavingChoices`` () =
         | _ -> false
     let eighth arg =
         match arg with
-        | User.Types.newSaveResult.NoUserData _ -> true
+        | User.Types.newSaveResult.SaveExistingNewFilesAndTItlesPartsToDelete _ -> true
         | _ -> false
-
+    let ninth arg =
+        match arg with
+        | User.Types.newSaveResult.SaveExistingNewFilesPartsToDelete _ -> true
+        | _ -> false
+    let tenth arg =
+        match arg with
+        | User.Types.newSaveResult.SaveExistingNewTItlesPartsToDelete _ -> true
+        | _ -> false
 
     let resultCases =
         seq[
@@ -395,6 +431,8 @@ let ``TestSavingChoices`` () =
             sixth
             seventh
             eighth
+            ninth
+            tenth
         ]
 
     let cases =
