@@ -45,10 +45,10 @@ type newSaveResult =
     | SaveExistingNewTItlesPartsToDelete of seq<DatabaseSavingOptions> * string
     | SaveExistingNewFilesAndTItlesPartsToDelete of seq<DatabaseSavingOptions> * string
     | SaveExistingPartsToDelete of seq<DatabaseSavingOptions> * string
-    | InstructionIsDelete of seq<ReactElement>
-    | NoUserData of seq<ReactElement>
-    | ThatInstructionAlreadyExists of seq<ReactElement>
-    | InstructionHasNotDistinctTitles of seq<ReactElement>
+    | InstructionIsDelete of string
+    | NoUserData of string
+    | ThatInstructionAlreadyExists of string
+    | InstructionHasNotDistinctTitles of string
 
 type Msg =
     | LoginAttemptMsg of string * string

@@ -1358,12 +1358,10 @@ let savingChoicesTestable   instruction
                                  Kindly re-name instruction part/parts such that all are of distinct nature.",
                                  res.Value
                             )
-                        divWithStyle
-                            None
+                        let finalMsg = 
                             errorMsg
-                            (prop.style[style.fontWeight.bold;style.color.black])
-                        |> fun x -> seq[x]
-                        |> User.Types.newSaveResult.InstructionHasNotDistinctTitles
+                            |> User.Types.newSaveResult.InstructionHasNotDistinctTitles
+                        finalMsg
                     | _ ->
                         let alreadyExistingInstruction =
                             let newAndOldInstructionAreOfSameLength =
@@ -1392,13 +1390,7 @@ let savingChoicesTestable   instruction
                         ()
                         |> function
                             | _ when alreadyExistingInstruction = true ->
-                                let errorMsg =
-                                    "Nothing to save!"
-                                divWithStyle
-                                    None
-                                    errorMsg
-                                    (prop.style[style.fontWeight.bold;style.color.black])
-                                |> fun x -> seq[x]
+                                "Nothing to save!"
                                 |> User.Types.newSaveResult.ThatInstructionAlreadyExists
                             | _ ->
                                 let newFileParts =
@@ -1602,20 +1594,12 @@ let savingChoicesTestable   instruction
                 |> compareWithExistingInstruction modInfos
                 
             | _ ->
-                divWithStyle
-                    None
-                    ("You are attempting to save an empty instruction.
-                    Click the delete button if you wish to delete the instruction")
-                    (prop.style[style.fontWeight.bold;style.color.black])
-                |> fun x -> seq[x]
+                ("You are attempting to save an empty instruction.
+                Click the delete button if you wish to delete the instruction")
                 |> User.Types.newSaveResult.InstructionIsDelete
                 
     | _ ->
-        divWithStyle
-            None
-            "No media has been loaded, re-upload your shit"
-            (prop.style[style.fontWeight.bold;style.color.black])
-        |> fun x -> seq[x]
+        "No media has been loaded, re-upload your shit"
         |> User.Types.newSaveResult.NoUserData
 
 
@@ -1626,14 +1610,6 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             savingChoicesTestable instruction
                                   instructionInfo
                                   data.Instructions
-
-        let funcChaining positions msg =
-            (msg,positions) |>
-            (
-                PopUpSettings.DefaultWithButton >>
-                Some >>
-                User.Types.PopUpMsg
-            )
 
         let newStatus statusMsg =
             let msgDiv =
@@ -1660,6 +1636,15 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 ]
             ]
             |> fun x -> seq[x]
+
+        let funcChaining positions msg =
+            
+            (msg |> newStatus,positions) |>
+            (
+                PopUpSettings.DefaultWithButton >>
+                Some >>
+                User.Types.PopUpMsg
+            )
 
         let saveNewMsg newInstr instrId =
             let dbIds =
@@ -1691,7 +1676,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 "Saving Changes..."
 
             let popupMsg =
-                newStatus loadingMsg
+                loadingMsg
                 |> funcChaining positions
                 |> Cmd.ofMsg
 

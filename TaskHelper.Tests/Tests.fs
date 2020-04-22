@@ -11,6 +11,13 @@ open FSharp.Data
 open NewAdd.Types
 open Instruction.Types
 open Instruction
+open Feliz
+open Elmish
+open Browser
+open Fable.Core
+open Fable.Core.JsInterop
+open Fable.React
+open Fable.React.Props
 
 type Testcase =
     {
@@ -379,7 +386,6 @@ let ``TestSavingChoices`` () =
             |> fun instr ->
                 { instr with Title = "Instruction1"}
         ]
-
     let first arg =
         match arg with
         | User.Types.newSaveResult.ThatInstructionAlreadyExists _ -> true
