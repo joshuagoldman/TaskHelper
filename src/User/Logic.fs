@@ -1325,18 +1325,18 @@ let savingChoicesTestable   instruction
                     pos |> string
 
                 let allTitlesUnique =
-                    modeInfos
-                    |> Seq.map (fun modInfoToCompare ->
-                        modeInfos
-                        |> Seq.filter (fun modInfo ->
+                    newInstruction.Data
+                    |> Seq.map (fun newPart ->
+                        newInstruction.Data
+                        |> Seq.filter (fun newPartCompare ->
                                 let result =
-                                    modInfo.Names.CurrName.Replace(" ", "") =
-                                        modInfoToCompare.Names.CurrName.Replace(" ", "")
+                                    newPart.Title.Replace(" ", "") =
+                                        newPartCompare.Title.Replace(" ", "")
                                 result)
                         |> function
                             | res when res |> Seq.length = 1 ->
                                 None
-                            | _ -> Some modInfoToCompare.Names.CurrName 
+                            | res -> Some newPart.Title 
                             )
                     |> Seq.choose id
                     |> function
@@ -1395,20 +1395,32 @@ let savingChoicesTestable   instruction
                             | _ ->
                                 let newFileParts =
                                     newInstruction.Data
-                                    |> Seq.map (fun newPart ->
-                                        existingInstr.Data
-                                        |> Seq.tryPick (fun part ->
-                                            part.Title.Replace(" ", "") = newPart.Title.Replace(" ", "")
-                                            |> function
-                                                | res when res = true ->
-                                                    Some newPart
-                                                | _ -> None))
-                                    |> Seq.choose id
+                                    |> Seq.choose (fun part ->
+                                        newInstruction.Data
+                                        |> Seq.tryFind (fun partNew ->
+                                            let nameDoesNotMatch =
+                                                partNew.Title.Replace(" ", "") <>
+                                                    part.Title.Replace(" ", "")
+
+                                            let notSameInstructionText =
+                                                part.InstructionTxt.Replace(" ", "") =
+                                                    partNew.InstructionTxt.Replace(" ", "")
+
+                                            let notSameVideo =
+                                                part.InstructionVideo.Replace(" ", "") =
+                                                    partNew.InstructionVideo.Replace(" ", "")
+
+                                            nameDoesNotMatch &&
+                                            (notSameInstructionText || notSameVideo)
+                                            )
+                                        |> function
+                                            | newTitlePart when newTitlePart.IsSome ->
+                                                newTitlePart
+                                            | _ -> None)
                                     |> function
-                                        | res when res |> Seq.length > 0 ->
-                                            res |> Some
-                                        | _ ->
-                                            None
+                                        | partsWNewTitles when partsWNewTitles |> Seq.length <> 0 ->
+                                            partsWNewTitles |> Some
+                                        | _ -> None
                                 let partsWithNewNames =
                                     existingInstr.Data
                                     |> Seq.choose (fun part ->
@@ -1442,32 +1454,32 @@ let savingChoicesTestable   instruction
                                 let partsToDelete =
                                     existingInstr.Data
                                     |> Seq.choose (fun part ->
-                                        modeInfos
-                                        |> Seq.exists (fun modInfo ->
-                                            let isDelete =
-                                                match modInfo.DelOrReg with
-                                                | Some DelOrRegVal ->
-                                                    match DelOrRegVal with
-                                                    | Instruction.Types.DeleteInfo.Delete _ ->
-                                                        false
-                                                    | Instruction.Types.DeleteInfo.Regret _ ->
-                                                        true
-                                                | _ -> false
-                                            let isNotSamTitle =
-                                                modInfo.Names.CurrName.Replace(" ", "") <>
+                                        newInstruction.Data
+                                        |> Seq.tryFind (fun partNew ->
+                                            let nameDoesNotMatch =
+                                                partNew.Title.Replace(" ", "") <>
                                                     part.Title.Replace(" ", "")
 
-                                            isDelete && isNotSamTitle)
+                                            let sameInstructionText =
+                                                part.InstructionTxt.Replace(" ", "") =
+                                                    partNew.InstructionTxt.Replace(" ", "")
+
+                                            let sameVideo =
+                                                part.InstructionVideo.Replace(" ", "") =
+                                                    partNew.InstructionVideo.Replace(" ", "")
+
+                                            nameDoesNotMatch &&
+                                            sameInstructionText &&
+                                            sameVideo
+                                            )
                                         |> function
-                                            | isDelete when isDelete = true ->
-                                                Some part
+                                            | newTitlePart when newTitlePart.IsSome ->
+                                                newTitlePart
                                             | _ -> None)
                                     |> function
                                         | partsToDelete when partsToDelete |> Seq.length <> 0 ->
                                             Some partsToDelete
                                         | _ -> None
-
-
                                 ()
                                 |> function
                                     | _ when partsWithNewNames.IsSome &&
@@ -1497,7 +1509,7 @@ let savingChoicesTestable   instruction
                                                      |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
                                                      { newInstruction with Data = partsWithNewNames.Value }
-                                                     |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                                     |> User.Types.DatabaseSavingOptions.NewNameInstruction
                                                  ]
 
                                              (info,instrId)
@@ -1521,7 +1533,7 @@ let savingChoicesTestable   instruction
                                             let info =
                                                 seq[
                                                     { newInstruction with Data = partsWithNewNames.Value }
-                                                    |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                                    |> User.Types.DatabaseSavingOptions.NewNameInstruction
 
                                                     partsToDelete.Value |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
@@ -1543,7 +1555,7 @@ let savingChoicesTestable   instruction
                                         let info =
                                             seq[
                                                 { newInstruction with Data = partsWithNewNames.Value }
-                                                |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                                |> User.Types.DatabaseSavingOptions.NewNameInstruction
                                             ]
 
                                         (info,instrId)
