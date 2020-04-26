@@ -44,6 +44,28 @@ app.post("/upload", (req, res, next) => {
 });
 
 // --------------------------------------------------------------------------------------------------------------
+// DELETE FILES API
+// --------------------------------------------------------------------------------------------------------------
+app.post("/delete", (req, res, next) => {
+    let fileName = req.body.fileName;
+    let path = `${__dirname}/../public/${req.body.folder}/${req.body.fileName}`;
+    let pubPath = `public/${req.body.folder}/${req.body.fileName}`;
+    let fileInfo = {
+        Name : fileName,
+        Path : pubPath
+    }
+
+    fs.unlink(path, (err) => {
+        if (err) {
+            console.error(err)
+            res.send(err)
+        }
+        else{
+            res.send(`Deleted file '${fileInfo.Name}' located at '${fileInfo.Path}'`);
+        }  
+    });
+});
+// --------------------------------------------------------------------------------------------------------------
 // INSERT, CHANGE, DELETE DATABASE INFO API
 // --------------------------------------------------------------------------------------------------------------
 
