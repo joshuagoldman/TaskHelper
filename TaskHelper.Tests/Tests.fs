@@ -85,6 +85,29 @@ let getInstructionSet ( nums : seq<int> ) =
                      None)
     }
 
+
+type InstructionObtainingStyle =
+    | Simple of seq<int>
+    | NotSimple of seq<int * option<string>>
+
+let getInstructionSetNotSimple ( style : InstructionObtainingStyle ) =
+        match style with
+        | Simple sequence ->
+            sequence |> getInstructionSet
+        | NotSimple sequence ->
+            {
+                Data.InstructionData.Title = "Instruction"
+                Data.InstructionData.Data =
+                    
+                    sequence
+                    |> Seq.map (fun (num ,str)-> (num |> string,str))
+                    |> Seq.map (fun (title,fileName) ->
+                        getPart
+                            (("part" + title) |> Some )
+                             fileName
+                             fileName)
+            }
+
 let repeatOfSame obj amount =
     [1..amount]
     |> Seq.map (fun _ -> obj)
@@ -362,29 +385,34 @@ let ``TestSavingChoices`` () =
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
-            seq[1;2;3;4;5;6]
-            |> getInstructionSet
-            |> fun instr ->
-                { instr with Title = "Instruction1"}
-
-            seq[1;0;3;4;5;6]
-            |> getInstructionSet
-            |> fun instr ->
-                { instr with Title = "Instruction1"}
-
-            seq[1;0;3;4;5;6]
-            |> getInstructionSet
+            seq[(1,None);(2,None);(3,None);(4,None);(5,None);(6,Some("5") )]
+            |> NotSimple
+            |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
-            seq[1;2;3;4;5;6]
-            |> getInstructionSet
+
+            seq[(1,None);(0,None);(3,None);(4,None);(5,None);(6,Some("5") )]
+            |> NotSimple
+            |> getInstructionSetNotSimple
+            |> fun instr ->
+                { instr with Title = "Instruction2"}
+
+            seq[(1,None);(0,None);(3,None);(4,None);(5,None);(6,Some("5") )]
+            |> NotSimple
+            |> getInstructionSetNotSimple
+            |> fun instr ->
+                { instr with Title = "Instruction2"}
+
+            seq[(1,None);(2,None);(3,None);(4,None);(5,None);(6,Some("5") )]
+            |> NotSimple
+            |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
             seq[1;0;3;4;5]
             |> getInstructionSet
             |> fun instr ->
-                { instr with Title = "Instruction1"}
+                { instr with Title = "Instruction2"}
         ]
     let first arg =
         match arg with

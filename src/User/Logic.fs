@@ -1310,8 +1310,7 @@ let savingChoicesTestable   instruction
                           ( instructionInfo : seq<Instruction.Types.modificationInfo> Option )
                             userDataInstructions =
 
-    let compareWithExistingInstruction ( modeInfos : seq<Instruction.Types.modificationInfo> )
-                                         newInstruction =
+    let compareWithExistingInstruction newInstruction =
         userDataInstructions
         |> Seq.indexed
         |> Seq.tryFind (fun (_,existInstr) ->
@@ -1395,48 +1394,41 @@ let savingChoicesTestable   instruction
                             | _ ->
                                 let newFileParts =
                                     newInstruction.Data
-                                    |> Seq.choose (fun part ->
-                                        newInstruction.Data
-                                        |> Seq.tryFind (fun partNew ->
-                                            let nameDoesNotMatch =
-                                                partNew.Title.Replace(" ", "") <>
-                                                    part.Title.Replace(" ", "")
-
+                                    |> Seq.choose (fun newPart ->
+                                        existingInstr.Data
+                                        |> Seq.forall (fun part ->
                                             let notSameInstructionText =
-                                                part.InstructionTxt.Replace(" ", "") =
-                                                    partNew.InstructionTxt.Replace(" ", "")
+                                                part.InstructionTxt.Replace(" ", "") <>
+                                                    newPart.InstructionTxt.Replace(" ", "")
 
                                             let notSameVideo =
-                                                part.InstructionVideo.Replace(" ", "") =
-                                                    partNew.InstructionVideo.Replace(" ", "")
-
-                                            nameDoesNotMatch &&
-                                            (notSameInstructionText || notSameVideo)
-                                            )
+                                                part.InstructionVideo.Replace(" ", "") <>
+                                                    newPart.InstructionVideo.Replace(" ", "")
+                                            notSameInstructionText || notSameVideo)
                                         |> function
-                                            | newTitlePart when newTitlePart.IsSome ->
-                                                newTitlePart
+                                            | noInstructionTextIsMatch when noInstructionTextIsMatch = true ->
+                                                Some newPart
                                             | _ -> None)
                                     |> function
                                         | partsWNewTitles when partsWNewTitles |> Seq.length <> 0 ->
                                             partsWNewTitles |> Some
                                         | _ -> None
                                 let partsWithNewNames =
-                                    existingInstr.Data
-                                    |> Seq.choose (fun part ->
-                                        newInstruction.Data
-                                        |> Seq.tryFind (fun partNew ->
+                                    newInstruction.Data
+                                    |> Seq.choose (fun newPart ->
+                                        existingInstr.Data
+                                        |> Seq.tryFind (fun part ->
                                             let nameDoesNotMatch =
-                                                partNew.Title.Replace(" ", "") <>
+                                                newPart.Title.Replace(" ", "") <>
                                                     part.Title.Replace(" ", "")
 
                                             let sameInstructionText =
                                                 part.InstructionTxt.Replace(" ", "") =
-                                                    partNew.InstructionTxt.Replace(" ", "")
+                                                    newPart.InstructionTxt.Replace(" ", "")
 
                                             let sameVideo =
                                                 part.InstructionVideo.Replace(" ", "") =
-                                                    partNew.InstructionVideo.Replace(" ", "")
+                                                    newPart.InstructionVideo.Replace(" ", "")
 
                                             nameDoesNotMatch &&
                                             sameInstructionText &&
@@ -1603,7 +1595,7 @@ let savingChoicesTestable   instruction
         |> function
             | res when res |> Seq.length <> 0 ->
                 { instruction with Data = res }
-                |> compareWithExistingInstruction modInfos
+                |> compareWithExistingInstruction
                 
             | _ ->
                 ("You are attempting to save an empty instruction.
