@@ -1335,12 +1335,13 @@ let savingChoicesTestable   instruction
                         |> function
                             | res when res |> Seq.length = 1 ->
                                 None
-                            | res -> Some newPart.Title 
+                            | _ -> Some newPart.Title 
                             )
                     |> Seq.choose id
                     |> function
                         | res when res |> Seq.length <> 0 ->
                             res
+                            |> Seq.distinct
                             |> Seq.map (fun title ->
                                 "\"" + title + "\", ")
                             |> String.concat ""
@@ -1354,7 +1355,7 @@ let savingChoicesTestable   instruction
                         let errorMsg =
                             String.Format(
                                "Instruction part title/titles: {0} are not unique for the instruction.
-                                 Kindly re-name instruction part/parts such that all are of distinct nature.",
+Kindly re-name instruction part/parts such that all are of distinct nature.",
                                  res.Value
                             )
                         let finalMsg = 
@@ -1436,7 +1437,7 @@ let savingChoicesTestable   instruction
                                             )
                                         |> function
                                             | newTitlePart when newTitlePart.IsSome ->
-                                                newTitlePart
+                                                Some newPart
                                             | _ -> None)
                                     |> function
                                         | partsWNewTitles when partsWNewTitles |> Seq.length <> 0 ->
@@ -1448,9 +1449,6 @@ let savingChoicesTestable   instruction
                                     |> Seq.choose (fun part ->
                                         newInstruction.Data
                                         |> Seq.tryFind (fun partNew ->
-                                            let nameDoesNotMatch =
-                                                partNew.Title.Replace(" ", "") <>
-                                                    part.Title.Replace(" ", "")
 
                                             let sameInstructionText =
                                                 part.InstructionTxt.Replace(" ", "") =
@@ -1460,14 +1458,13 @@ let savingChoicesTestable   instruction
                                                 part.InstructionVideo.Replace(" ", "") =
                                                     partNew.InstructionVideo.Replace(" ", "")
 
-                                            nameDoesNotMatch &&
                                             sameInstructionText &&
-                                            sameVideo
+                                             sameVideo
                                             )
                                         |> function
                                             | newTitlePart when newTitlePart.IsSome ->
-                                                newTitlePart
-                                            | _ -> None)
+                                                None
+                                            | _ -> Some part )
                                     |> function
                                         | partsToDelete when partsToDelete |> Seq.length <> 0 ->
                                             Some partsToDelete

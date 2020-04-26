@@ -80,9 +80,11 @@ let getInstructionSet ( nums : seq<int> ) =
             |> Seq.map (fun num -> num |> string)
             |> Seq.map (fun title ->
                 getPart
-                    (("part" + title) |> Some )
-                     None
-                     None)
+                    (
+                        ("part" + title) |> Some )
+                        (("Instruction" + title) |> Some)
+                        (("Video" + title) |> Some)
+                    )
     }
 
 
@@ -102,10 +104,16 @@ let getInstructionSetNotSimple ( style : InstructionObtainingStyle ) =
                     sequence
                     |> Seq.map (fun (num ,str)-> (num |> string,str))
                     |> Seq.map (fun (title,fileName) ->
+                        let getNewFileName name =
+                            if fileName.IsSome
+                            then (name + fileName.Value) |> Some
+                            else (name + title |> Some)
                         getPart
-                            (("part" + title) |> Some )
-                             fileName
-                             fileName)
+                            (
+                                ("part" + title) |> Some )
+                                (getNewFileName "Instruction")
+                                (getNewFileName "Video"
+                            ))
             }
 
 let repeatOfSame obj amount =
@@ -279,7 +287,7 @@ let ``TestSavingChoices`` () =
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[1;2;3;4;5;6]
+            seq[1;2;3;4;5]
             |> getInstructionSet
             |> fun instr ->
                 { instr with Title = "Instruction2"}
@@ -313,8 +321,12 @@ let ``TestSavingChoices`` () =
                                 ]
                            ) |> Some
 
-            getTestModInfo (seq[1;2;3;4;5;6])
+            getTestModInfo (seq[1;2;2;4;5;6])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
+            |> Some
+
+            getTestModInfo (seq[1;2;3;4;5;6])
+                           (repeatOfSame ("Delete" |> Delete |> Some) 6)
             |> Some
 
             getTestModInfo (seq[1;0;3;4;5])
@@ -322,7 +334,7 @@ let ``TestSavingChoices`` () =
             |> Some
 
             getTestModInfo (seq[1;0;3;4;5;6])
-                           (repeatOfSame ("Delete" |> Delete |> Some) 5)
+                           (repeatOfSame ("Delete" |> Delete |> Some) 6)
             |> Some
 
             getTestModInfo (seq[1;0;3;4;5;6])
@@ -339,14 +351,15 @@ let ``TestSavingChoices`` () =
             getTestModInfo (seq[1;2;3;4;5;6])
                         (
                              seq[
-                             ("Delete" |> Delete |> Some)
+                             ("Regret" |> Regret |> Some)
                              ("Delete" |> Delete |> Some)
                              ("Delete" |> Delete |> Some)
                              ("Delete" |> Delete |> Some)
                              ("Regret" |> Regret |> Some)
+                             ("Delete" |> Delete |> Some)
                              ]
                         ) |> Some
-            getTestModInfo (seq[1;0;3;4;5])
+            getTestModInfo (seq[1;2;6;4;5])
                         (
                              seq[
                              ("Delete" |> Delete |> Some)
@@ -365,8 +378,9 @@ let ``TestSavingChoices`` () =
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[1;2;3;4;5]
-            |> getInstructionSet
+            seq[(1,None);(2,None);(3,None);(4,None);(5,Some("5"))]
+            |> NotSimple
+            |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
@@ -380,39 +394,39 @@ let ``TestSavingChoices`` () =
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[1;0;3;4;5]
+            seq[1;2;3;4;5;6]
             |> getInstructionSet
             |> fun instr ->
-                { instr with Title = "Instruction2"}
+                { instr with Title = "Instruction1"}
 
-            seq[(1,None);(2,None);(3,None);(4,None);(5,None);(6,Some("5") )]
+            seq[(1,None);(0,Some("2"));(3,None);(4,None);(5,None)]
             |> NotSimple
             |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
-            seq[(1,None);(0,None);(3,None);(4,None);(5,None);(6,Some("5") )]
+            seq[(1,None);(0,Some("2"));(3,None);(4,None);(5,None);(6,None)]
             |> NotSimple
             |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
-            seq[(1,None);(0,None);(3,None);(4,None);(5,None);(6,Some("5") )]
+            seq[(1,None);(0,Some("2"));(3,None);(4,None);(5,None);(6,None)]
             |> NotSimple
             |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
-            seq[(1,None);(2,None);(3,None);(4,None);(5,None);(6,Some("5") )]
-            |> NotSimple
-            |> getInstructionSetNotSimple
-            |> fun instr ->
-                { instr with Title = "Instruction2"}
-
-            seq[1;0;3;4;5]
+            seq[1;2;3;4;5;6]
             |> getInstructionSet
             |> fun instr ->
-                { instr with Title = "Instruction2"}
+                { instr with Title = "Instruction1"}
+
+            seq[(1,None);(2,None);(6,Some("3"));(4,None);(5,None)]
+            |> NotSimple
+            |> getInstructionSetNotSimple
+            |> fun instr ->
+                { instr with Title = "Instruction1"}
         ]
     let first arg =
         match arg with
@@ -430,14 +444,17 @@ let ``TestSavingChoices`` () =
         match arg with
         | User.Types.newSaveResult.InstructionHasNotDistinctTitles _ -> true
         | _ -> false
+
     let fifth arg =
-        match arg with
-        | User.Types.newSaveResult.SaveExistingNewTitles _ -> true
-        | _ -> false
-    let sixth arg =
         match arg with
         | User.Types.newSaveResult.SaveExisitngNewFIles _ -> true
         | _ -> false
+
+    let sixth arg =
+        match arg with
+        | User.Types.newSaveResult.SaveExistingNewTitles _ -> true
+        | _ -> false
+
     let seventh arg =
         match arg with
         | User.Types.newSaveResult.SaveExistingNewFilesAndTItles _ -> true
