@@ -107,8 +107,8 @@ let logInRoot model dispatch =
 
 
 let ff =
-    let input = "Joshua GOldman"
-    let pattern = "(?<=G).*(?=man)"
+    let input = "jag heter joshu goldman och jag tycker om att spela fotboll"
+    let pattern = "\w+"
     let m = TaskHelperApi.Regex.Match pattern input
     let l = TaskHelperApi.Regex.Matches pattern input
     let n = TaskHelperApi.Regex.IsMatch pattern input

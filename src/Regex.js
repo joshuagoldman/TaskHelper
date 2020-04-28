@@ -1,8 +1,7 @@
 
 export function Match(pattern, input) {
     try {
-        var regex = new RegExp(pattern);
-        let result = regex.exec(input)[0];
+        var result = input.match(pattern)[0];
         if (result.length === 0) {
             return null;
         }
@@ -18,13 +17,12 @@ export function Match(pattern, input) {
 // Matches : string -> string -> string[] Option
 export function Matches(pattern,input) {
     try {
-        var regex = new RegExp(pattern);
-        let result = regex.exec(input).map(x => x);
+        var result = [...input.matchAll(pattern)];
         if(result.length === 0){
             return null
         }
         else{
-            return result;
+            return result.map(x => x[0]);
         }
     } catch(ex) {
         return null;
