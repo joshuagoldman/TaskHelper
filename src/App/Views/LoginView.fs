@@ -136,7 +136,6 @@ let loginTxtArea ( model : App.Types.Model ) dispatch =
                 ]
         ]
 
-
 let root ( model : App.Types.Model ) dispatch =
     Html.div[
         prop.style[

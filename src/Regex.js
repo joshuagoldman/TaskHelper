@@ -1,0 +1,43 @@
+
+export function Match(pattern, input) {
+    try {
+        var regex = new RegExp(pattern);
+        let result = regex.exec(input)[0];
+        if (result.length === 0) {
+            return null;
+        }
+        else {
+            return result;
+        }
+    }
+    catch (ex) {
+        return null;
+    }
+}
+
+// Matches : string -> string -> string[] Option
+export function Matches(pattern,input) {
+    try {
+        var regex = new RegExp(pattern);
+        let result = regex.exec(input).map(x => x);
+        if(result.length === 0){
+            return null
+        }
+        else{
+            return result;
+        }
+    } catch(ex) {
+        return null;
+    }
+}
+    
+// IsMatch : string -> string -> bool Option
+export function IsMatch(pattern,input) {
+    try {
+        var regex = new RegExp(pattern);
+        let result = regex.test(input);
+        return result
+    } catch(ex) {
+        return null;
+    }
+}

@@ -10,6 +10,8 @@ open Browser
 open Fable.SimpleHttp
 open Fable.SimpleHttp
 open Feliz.prop
+open Fable.Core
+
 
 //Fable.Core.JsInterop.importAll "../sass/main.sass"
 
@@ -103,6 +105,40 @@ let logInRoot model dispatch =
                 ]
         ]
 
+
+let ff =
+    let input = "Joshua GOldman"
+    let pattern = "(?<=G).*(?=man)"
+    let m = TaskHelperApi.Regex.Match pattern input
+    let l = TaskHelperApi.Regex.Matches pattern input
+    let n = TaskHelperApi.Regex.IsMatch pattern input
+
+    let result =
+        m
+        |> function
+            | res when res.IsSome ->
+                res.Value
+            | _ -> "No Match!"
+
+    let res2 =
+        l
+        |> function
+            | res when res.IsSome ->
+                res.Value
+            | _ -> [|"No Match!"|]
+
+    let res3 =
+        n
+        |> function
+            | res when res.IsSome ->
+                res.Value
+            | _ -> false
+        
+
+    console.log(result)
+    console.log(res2)
+    console.log(res3)
+
 let root model dispatch =
     match model.User.UserData with
     | Data.Deferred.Resolved (Ok _) ->
@@ -111,7 +147,8 @@ let root model dispatch =
             User.View.root model.User ( UserMsg >>
                                         dispatch)
         | Login ->
-             Login.View.root model dispatch
+            ff
+            Login.View.root model dispatch
     | _ ->
         Login.View.root model dispatch
 
