@@ -32,7 +32,6 @@ type Msg =
         AsyncOperationSavingStatus<SaveDataProgress<(MediaChoiceFormData * DBIds * Position),
                                                      option<seq<MediaChoiceFormData>> * Position>>
     | PostInstruction of seq<MediaChoiceFormData>
-    | ChangeFileStatus of MediaChoiceFormData * Position
     | NewInstructionsListMsg of seq<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>
     | SaveNewData of Data.InstructionData * DBIds * Position

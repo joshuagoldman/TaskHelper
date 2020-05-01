@@ -27,8 +27,8 @@ type PopUpSettings =
     | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
 
 type DatabaseDeleteOptions =
-    | DeleteInstruction of Data.InstructionData 
-    | DeleteParts of seq<Data.partData>
+    | DeleteInstruction of Data.InstructionData * DBIds
+    | DeleteParts of seq<Data.partData> * string
 
 type DatabaseSavingOptions = 
     | NewFilesInstruction of Data.InstructionData
@@ -74,6 +74,7 @@ type Msg =
     | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
                                                Option<seq<Instruction.Types.modificationInfo>> *
                                                Position
+
 type Model =
     {
       User : Data.Deferred<Result<LoginInfo, string>>

@@ -20,7 +20,6 @@ open Data
 open Elmish
 open Browser
 open Feliz
-open Instruction.Logic
 
 let getPositions ev =
     let positions =
@@ -173,33 +172,6 @@ let loadData ( status : Data.Deferred<Result<UserData,string>> ) =
         | Ok result -> Ok result                
         | Error err -> err |> Error
 
-//let getUserData result ( model : User.Types.Model ) =
-//    result
-//    |> Seq.tryFind (fun user -> user.Id = model.Id  )
-//    |> function
-//       | res when res <> None -> res.Value
-//       | _ ->
-//            {
-//                Id = 0
-//                Instructions =
-//                    seq
-//                        [
-//                            {
-//                                Title = ""
-//                                Data =
-//                                    seq
-//                                        [
-//                                            {
-//                                                InstructionTxt = ""
-//                                                InstructionVideo = ""
-//                                                Title = ""
-//                                            }
-//                                        ]
-//                            }
-//                        ]
-
-//            }
-
 let jsonDecodingInstructions jsonString =
     let decodingObj = parseUserData jsonString
 
@@ -222,7 +194,6 @@ let jsonDecodingUser jsonString =
         |> (Ok >> Finished >> LoadedUsers)
     | Error result ->
         LoadedUsers (Finished (Error ("possibly wrong username or password:\n" + result)))
-
 
 let loadInstructionItems ( id : int ) = async {
         do! Async.Sleep 3000
@@ -320,12 +291,9 @@ let instructionToSqlNewNames ( instructionId : string ) instruction =
 
     instructionInsert + partInsert
 
-let instructionToSqlDelete userId
-                           ( instructionId : string )
-                           ( dbOptions : DatabaseDeleteOptions ) =
+let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) =
 
-
-    let partDelete parts =
+    let partDelete instructionId parts =
         parts
         |> Seq.map (fun part ->
               String.Format(
@@ -334,11 +302,11 @@ let instructionToSqlDelete userId
               ))
         |> String.concat ""
     match dbOptions with
-    | DatabaseDeleteOptions.DeleteInstruction instruction ->
+    | DatabaseDeleteOptions.DeleteInstruction (instruction,ids) ->
         let sqlInstructionVars =
             seq[
-                userId
-                instructionId
+                ids.UserId
+                ids.InstructionId
                 instruction.Title
             ]
         let instructionDelete =
@@ -347,13 +315,15 @@ let instructionToSqlDelete userId
                 sqlInstructionVars )
         let partsCommand =
             instruction.Data
-            |> partDelete
+            |> partDelete ids.InstructionId
 
         instructionDelete + partsCommand
-    | DeleteParts parts ->
+    | DeleteParts (parts,ids) ->
         let partsCommand =
             parts
-            |> partDelete
+            |> partDelete ids.InstructionId
+
+
 
         partsCommand
 
@@ -375,9 +345,20 @@ let saveInstructionToDatabase ( ids : DBIds )
                 |> instructionToSqlDelete ids.UserId ids.InstructionId)
         |> String.concat ""
         
-            
-    positions
-    |> sqlCommandToDB sqlCommands
+    let dbMessage =           
+        positions
+        |> sqlCommandToDB sqlCommands
+
+    let ifDeleteMsg =
+        databaseOptions
+        |> Seq.map (fun option ->
+            match option with
+            | PartsToDeleteInstruction delOptions ->
+                del
+            | _ ->
+                dbMessage
+                |> Cmd.fromAsync)
+        
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                               ( instruction2Add : option<Data.InstructionData> * string ) =
@@ -445,27 +426,16 @@ let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                 )
         msgs
 
-let getNewMediaFormData oldMedia newFileInfo =
-    match oldMedia with
-    | NewAdd.Types.Video (vid,_) ->
-        (vid,newFileInfo)
-        |> NewAdd.Types.Video
-    | NewAdd.Types.InstructionTxt (instrctn,_) ->
-        (instrctn,newFileInfo)
-        |> NewAdd.Types.InstructionTxt
-
-let funcChainingIsUploading media positions status =
-    status
-    |> getNewMediaFormData media
-    |> fun newMedia -> (newMedia,positions) |>
+let funcChainingIsUploading positions status =
+    (status,positions) |>
     ( 
-        NewAdd.Types.ChangeFileStatus >>
-        User.Types.NewAddMsg
+        Instruction.Types.ChangeFileStatus >>
+        User.Types.InstructionMsg
     )
 
 let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
                 positions
-                dbIds = async{
+               ( ids : DBIds ) = async{
 
     let (fileInfo,folder) =
         match media with
@@ -474,10 +444,17 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
         | NewAdd.Types.InstructionTxt (instrctn,_) ->
             instrctn,"Instructions"
 
+    let idNameExtension =
+        String.Format(
+            "{0}_{1}.",
+            ids.UserId,
+            ids.InstructionId
+        )
+
     let fData =
         FormData.Create()
 
-    fData.append("fileName", fileInfo.name)
+    fData.append("fileName", fileInfo.name.Replace(".", idNameExtension ))
     fData.append("type", fileInfo.``type``)
     fData.append("folder", folder)
     fData.append("file", fileInfo)
@@ -505,10 +482,10 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
                     str response.responseText
                 ]
             ]
-            |> NewAdd.Types.IsUploading.YesSuceeded
+            |> Instruction.Types.UploadOrDeleteSucceeded
         return (
                 newStatus
-                |> funcChainingIsUploading media positions
+                |> funcChainingIsUploading positions
         )
     | _ ->
         let msg =
@@ -528,13 +505,86 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
                     str msg
                 ]
             ]
-            |> NewAdd.Types.IsUploading.No
+            |> Instruction.Types.PartStatus.UploadOrDeleteFailed
         return (
                 newStatus
-                |> funcChainingIsUploading media positions
+                |> funcChainingIsUploading positions
         )
 }
 
+let deleteAsync ( fileNameWithFolderPath : string )
+                  positions
+                  ids = async{
+
+    let idNameExtension =
+        String.Format(
+            "{0}_{1}.",
+            ids.UserId,
+            ids.InstructionId
+        )
+
+    let fData =
+        FormData.Create()
+
+    fData.append("fileName", fileNameWithFolderPath.Replace(".",idNameExtension))
+
+    let fileName =
+        let partToRemove =
+            fileNameWithFolderPath.Substring(0,fileNameWithFolderPath.LastIndexOf("/"))
+        fileNameWithFolderPath.Replace(partToRemove, "")
+
+    do! Async.Sleep 3000
+    let! response =
+        Http.request ("http://localhost:3001/delete" )
+        |> Http.method POST
+        |> Http.content (BodyContent.Form fData)
+        |> Http.send
+
+    match response.statusCode with
+    | 200 ->
+        let newStatus =
+            Html.div[
+                prop.className "column is-11"
+                prop.style[
+                    style.color.red
+                    style.fontWeight.bold
+                    style.fontSize 12
+                    style.maxWidth 400
+                    style.margin 5
+                   ]
+                prop.children[
+                    str response.responseText
+                ]
+            ]
+            |> Instruction.Types.UploadOrDeleteSucceeded
+        return (
+                newStatus
+                |> funcChainingIsUploading positions
+        )
+    | _ ->
+        let msg =
+            ("file \"" + fileName + "\" failed with status code: " +
+             ( response.statusCode |> string ) + response.responseText)
+        let newStatus =
+            Html.div[
+                prop.className "column is-11"
+                prop.style[
+                    style.color.red
+                    style.fontWeight.bold
+                    style.fontSize 12
+                    style.maxWidth 400
+                    style.margin 5
+                   ]
+                prop.children[
+                    str msg
+                ]
+            ]
+            |> Instruction.Types.UploadOrDeleteFailed
+        return (
+                newStatus
+                |> funcChainingIsUploading positions
+        )
+}
 
 let saveUserData
         ( status : SaveDataProgress<NewAdd.Types.MediaChoiceFormData * DBIds * Position,
@@ -547,21 +597,9 @@ let saveUserData
                 vid.name
             | NewAdd.Types.InstructionTxt (instr,_) ->
                 instr.name
-        Html.div[
-            prop.className "column is-5"
-            prop.style[
-                style.color.red
-                style.fontWeight.bold
-                style.fontSize 12
-                style.maxWidth 400
-                style.margin 5
-               ]
-            prop.children[
-                str ("File \"" + name +  "\" is uploading")
-            ]
-        ]
-        |> NewAdd.Types.IsUploading.Yes
-        |> funcChainingIsUploading media positions
+        name
+        |> Instruction.Types.Uploading
+        |> funcChainingIsUploading positions
         |> fun x ->
             let funcChainingSavingInProgress info =
                 info |>
@@ -620,7 +658,6 @@ let saveUserData
                     seq[Cmd.Empty]
         | None -> seq[Cmd.Empty]
 
-
 let loadUserItems user password = async {
     do! Async.Sleep 3000
     let! response = 
@@ -645,7 +682,6 @@ let loadUserItems user password = async {
                                                             (response.statusCode |> string))))
     return msg
 }
-
 
 let getLoginInfo model =
     let getValues obj =
@@ -729,7 +765,6 @@ let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<Lo
             ]       
         | Error err -> seq[err|> User.Types.LoginMessages ; spinnerMessage]
         
-
 let validateLoginInfo info =
     info
     |> function
@@ -753,58 +788,7 @@ let chooseMediaByName name file =
             NewAdd.Types.Video (file,NewAdd.Types.IsUploading.No Html.none)
         | res when res = "instructions" ->
             NewAdd.Types.InstructionTxt (file,NewAdd.Types.IsUploading.No Html.none)
-        | _ -> NewAdd.Types.Video (file,NewAdd.Types.IsUploading.No Html.none)
-
-let isuploading result =
-    match result with
-    | NewAdd.Types.IsUploading.Yes msg ->
-        seq[
-            spinner
-            msg
-        ]
-    | NewAdd.Types.IsUploading.YesSuceeded msg ->
-        msg
-        |> fun x -> seq[x]
-    | _ -> seq[
-                divWithStyle
-                    None
-                    ""
-                    (prop.style[style.color.black ; style.fontWeight.bold])
-           ]
-        
-
-let filenameWStatus file =
-    let getInfo ( file : Types.File )
-                  status =
-
-        let fileNameDiv =
-            Html.div[
-                prop.className "column"
-                prop.children[
-                    str file.name
-                ]
-            ]
-            |> fun x -> seq[x]
-        Html.div[
-            prop.className "columns is-centered"
-            prop.style[
-                style.fontWeight.bold
-                style.fontSize 12
-                style.maxWidth 1500
-                style.margin 5
-               ]
-            prop.children(
-                isuploading status
-                |> Seq.append fileNameDiv
-            )  
-        ]
-        
-    match file with
-    | NewAdd.Types.Video (vid,status) ->
-        getInfo vid status
-
-    | NewAdd.Types.InstructionTxt (instrctn,status) -> 
-        getInfo instrctn status
+        | _ -> NewAdd.Types.Video (file,NewAdd.Types.IsUploading.No Html.none)     
 
 let extractFileNames files name =
         
@@ -1153,47 +1137,6 @@ let isUploadable ( model : NewAdd.Types.Model )
             |> provideNewAddPopUp ev
             |> dispatch
 
-let changeFileStatus ( model : NewAdd.Types.Model )
-                       media
-                       positions =
-
-    let (fileName,newStatus) =
-        match media with
-        | NewAdd.Types.Video (vid,status) ->
-            vid.name,status
-        | NewAdd.Types.InstructionTxt (instrctn,status) ->
-            instrctn.name,status
-    match model.NewInstructionData with
-    | Some data ->
-        data
-        |> Seq.map (fun currMedia ->
-            match currMedia with
-            | NewAdd.Types.Video (file,_) ->
-                if file.name.Replace(" ","") = fileName.Replace(" ","")
-                then (file,newStatus) |> NewAdd.Types.Video
-                else currMedia
-            | NewAdd.Types.InstructionTxt (file,_) ->
-                if file.name.Replace(" ","") = fileName.Replace(" ","")
-                then (file,newStatus) |> NewAdd.Types.InstructionTxt
-                else currMedia)
-        |> fun x ->
-            let reactEl =
-                x
-                |> Seq.map (fun newMedia -> filenameWStatus newMedia)
-            let funcChaining info =
-                info |>
-                (
-                    PopUpSettings.DefaultWithButton >>
-                    Some >>
-                    User.Types.PopUpMsg
-                )
-            let msg =
-                (reactEl,positions)
-                |> funcChaining
-                |> Cmd.ofMsg
-            { model with NewInstructionData = Some x }, msg
-    | _ -> model,[]
-
 let fileHandle ( ev : Types.Event)
                ( infoOpt : option<Option<Data.InstructionData> * string>  )
                  name
@@ -1482,7 +1425,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = newFileParts.Value }
                                                     |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
-                                                    partsToDelete.Value |>
+                                                    (partsToDelete.Value,instrId)|>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1510,7 +1453,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = newFileParts.Value }
                                                     |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
-                                                    partsToDelete.Value |>
+                                                    (partsToDelete.Value,instrId) |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1524,7 +1467,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = partsWithNewNames.Value }
                                                     |> User.Types.DatabaseSavingOptions.NewNameInstruction
 
-                                                    partsToDelete.Value |>
+                                                    (partsToDelete.Value,instrId) |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1552,7 +1495,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                     | _ ->
                                         let info =
                                             seq[
-                                                partsToDelete.Value |>
+                                                (partsToDelete.Value,instrId) |>
                                                 (DatabaseDeleteOptions.DeleteParts >>
                                                  User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                             ]
@@ -1582,9 +1525,9 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                     match res.Value.DelOrReg with
                     | Some delInfo ->
                         match delInfo with
-                        | Instruction.Types.Delete _ ->
+                        | Instruction.Types.DeleteInfo.Delete _ ->
                             Some part
-                        | Instruction.Types.Regret _ ->
+                        | Instruction.Types.DeleteInfo.Regret _ ->
                             None
                     | _ -> None
                 | _ -> None)

@@ -58,6 +58,7 @@ let getModInfo ( currNameOpt  : option<string>)
                 CurrName = currName
                 NewName = None
             }
+        Status = StatusExisting
     }
 
 let getTestModInfo   names

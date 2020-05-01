@@ -8,6 +8,22 @@ open Feliz
 open Fable.React
 open Browser
 
+
+type PartStatus =
+    | Delete of string
+    | Uploading of string
+    | StatusExisting
+    | UploadOrDeleteFinished of string * ReactElement
+
+type DeleteResult =
+    | DeleteSucceded of ReactElement
+    | DeleteFailed of ReactElement
+
+type DeleteProcess<'a,'b,'c> =
+    | DeleteHasNotStartedYet of 'a
+    | DeleteInProgress of 'b
+    | DeleteFinished of DeleteResult
+
 type DeleteInfo =
     | Delete of string
     | Regret of string
@@ -20,6 +36,7 @@ type NamePair = {
 type modificationInfo = {
     DelOrReg : option<DeleteInfo>
     Names : NamePair
+    Status : seq<PartStatus>
 }
 
 type Msg =
@@ -40,6 +57,9 @@ type Msg =
     | SaveData of Result<Data.InstructionData * string,string> *
                   option<seq<modificationInfo>> *
                   Position
+    | DeletePartFilesMsg of DeleteProcess<Data.partData * DBIds,ReactElement,DeleteResult>
+    | ChangeFileStatus of PartStatus  * Position
+
 type InstructionMode  =
 | Regular
 | Modification

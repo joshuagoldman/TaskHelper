@@ -47,7 +47,8 @@
     "remotedev": "^0.2.7",
     "smtp-server": "^3.6.0",
     "sync-request": "^6.1.0",
-    "window": "^4.2.7"
+    "window": "^4.2.7",
+    "xmlbuilder": "^15.1.1"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",

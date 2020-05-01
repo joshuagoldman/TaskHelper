@@ -9,6 +9,8 @@ open Browser
 open Fable.Core.JsInterop
 open Elmish.Navigation
 open Elmish
+open User.Types
+open Fable.SimpleHttp
 
 
 let modifyOrNot model dispatch =
@@ -347,3 +349,88 @@ let createHoverMessageCommponents ( part : Data.partData )
     ]
     |> fun styles ->
         divs,positions,styles
+
+let isuploading result =
+    match result with
+    | PartStatus.Delete ->
+         User.Logic.spinner
+    | PartStatus.Uploading ->
+        User.Logic.spinner
+    | PartStatus.StatusExisting ->
+        Html.none
+
+let filenameWStatus (msg : seq<ReactElement> ) modInfo =
+    Html.div[
+        prop.className "columns is-centered"
+        prop.style[
+            style.fontWeight.bold
+            style.fontSize 12
+            style.maxWidth 1500
+            style.margin 5
+            ]
+        prop.children(
+            msg
+        )  
+    ]
+        
+
+let changeFileStatus ( model : Instruction.Types.Model )
+                     ( status : PartStatus)
+                     ( positions ) =
+
+    let getNewModInfos modInfos newModInfo =
+        modInfos
+        |> Seq.map (fun modInfo ->
+            ()
+            |> function
+                | _ when modInfo.Names.CurrName.Replace(" ","") = newModInfo.Names.CurrName.Replace(" ","") ->
+                    {modInfo with Status = newModInfo.Status}
+                | _ -> modInfo)
+
+    let divWSpinner msg =
+        seq[
+            Html.div[
+                prop.className "column"
+                prop.children[
+                    Fable.React.Helpers.str msg
+                ]
+            ]
+            User.Logic.spinner
+        ]
+
+    match model.CurrPositions  with
+    | Some modInfos ->
+        match status with
+        | PartStatus.UploadOrDeleteFinished(name,msg) ->
+            let newModInfos = getNewModInfos modInfos name
+        | PartStatus.Uploading name ->
+            let newModInfos =
+                getNewModInfos modInfos name
+            let msg =
+                divWSpinner ("Deleting file " + name)
+
+        | PartStatus.Delete name ->
+            let newModInfos =
+                getNewModInfos modInfos name
+            let msg =
+                divWSpinner ("Deleting file " + name)
+        
+        |> fun x ->
+            let reactEl =
+                x
+                |> Seq.map (fun modInfo -> filenameWStatus msg modInfo)
+            let funcChaining info =
+                info |>
+                (
+                    PopUpSettings.DefaultWithButton >>
+                    Some >>
+                    User.Types.PopUpMsg
+                )
+            let msg =
+                (reactEl,positions)
+                |> funcChaining
+                |> Cmd.ofMsg
+            { model with CurrPositions = Some x }, msg
+    | _ -> model,[]
+
+

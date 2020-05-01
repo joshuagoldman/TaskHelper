@@ -5,6 +5,7 @@ open Feliz
 open Browser
 open Fable.Core.JsInterop
 open Elmish
+open User.Types
 
 let createNewInstructionSequence ( usrData : Data.UserData ) =
     usrData.Instructions

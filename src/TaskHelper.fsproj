@@ -6,7 +6,7 @@
   <ItemGroup>
     <!-- Global to the app -->
     <Compile Include="Data.fs" />
-    <Compile Include="TaskHelperApi.fs" />
+    <Compile Include="JsInterop.fs" />
     <Compile Include="Controls.fs" />
     <Compile Include="Global.fs" />
     <Compile Include="Part\Types.fs" />
@@ -19,8 +19,8 @@
     <!-- Counter -->
     <Compile Include="User\Types\InstructionSearchTypes.fs" />
     <Compile Include="User\Types\Types.fs" />
-    <Compile Include="User\InstructionLogic.fs" />
     <Compile Include="User\Logic.fs" />
+    <Compile Include="User\InstructionLogic.fs" />
     <Compile Include="User\NewAddLogic.fs" />
     <Compile Include="User\States\InstructionState.fs" />
     <Compile Include="User\States\NewAddState.fs" />

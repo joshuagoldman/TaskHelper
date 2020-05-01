@@ -77,67 +77,27 @@ let loginLabel model dispatch name =
 
 
 let logInRoot model dispatch =
-    Html.div
-        [
-            prop.className "rows"
-            prop.children
-                [
-                    Html.div
-                        [
-                            prop.className "row is"
-                            prop.children
-                                [
-                                    loginLabel model dispatch "Username"
-                                    loginText model dispatch "Username"
-                                    loginLabel model dispatch "Password"
-                                    loginText model dispatch "Password"
-                                ]
-                        ]
-
-                    Html.div
-                        [
-                            prop.className "row"
-                            prop.children
-                                [
-                                    
-                                ]
-                        ]
+    Html.div[
+        prop.className "rows"
+        prop.children[
+            Html.div[
+                prop.className "row is"
+                prop.children[
+                    loginLabel model dispatch "Username"
+                    loginText model dispatch "Username"
+                    loginLabel model dispatch "Password"
+                    loginText model dispatch "Password"
                 ]
+            ]
+
+            Html.div[
+                prop.className "row"
+                prop.children[
+                                    
+                ]
+            ]
         ]
-
-
-let ff =
-    let input = "jag heter joshu goldman och jag tycker om att spela fotboll"
-    let pattern = "\w+"
-    let m = TaskHelperApi.Regex.Match pattern input
-    let l = TaskHelperApi.Regex.Matches pattern input
-    let n = TaskHelperApi.Regex.IsMatch pattern input
-
-    let result =
-        m
-        |> function
-            | res when res.IsSome ->
-                res.Value
-            | _ -> "No Match!"
-
-    let res2 =
-        l
-        |> function
-            | res when res.IsSome ->
-                res.Value
-            | _ -> [|"No Match!"|]
-
-    let res3 =
-        n
-        |> function
-            | res when res.IsSome ->
-                res.Value
-            | _ -> false
-        
-
-    console.log(result)
-    console.log(res2)
-    console.log(res3)
+    ]
 
 let root model dispatch =
     match model.User.UserData with
@@ -147,7 +107,6 @@ let root model dispatch =
             User.View.root model.User ( UserMsg >>
                                         dispatch)
         | Login ->
-            ff
             Login.View.root model dispatch
     | _ ->
         Login.View.root model dispatch
