@@ -58,7 +58,7 @@ let getModInfo ( currNameOpt  : option<string>)
                 CurrName = currName
                 NewName = None
             }
-        Status = StatusExisting
+        Status = seq[StatusExisting(currName)]
     }
 
 let getTestModInfo   names
@@ -246,7 +246,7 @@ let ``TestModificationsLogic`` () =
                             | Some delOrRegVal ->
                                 match delOrRegVal with
                                 | Instruction.Types.Regret str -> str
-                                | Instruction.Types.Delete str -> str
+                                | Instruction.Types.DeleteInfo.Delete str -> str
                             | None -> ""
                         let newName =
                             match infoVal.Names.NewName with

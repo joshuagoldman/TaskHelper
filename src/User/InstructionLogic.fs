@@ -350,16 +350,7 @@ let createHoverMessageCommponents ( part : Data.partData )
     |> fun styles ->
         divs,positions,styles
 
-let isuploading result =
-    match result with
-    | PartStatus.Delete ->
-         User.Logic.spinner
-    | PartStatus.Uploading ->
-        User.Logic.spinner
-    | PartStatus.StatusExisting ->
-        Html.none
-
-let filenameWStatus (msg : seq<ReactElement> ) modInfo =
+let filenameWStatus (msg : seq<ReactElement> ) =
     Html.div[
         prop.className "columns is-centered"
         prop.style[
@@ -375,17 +366,33 @@ let filenameWStatus (msg : seq<ReactElement> ) modInfo =
         
 
 let changeFileStatus ( model : Instruction.Types.Model )
-                     ( status : PartStatus)
+                     ( newStatus : PartStatus)
                      ( positions ) =
+    let upDatNameIfMatch ( name : string )
+                         ( nameComp : string )
+                           currStatus =
+        ()
+        |> function
+            | _ when name.Replace(" ","") = nameComp.Replace(" ","") ->
+                newStatus
+            | _ -> currStatus
 
-    let getNewModInfos modInfos newModInfo =
+    let getNewModInfos ( modInfos : seq<modificationInfo> ) name =
         modInfos
         |> Seq.map (fun modInfo ->
-            ()
-            |> function
-                | _ when modInfo.Names.CurrName.Replace(" ","") = newModInfo.Names.CurrName.Replace(" ","") ->
-                    {modInfo with Status = newModInfo.Status}
-                | _ -> modInfo)
+            modInfo.Status
+            |> Seq.map (fun currPartStatus ->
+                match currPartStatus with
+                | PartStatus.Uploading nameComp ->
+                    upDatNameIfMatch name nameComp currPartStatus
+                | PartStatus.Delete nameComp ->
+                    upDatNameIfMatch name nameComp currPartStatus
+                | PartStatus.StatusExisting nameComp ->
+                    upDatNameIfMatch name nameComp currPartStatus
+                | PartStatus.UploadOrDeleteFinished (nameComp,_) ->
+                    upDatNameIfMatch name nameComp currPartStatus)
+            |> fun newStatuses ->
+                { modInfo with Status = newStatuses })
 
     let divWSpinner msg =
         seq[
@@ -398,39 +405,42 @@ let changeFileStatus ( model : Instruction.Types.Model )
             User.Logic.spinner
         ]
 
+    let funcChaining info =
+        info |>
+        (
+            PopUpSettings.DefaultWithButton >>
+            Some >>
+            User.Types.PopUpMsg
+        )
+
     match model.CurrPositions  with
     | Some modInfos ->
-        match status with
-        | PartStatus.UploadOrDeleteFinished(name,msg) ->
-            let newModInfos = getNewModInfos modInfos name
-        | PartStatus.Uploading name ->
-            let newModInfos =
-                getNewModInfos modInfos name
-            let msg =
-                divWSpinner ("Deleting file " + name)
-
-        | PartStatus.Delete name ->
-            let newModInfos =
-                getNewModInfos modInfos name
-            let msg =
-                divWSpinner ("Deleting file " + name)
-        
-        |> fun x ->
-            let reactEl =
-                x
-                |> Seq.map (fun modInfo -> filenameWStatus msg modInfo)
-            let funcChaining info =
-                info |>
-                (
-                    PopUpSettings.DefaultWithButton >>
-                    Some >>
-                    User.Types.PopUpMsg
-                )
-            let msg =
-                (reactEl,positions)
-                |> funcChaining
-                |> Cmd.ofMsg
-            { model with CurrPositions = Some x }, msg
-    | _ -> model,[]
+        let (newInfo,msgElement) =
+            match newStatus with
+            | PartStatus.UploadOrDeleteFinished(name,msgElement) ->
+                let newModInfos = getNewModInfos modInfos name
+                (newModInfos,seq[msgElement])
+            | PartStatus.Uploading name ->
+                let newModInfos =
+                    getNewModInfos modInfos name
+                let msgElement =
+                    divWSpinner ("Uploading file " + name)
+                (newModInfos,msgElement)
+            | PartStatus.Delete name ->
+                let newModInfos =
+                    getNewModInfos modInfos name
+                let msgElement =
+                    divWSpinner ("Deleting file " + name)
+                (newModInfos,msgElement)
+            | PartStatus.StatusExisting name ->
+                let newModInfos =
+                    getNewModInfos modInfos name
+                (newModInfos,seq[Html.none])
+        let msg =
+            (msgElement,positions)
+            |> funcChaining
+            |> Cmd.ofMsg
+        { model with CurrPositions = Some newInfo }, msg
+    | _ ->  model, []
 
 

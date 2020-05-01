@@ -10,18 +10,13 @@ open Browser.Blob
 open Fable.React
 open Feliz
 
-type IsUploading =
-    | Yes of ReactElement
-    | No of ReactElement
-    | YesSuceeded of ReactElement
-
 type ModificationType =
     | Add of Data.InstructionData
     | New
 
 type MediaChoiceFormData =
-    | Video of Types.File * IsUploading
-    | InstructionTxt of Types.File * IsUploading
+    | Video of Types.File * string
+    | InstructionTxt of Types.File * string
 
 type Msg =
     | NewAddInfoMsg of seq<ReactElement>

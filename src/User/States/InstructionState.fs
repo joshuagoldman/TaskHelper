@@ -43,7 +43,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                 {
                     DelOrReg = delOrReg
                     Names = names
-                    Status = StatusExisting
+                    Status = seq[StatusExisting part.Title]
                 })
         { model with CurrInstruction = Ok (instruction,id) ;
                      CurrPositions = Some newModInfo }, []
@@ -152,5 +152,5 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         | _ -> model,[]
 
     | ChangeFileStatus(status,positions) ->
-        Instruction.Logic.changeFileStatus model modInfo positions
+        Instruction.Logic.changeFileStatus model status positions
         

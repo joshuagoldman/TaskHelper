@@ -433,16 +433,9 @@ let funcChainingIsUploading positions status =
         User.Types.InstructionMsg
     )
 
-let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
+let saveAsync ( fileNameWithFolderPath : string )
                 positions
                ( ids : DBIds ) = async{
-
-    let (fileInfo,folder) =
-        match media with
-        | NewAdd.Types.Video (vid,_) ->
-            vid,"Videos"
-        | NewAdd.Types.InstructionTxt (instrctn,_) ->
-            instrctn,"Instructions"
 
     let idNameExtension =
         String.Format(
@@ -451,13 +444,16 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
             ids.InstructionId
         )
 
+    let fileName =
+        let partToRemove =
+            fileNameWithFolderPath.Substring(0,fileNameWithFolderPath.LastIndexOf("/"))
+        fileNameWithFolderPath.Replace(partToRemove, "")
+
     let fData =
         FormData.Create()
 
-    fData.append("fileName", fileInfo.name.Replace(".", idNameExtension ))
-    fData.append("type", fileInfo.``type``)
-    fData.append("folder", folder)
-    fData.append("file", fileInfo)
+    fData.append("fileNameWithPath", fileNameWithFolderPath.Replace(".", idNameExtension ))
+    fData.append("fileName", fileName.Replace(".", idNameExtension ))
 
     do! Async.Sleep 3000
     let! response =
@@ -469,43 +465,49 @@ let saveAsync ( media : NewAdd.Types.MediaChoiceFormData )
     match response.statusCode with
     | 200 ->
         let newStatus =
-            Html.div[
-                prop.className "column is-11"
-                prop.style[
-                    style.color.red
-                    style.fontWeight.bold
-                    style.fontSize 12
-                    style.maxWidth 400
-                    style.margin 5
-                   ]
-                prop.children[
-                    str response.responseText
+            (
+                fileName,
+                Html.div[
+                    prop.className "column is-11"
+                    prop.style[
+                        style.color.red
+                        style.fontWeight.bold
+                        style.fontSize 12
+                        style.maxWidth 400
+                        style.margin 5
+                       ]
+                    prop.children[
+                        str response.responseText
+                    ]
                 ]
-            ]
-            |> Instruction.Types.UploadOrDeleteSucceeded
+            )
+            |> Instruction.Types.UploadOrDeleteFinished
         return (
                 newStatus
                 |> funcChainingIsUploading positions
         )
     | _ ->
         let msg =
-            ("file \"" + fileInfo.name + "\" failed with status code: " +
+            ("file \"" + fileName + "\" failed with status code: " +
              ( response.statusCode |> string ) + response.responseText)
         let newStatus =
-            Html.div[
-                prop.className "column is-11"
-                prop.style[
-                    style.color.red
-                    style.fontWeight.bold
-                    style.fontSize 12
-                    style.maxWidth 400
-                    style.margin 5
-                   ]
-                prop.children[
-                    str msg
+            (
+                fileName,
+                Html.div[
+                    prop.className "column is-11"
+                    prop.style[
+                        style.color.red
+                        style.fontWeight.bold
+                        style.fontSize 12
+                        style.maxWidth 400
+                        style.margin 5
+                       ]
+                    prop.children[
+                        str msg
+                    ]
                 ]
-            ]
-            |> Instruction.Types.PartStatus.UploadOrDeleteFailed
+            )
+            |> Instruction.Types.PartStatus.UploadOrDeleteFinished
         return (
                 newStatus
                 |> funcChainingIsUploading positions
@@ -543,20 +545,23 @@ let deleteAsync ( fileNameWithFolderPath : string )
     match response.statusCode with
     | 200 ->
         let newStatus =
-            Html.div[
-                prop.className "column is-11"
-                prop.style[
-                    style.color.red
-                    style.fontWeight.bold
-                    style.fontSize 12
-                    style.maxWidth 400
-                    style.margin 5
-                   ]
-                prop.children[
-                    str response.responseText
+            (
+                fileName,
+                Html.div[
+                    prop.className "column is-11"
+                    prop.style[
+                        style.color.red
+                        style.fontWeight.bold
+                        style.fontSize 12
+                        style.maxWidth 400
+                        style.margin 5
+                       ]
+                    prop.children[
+                        str response.responseText
+                    ]
                 ]
-            ]
-            |> Instruction.Types.UploadOrDeleteSucceeded
+            )
+            |> Instruction.Types.UploadOrDeleteFinished
         return (
                 newStatus
                 |> funcChainingIsUploading positions
@@ -566,20 +571,23 @@ let deleteAsync ( fileNameWithFolderPath : string )
             ("file \"" + fileName + "\" failed with status code: " +
              ( response.statusCode |> string ) + response.responseText)
         let newStatus =
-            Html.div[
-                prop.className "column is-11"
-                prop.style[
-                    style.color.red
-                    style.fontWeight.bold
-                    style.fontSize 12
-                    style.maxWidth 400
-                    style.margin 5
-                   ]
-                prop.children[
-                    str msg
+            (
+                fileName,
+                Html.div[
+                    prop.className "column is-11"
+                    prop.style[
+                        style.color.red
+                        style.fontWeight.bold
+                        style.fontSize 12
+                        style.maxWidth 400
+                        style.margin 5
+                       ]
+                    prop.children[
+                        str msg
+                    ]
                 ]
-            ]
-            |> Instruction.Types.UploadOrDeleteFailed
+            )
+            |> Instruction.Types.UploadOrDeleteFinished
         return (
                 newStatus
                 |> funcChainingIsUploading positions
@@ -871,7 +879,7 @@ let removeOldOfSame ( medias : seq<NewAdd.Types.MediaChoiceFormData> )
 
 let extractMedia ( medias : Option<seq<NewAdd.Types.MediaChoiceFormData>> )
                  ( newVids : seq<NewAdd.Types.MediaChoiceFormData> )
-                   name=
+                   name =
     match medias with
     | Some vids->
         newVids
@@ -1143,16 +1151,23 @@ let fileHandle ( ev : Types.Event)
                  dispatch =
     let files = (ev.target?files : Types.FileList)
 
-
     infoOpt
     |> function
         | _ when infoOpt.IsSome ->
-            seq[0..files.length - 1]
-            |> Seq.map (fun pos -> chooseMediaByName name
-                                                     files.[pos])
-            |> fun medias -> (medias,name)
-            |> ( NewAdd.Types.NewFilesChosenMsg >>
-                    User.Types.NewAddMsg >> dispatch )
+            let instrOpt =
+                infoOpt.Value
+                |> fun (x,_) -> x
+
+            match instrOpt with
+            | Some instr ->
+                seq[0..files.length - 1]
+                |> Seq.map (fun pos -> chooseMediaByName name
+                                                         files.[pos])
+                |> fun medias -> (medias,name)
+                |> ( NewAdd.Types.NewFilesChosenMsg >>
+                        User.Types.NewAddMsg >> dispatch )
+            | _ -> ()
+            
         | _ -> ()
 
 let getPopupWindow ( popupSettings : PopUpSettings ) =

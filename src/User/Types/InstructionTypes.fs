@@ -12,7 +12,7 @@ open Browser
 type PartStatus =
     | Delete of string
     | Uploading of string
-    | StatusExisting
+    | StatusExisting of string
     | UploadOrDeleteFinished of string * ReactElement
 
 type DeleteResult =
