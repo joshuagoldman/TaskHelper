@@ -256,5 +256,4 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         instruction
                         instructionInfo
 
-        let a = ""
         model,msg

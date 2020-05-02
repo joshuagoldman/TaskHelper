@@ -153,4 +153,14 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
 
     | ChangeFileStatus(status,positions) ->
         Instruction.Logic.changeFileStatus model status positions
+    | SaveInstructionToDataBase positions ->
+        match model.CurrInstruction with
+        | Ok (instruction,_) ->
+            let usrMsg =
+                (instruction,model.CurrPositions,positions)
+                |> User.Types.CompareNewSaveWithCurrentInstructions
+                |> Cmd.ofMsg
+            model,usrMsg
+        | _ -> model,[]
+        
         

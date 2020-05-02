@@ -15,22 +15,21 @@ type ModificationType =
     | New
 
 type MediaChoiceFormData =
-    | Video of Types.File * string
-    | InstructionTxt of Types.File * string
+    | Video of Types.File
+    | InstructionTxt of Types.File
 
 type Msg =
     | NewAddInfoMsg of seq<ReactElement>
     | NewInstructionIdMsg of string
     | SpinnerVisibleMsg of IStyleAttribute
     | NewFilesChosenMsg of seq<MediaChoiceFormData> * string
-    | CreateNewDataMsg of
-        AsyncOperationSavingStatus<SaveDataProgress<(MediaChoiceFormData * DBIds * Position),
-                                                     option<seq<MediaChoiceFormData>> * Position>>
-    | PostInstruction of seq<MediaChoiceFormData>
     | NewInstructionsListMsg of seq<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>
     | SaveNewData of Data.InstructionData * DBIds * Position
     | CheckIfSaveFinished of Position
+    | CreateNewDataMsg of
+        AsyncOperationSavingStatus<SaveDataProgress<(Types.File * DBIds * Position),
+                                                      bool * Position>>
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>

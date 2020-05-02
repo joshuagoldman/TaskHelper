@@ -74,6 +74,7 @@ type Msg =
     | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
                                                Option<seq<Instruction.Types.modificationInfo>> *
                                                Position
+    | SaveInstructionToDataBase of Data.InstructionData * string
 
 type Model =
     {

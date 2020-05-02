@@ -57,8 +57,6 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
 
     | NewAddInfoMsg reactMessage ->
         { model with  NewAddMessages = reactMessage }, []
-    | PostInstruction files ->
-        model, []
     | NewFilesChosenMsg (files,type') ->
         { model with NewInstructionData =
                         (User.Logic.extractMedia model.NewInstructionData files type' |> Some)}, []

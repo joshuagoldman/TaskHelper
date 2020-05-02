@@ -20,7 +20,7 @@ let newInstructionSelected ( ev : Types.Event ) dispatch =
     |> ( User.Types.NewAddNewCurrentInstruction >> dispatch)
 
 let saveNewData newInstrDataOpt
-                ( newInstr : Data.InstructionData )
+              ( newInstr : Data.InstructionData )
                 dbIds
                 positions =
     match newInstrDataOpt with
@@ -29,9 +29,9 @@ let saveNewData newInstrDataOpt
             medias
             |> Seq.exists (fun media ->
                 match media with
-                | NewAdd.Types.Video (vid,_) ->
+                | NewAdd.Types.Video vid ->
                     vid.name = str
-                | NewAdd.Types.InstructionTxt (instr,_) ->
+                | NewAdd.Types.InstructionTxt instr ->
                     instr.name = str)
         newInstr.Data
         |> Seq.forall (fun part ->
@@ -49,7 +49,11 @@ let saveNewData newInstrDataOpt
                     )
                 medias
                 |> Seq.map (fun media ->
-                    (media,dbIds,positions)
+                    match media with
+                    | NewAdd.Types.MediaChoiceFormData.Video file -> file
+                    | NewAdd.Types.MediaChoiceFormData.InstructionTxt file -> file)
+                |> Seq.map (fun file ->
+                    (file,dbIds,positions)
                     |> funcChaining
                     |> Cmd.ofMsg)
                 |> Cmd.batch
