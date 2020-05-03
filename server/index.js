@@ -24,12 +24,20 @@ app.post("/upload", (req, res, next) => {
         file:  new Buffer(req.files.file.data, 'base64')
     };
     let path = `${__dirname}/../public/${req.body.filePath}`;
-    let directory = path.substring(0,path.lastIndexOf('/'));
+    let instructionDirectory = path.substring(0,path.lastIndexOf('/'));
+    let userDirectory = instructionDirectory.substring(0,instructionDirectory.lastIndexOf('/'));
+    let fileName = path.substring(path.lastIndexOf('/'),path.length - 1);
 
-    if (!fs.existsSync(directory)){
-        fs.mkdirSync(directory);
+    if (!fs.existsSync(instructionDirectory)){
+        if (!fs.existsSync(userDirectory)){
+            fs.mkdirSync(userDirectory);
+            fs.mkdirSync(instructionDirectory);
+        }
+        else{
+            fs.mkdirSync(instructionDirectory);
+        }
     }
-    
+
     let pubPath = `public/${req.body.filePath}`;
     if (!finalFile.file) {
         const error = new Error('Please upload a file')
