@@ -60,6 +60,7 @@ type Msg =
     | DeletePartFilesMsg of DeleteProcess<Data.partData * DBIds,ReactElement,DeleteResult>
     | ChangeFileStatus of PartStatus  * Position
     | SaveInstructionToDataBase of Position
+    | CheckIfSaveFinished of Position
 
 type InstructionMode  =
 | Regular

@@ -162,5 +162,60 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                 |> Cmd.ofMsg
             model,usrMsg
         | _ -> model,[]
+
+    | CheckIfSaveFinished positions ->
+        let uploadOrDeleteFinished =
+            match model.CurrPositions with
+            | Some modInfos ->
+                modInfos
+                |> Seq.collect (fun modInfo ->
+                    modInfo.Status
+                    |> Seq.map (fun status ->
+                        match status with
+                        | PartStatus.UploadOrDeleteFinished(_,_) ->
+                            true
+                        | _ -> false))
+                |> Seq.forall (fun res -> res)
+                |> function
+                    | uploadOrDeleteFinished when uploadOrDeleteFinished = true ->
+                        let modInfosNew =
+                            modInfos
+                            |> Seq.map (fun modInfo ->
+                                modInfo.Status
+                                |> Seq.map (fun status ->
+                                    match status with
+                                    | PartStatus.UploadOrDeleteFinished(name,_) ->
+                                        PartStatus.StatusExisting name
+                                    | PartStatus.StatusExisting name ->
+                                        PartStatus.StatusExisting name
+                                    | PartStatus.Uploading name ->
+                                        PartStatus.StatusExisting name
+                                    | PartStatus.Delete name ->
+                                        PartStatus.StatusExisting name)
+                                |> fun newStatuses ->
+                                    { modInfo with Status = newStatuses}
+                                )
+                        Some modInfosNew
+                    | _ -> None
+            | _ -> None
+
+
+
+        ()
+        |>function
+            | _ when uploadOrDeleteFinished.IsSome ->
+                
+                let msg =
+                    (true,positions) |>
+                    (
+                        SavingResolved >>
+                        SavingFinished >>
+                        NewAdd.Types.CreateNewDataMsg >>
+                        User.Types.NewAddMsg >>
+                        Cmd.ofMsg
+                    )
+                { model with CurrPositions = uploadOrDeleteFinished},msg
+            | _ -> model,[]
+
         
         

@@ -23,9 +23,14 @@ app.post("/upload", (req, res, next) => {
         contentType: req.files.file.mimetype,
         file:  new Buffer(req.files.file.data, 'base64')
     };
-    let fileName = req.body.fileName;
-    let path = `${__dirname}/../public/${req.body.folder}/${req.body.fileName}`;
-    let pubPath = `public/${req.body.folder}/${req.body.fileName}`;
+    let path = `${__dirname}/../public/${req.body.filePath}`;
+    let directory = path.substring(0,path.lastIndexOf('/'));
+
+    if (!fs.existsSync(directory)){
+        fs.mkdirSync(directory);
+    }
+    
+    let pubPath = `public/${req.body.filePath}`;
     if (!finalFile.file) {
         const error = new Error('Please upload a file')
         error.httpStatusCode = 400
@@ -47,9 +52,9 @@ app.post("/upload", (req, res, next) => {
 // DELETE FILES API
 // --------------------------------------------------------------------------------------------------------------
 app.post("/delete", (req, res, next) => {
-    let fileName = req.body.fileName;
-    let path = `${__dirname}/../public/${req.body.folder}/${req.body.fileName}`;
-    let pubPath = `public/${req.body.folder}/${req.body.fileName}`;
+    let filePath = req.body.filePath;
+    let path = `${__dirname}/../public/${filePath}`;
+    let pubPath = `public/${filePath}`;
     let fileInfo = {
         Name : fileName,
         Path : pubPath

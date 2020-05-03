@@ -246,6 +246,89 @@ let sqlCommandToDB sqlCommand positions = async{
     return newStatus
 }
 
+let funcChainingIsUploading positions status =
+    (status,positions) |>
+    ( 
+        Instruction.Types.ChangeFileStatus >>
+        User.Types.InstructionMsg
+    )
+
+let deleteAsync ( fileName : string )
+                  positions
+                  ids = async{
+
+    let fullPath =
+        String.Format(
+            "User_{0}/Instruction_{1}/{2}",
+            ids.UserId,
+            ids.InstructionId,
+            fileName
+        )
+
+    let fData =
+        FormData.Create()
+
+    fData.append("filePath", fullPath)
+
+    do! Async.Sleep 3000
+    let! response =
+        Http.request ("http://localhost:3001/delete" )
+        |> Http.method POST
+        |> Http.content (BodyContent.Form fData)
+        |> Http.send
+
+    match response.statusCode with
+    | 200 ->
+        let newStatus =
+            (
+                fileName,
+                Html.div[
+                    prop.className "column is-11"
+                    prop.style[
+                        style.color.red
+                        style.fontWeight.bold
+                        style.fontSize 12
+                        style.maxWidth 400
+                        style.margin 5
+                       ]
+                    prop.children[
+                        str response.responseText
+                    ]
+                ]
+            )
+            |> Instruction.Types.UploadOrDeleteFinished
+        return (
+                newStatus
+                |> funcChainingIsUploading positions
+        )
+    | _ ->
+        let msg =
+            ("file \"" + fileName + "\" failed with status code: " +
+             ( response.statusCode |> string ) + response.responseText)
+        let newStatus =
+            (
+                fileName,
+                Html.div[
+                    prop.className "column is-11"
+                    prop.style[
+                        style.color.red
+                        style.fontWeight.bold
+                        style.fontSize 12
+                        style.maxWidth 400
+                        style.margin 5
+                       ]
+                    prop.children[
+                        str msg
+                    ]
+                ]
+            )
+            |> Instruction.Types.UploadOrDeleteFinished
+        return (
+                newStatus
+                |> funcChainingIsUploading positions
+        )
+}
+
 let instructionToSqlSaveNew userId ( instructionId : string ) instruction =
 
     let sqlInstructionVars =
@@ -321,10 +404,7 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) =
     | DeleteParts (parts,ids) ->
         let partsCommand =
             parts
-            |> partDelete ids.InstructionId
-
-
-
+            |> partDelete ids
         partsCommand
 
 let saveInstructionToDatabase ( ids : DBIds )
@@ -342,22 +422,47 @@ let saveInstructionToDatabase ( ids : DBIds )
                 |> instructionToSqlNewNames ids.InstructionId
             | DatabaseSavingOptions.PartsToDeleteInstruction delOption ->
                 delOption
-                |> instructionToSqlDelete ids.UserId ids.InstructionId)
+                |> instructionToSqlDelete)
         |> String.concat ""
         
     let dbMessage =           
         positions
         |> sqlCommandToDB sqlCommands
 
+    let deletePartMsgs parts =
+        parts
+        |> Seq.collect (fun part ->
+            let subMsg1 =
+                deleteAsync
+                    part.InstructionTxt
+                    positions
+                    ids
+                |> Cmd.fromAsync
+            let subMsg2 =
+                deleteAsync
+                    part.InstructionVideo
+                    positions
+                    ids
+                |> Cmd.fromAsync
+
+            seq[subMsg1 ; subMsg2])
     let ifDeleteMsg =
         databaseOptions
-        |> Seq.map (fun option ->
+        |> Seq.collect (fun option ->
             match option with
             | PartsToDeleteInstruction delOptions ->
-                del
+                match delOptions with
+                | DatabaseDeleteOptions.DeleteInstruction(instr,_) ->
+                    instr.Data
+                    |> deletePartMsgs
+                | DatabaseDeleteOptions.DeleteParts(parts,_) ->
+                    parts
+                    |> deletePartMsgs 
             | _ ->
                 dbMessage
-                |> Cmd.fromAsync)
+                |> Cmd.fromAsync
+                |> fun x -> seq[x])
+    ifDeleteMsg
         
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
@@ -426,13 +531,6 @@ let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                 )
         msgs
 
-let funcChainingIsUploading positions status =
-    (status,positions) |>
-    ( 
-        Instruction.Types.ChangeFileStatus >>
-        User.Types.InstructionMsg
-    )
-
 let saveAsync ( file : Types.File )
                 positions
                ( ids : DBIds ) = async{
@@ -448,7 +546,7 @@ let saveAsync ( file : Types.File )
     let fData =
         FormData.Create()
 
-    fData.append("fileName", fullPath)
+    fData.append("filePath", fullPath)
     fData.append("file", file)
 
 
@@ -511,86 +609,6 @@ let saveAsync ( file : Types.File )
         )
 }
 
-let deleteAsync ( fileNameWithFolderPath : string )
-                  positions
-                  ids = async{
-
-    let idNameExtension =
-        String.Format(
-            "{0}_{1}.",
-            ids.UserId,
-            ids.InstructionId
-        )
-
-    let fData =
-        FormData.Create()
-
-    fData.append("fileName", fileNameWithFolderPath.Replace(".",idNameExtension))
-
-    let fileName =
-        let partToRemove =
-            fileNameWithFolderPath.Substring(0,fileNameWithFolderPath.LastIndexOf("/"))
-        fileNameWithFolderPath.Replace(partToRemove, "")
-
-    do! Async.Sleep 3000
-    let! response =
-        Http.request ("http://localhost:3001/delete" )
-        |> Http.method POST
-        |> Http.content (BodyContent.Form fData)
-        |> Http.send
-
-    match response.statusCode with
-    | 200 ->
-        let newStatus =
-            (
-                fileName,
-                Html.div[
-                    prop.className "column is-11"
-                    prop.style[
-                        style.color.red
-                        style.fontWeight.bold
-                        style.fontSize 12
-                        style.maxWidth 400
-                        style.margin 5
-                       ]
-                    prop.children[
-                        str response.responseText
-                    ]
-                ]
-            )
-            |> Instruction.Types.UploadOrDeleteFinished
-        return (
-                newStatus
-                |> funcChainingIsUploading positions
-        )
-    | _ ->
-        let msg =
-            ("file \"" + fileName + "\" failed with status code: " +
-             ( response.statusCode |> string ) + response.responseText)
-        let newStatus =
-            (
-                fileName,
-                Html.div[
-                    prop.className "column is-11"
-                    prop.style[
-                        style.color.red
-                        style.fontWeight.bold
-                        style.fontSize 12
-                        style.maxWidth 400
-                        style.margin 5
-                       ]
-                    prop.children[
-                        str msg
-                    ]
-                ]
-            )
-            |> Instruction.Types.UploadOrDeleteFinished
-        return (
-                newStatus
-                |> funcChainingIsUploading positions
-        )
-}
-
 let saveUserData
         ( status : SaveDataProgress<Types.File * DBIds * Position,
                                     bool * Position >) =
@@ -634,8 +652,8 @@ let saveUserData
         |> function
             | _ when allSavingsFinished ->
                 positions
-                |> NewAdd.Types.SaveInstructionToDataBase
-                |> User.Types.NewAddMsg
+                |> Instruction.Types.SaveInstructionToDataBase
+                |> User.Types.InstructionMsg
                 |> Cmd.ofMsg
                 |> fun x -> seq[x]
             | _ ->
@@ -1609,12 +1627,14 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             let dbMsg =
                 savingOptions
                 |> saveInstructionToDatabase dbIds positions
-                |> Cmd.fromAsync
 
-            seq[
-                popupMsg
-                dbMsg
-            ]
+            dbMsg
+            |> Seq.append(
+                seq[
+                    popupMsg
+                    
+                ]
+            )
             |> Cmd.batch
             
         let msg =

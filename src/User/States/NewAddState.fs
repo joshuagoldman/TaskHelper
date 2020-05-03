@@ -36,19 +36,6 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
             Cmd.batch(
                 Logic.saveUserData status
                 )
-
-    | CheckIfSaveFinished positions ->
-        let msg =
-            (model.NewInstructionData,positions) |>
-            (
-                SavingResolved >>
-                SavingFinished >>
-                NewAdd.Types.CreateNewDataMsg >>
-                User.Types.NewAddMsg >>
-                Cmd.ofMsg
-            )
-        model,msg
-            
     | CreateNewDataMsg(SavingFinished(status)) ->
         model,
             Cmd.batch(
