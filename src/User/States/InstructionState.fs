@@ -217,5 +217,36 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                 { model with CurrPositions = uploadOrDeleteFinished},msg
             | _ -> model,[]
 
+    | CreateDeletePopup positions ->
+        match model.CurrInstruction with
+        | Ok (instr,_) ->
+            let msgsIfYesClicked =
+                (positions,instr)
+                |> DeleteInstruction
+                |> User.Types.InstructionMsg
+                |> fun x -> seq[x]
+
+            let popupMsgs =
+                Html.div[
+                    prop.className "column"
+                    prop.children[
+                        Fable.React.Helpers.str "Are you sure you wish to remove instruction?"
+                    ]
+                ]
+                |> fun x -> seq[x]
+                
+            let msg =
+                ( popupMsgs,positions,msgsIfYesClicked )
+                |> User.Types.PopUpSettings.DefaultWithOptions
+                |> Some
+                |> User.Types.Msg.PopUpMsg
+                |> Cmd.ofMsg
+
+            model,msg
+
+
+        | _ -> model, []
+    | DeleteInstruction (positions,instruction) ->
+        User.Logic.saveInstructionToDatabase
         
         

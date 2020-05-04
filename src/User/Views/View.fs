@@ -177,27 +177,68 @@ let navbar model dispatch =
 let popup ( model : User.Types.Model) dispatch =
     match model.PopUp with
     | Some popup ->
-        let button =
+        let buttons =
             match popup.ButtonSettings with
             | Some settings ->
-                Html.div[
-                    prop.className "columns is-centered"
-                    prop.children[
-                        Html.a[
-                            prop.className "button"
-                            prop.style ( settings |> Seq.toList )
-                            prop.onClick (fun _ -> None |> ( User.Types.PopUpMsg >> dispatch ) )
-                            prop.children[
-                                Fable.React.Helpers.str "Ok"
+                match popup.ClickMessages with
+                | Some clickMessages ->
+                    Html.div[
+                        prop.className "columns is-centered"
+                        prop.children[
+                            Html.div[
+                                prop.className "column"
+                                prop.children[
+                                    Html.a[
+                                        prop.className "button"
+                                        prop.style ( settings |> Seq.toList )
+                                        prop.onClick (fun _ ->
+                                            let removePopUpMsg =
+                                                None
+                                                |> User.Types.PopUpMsg
+                                                |> fun x -> seq[x]
+                                            removePopUpMsg
+                                            |> Seq.append clickMessages
+                                            |> Seq.iter (fun msg -> msg |> dispatch))
+                                        prop.children[
+                                            Fable.React.Helpers.str "Yes"
+                                        ]
+                                    ]
+                                ]
+                            ]
+                            Html.div[
+                                prop.className "column"
+                                prop.children[
+                                    Html.a[
+                                        prop.className "button"
+                                        prop.style ( settings |> Seq.toList )
+                                        prop.onClick (fun _ -> None |> ( User.Types.PopUpMsg >> dispatch ) )
+                                        prop.children[
+                                            Fable.React.Helpers.str "No"
+                                        ]
+                                    ]
+                                ]
                             ]
                         ]
                     ]
-                ]
+                | _ ->
+                    Html.div[
+                        prop.className "columns is-centered"
+                        prop.children[
+                            Html.a[
+                                prop.className "button"
+                                prop.style ( settings |> Seq.toList )
+                                prop.onClick (fun _ -> None |> ( User.Types.PopUpMsg >> dispatch ) )
+                                prop.children[
+                                    Fable.React.Helpers.str "Ok"
+                                ]
+                            ]
+                        ]
+                    ]
             | _ -> Html.none
         Html.div[
             popup.Style 
             prop.children(
-                (seq[button])
+                (seq[buttons])
                 |> Seq.append popup.Messages
             )
         ]

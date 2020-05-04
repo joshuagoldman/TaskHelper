@@ -14,15 +14,17 @@ type RecursiveAction<'t,'u> =
     | First of 't
     | Second of 'u
 
-type PopUpControl<'t> =
+type PopUpControl<'a> =
     {
         Style : IReactProperty
         ButtonSettings : option<seq<IStyleAttribute>>
+        ClickMessages : option<seq<'a>>
         Messages : seq<ReactElement>
     }
 
-type PopUpSettings =
+type PopUpSettings<'a> =
     | DefaultWithButton of seq<ReactElement> * Position
+    | DefaultWithOptions of seq<ReactElement> * Position * seq<'a>
     | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
     | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
 
@@ -70,7 +72,7 @@ type Msg =
     | NewAddNewCurrentInstruction of Option<string>
     | GiveResetInstruction of string
     | NewInstructionToSave of Data.InstructionData * string
-    | PopUpMsg of PopUpSettings Option
+    | PopUpMsg of PopUpSettings<Msg> Option
     | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
                                                Option<seq<Instruction.Types.modificationInfo>> *
                                                Position

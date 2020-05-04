@@ -1155,7 +1155,7 @@ let fileHandle ( ev : Types.Event)
                     User.Types.NewAddMsg >> dispatch )
         | _ -> ()
 
-let getPopupWindow ( popupSettings : PopUpSettings ) =
+let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
     let defaultStyle positions =
         prop.style[
             style.zIndex 1
@@ -1168,6 +1168,21 @@ let getPopupWindow ( popupSettings : PopUpSettings ) =
             style.opacity 0.90
         ]
     match popupSettings with
+    | PopUpSettings.DefaultWithOptions (divs,positions,msgs) ->
+
+        let popupNoMsg =
+            (
+                {
+                    Style = positions |> defaultStyle
+                    ButtonSettings = None
+                    ClickMessages = msgs |> Some
+                    Messages = divs
+                },
+                Cmd.none
+            )
+            |> Some
+
+        popupNoMsg
     | DefaultWithButton (str,positions) ->
         
         let style = defaultStyle positions
@@ -1187,6 +1202,7 @@ let getPopupWindow ( popupSettings : PopUpSettings ) =
                     Style = style
                     ButtonSettings = Some buttonSettings
                     Messages = str
+                    ClickMessages = None
                 },
                 Cmd.none
             )
@@ -1215,6 +1231,7 @@ let getPopupWindow ( popupSettings : PopUpSettings ) =
                     Style = style
                     ButtonSettings = None
                     Messages = divs
+                    ClickMessages = None
                 },
                 Cmd.none
             )
@@ -1229,6 +1246,7 @@ let getPopupWindow ( popupSettings : PopUpSettings ) =
                 Style = style
                 ButtonSettings = None
                 Messages = divs
+                ClickMessages = None
             }
 
         let delayedPopupKill =

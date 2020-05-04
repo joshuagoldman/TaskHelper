@@ -436,6 +436,9 @@ let root model dispatch =
                   ]
                   Html.div[
                       prop.className "column"
+                      prop.onClick (fun ev ->
+                          (model.CurrInstruction,model.CurrPositions, User.Logic.getPositions ev)
+                          |>  ( Instruction.Types.SaveData >> dispatch))
                       prop.children[
                           modificationButtons model dispatch "Delete Instruction" model.DeleteButton.Disable
                       ]
