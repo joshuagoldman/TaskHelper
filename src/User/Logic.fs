@@ -374,7 +374,7 @@ let instructionToSqlNewNames ( instructionId : string ) instruction =
 
     instructionInsert + partInsert
 
-let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) =
+let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
 
     let partDelete instructionId parts =
         parts
@@ -385,7 +385,7 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) =
               ))
         |> String.concat ""
     match dbOptions with
-    | DatabaseDeleteOptions.DeleteInstruction (instruction,ids) ->
+    | DatabaseDeleteOptions.DeleteInstruction instruction ->
         let sqlInstructionVars =
             seq[
                 ids.UserId
@@ -421,8 +421,8 @@ let saveInstructionToDatabase ( ids : DBIds )
                 instr
                 |> instructionToSqlNewNames ids.InstructionId
             | DatabaseSavingOptions.PartsToDeleteInstruction delOption ->
-                delOption
-                |> instructionToSqlDelete)
+                ids
+                |> instructionToSqlDelete delOption)
         |> String.concat ""
         
     let dbMessage =           
@@ -452,7 +452,7 @@ let saveInstructionToDatabase ( ids : DBIds )
             match option with
             | PartsToDeleteInstruction delOptions ->
                 match delOptions with
-                | DatabaseDeleteOptions.DeleteInstruction(instr,_) ->
+                | DatabaseDeleteOptions.DeleteInstruction instr ->
                     instr.Data
                     |> deletePartMsgs
                 | DatabaseDeleteOptions.DeleteParts(parts,_) ->

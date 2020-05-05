@@ -62,7 +62,6 @@ type Msg =
     | SaveInstructionToDataBase of Position
     | CheckIfSaveFinished of Position
     | CreateDeletePopup of Position
-    | DeleteInstruction of Position * Data.InstructionData
 
 type InstructionMode  =
 | Regular

@@ -29,7 +29,7 @@ type PopUpSettings<'a> =
     | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
 
 type DatabaseDeleteOptions =
-    | DeleteInstruction of Data.InstructionData * DBIds
+    | DeleteInstruction of Data.InstructionData 
     | DeleteParts of seq<Data.partData> * string
 
 type DatabaseSavingOptions = 
@@ -37,7 +37,7 @@ type DatabaseSavingOptions =
     | NewNameInstruction of Data.InstructionData
     | PartsToDeleteInstruction of DatabaseDeleteOptions   
 
-// Many discriminated union in order to facilitate unit testing
+// Many discriminated unions in order to facilitate unit testing
 type newSaveResult =
     | SaveNew of Data.InstructionData * string
     | SaveExistingNewTitles of seq<DatabaseSavingOptions> * string
@@ -77,6 +77,7 @@ type Msg =
                                                Option<seq<Instruction.Types.modificationInfo>> *
                                                Position
     | SaveInstructionToDataBase of Data.InstructionData * string
+    | DeleteInstructionMsg of Data.InstructionData * Position
 
 type Model =
     {

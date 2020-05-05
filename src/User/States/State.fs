@@ -257,3 +257,33 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         instructionInfo
 
         model,msg
+    | DeleteInstructionMsg(delInstruction,positions) ->
+        match model.UserData with
+        | Resolved(Ok(usrData)) ->
+            usrData.Instructions
+            |> Seq.indexed
+            |> Seq.tryFind (fun (_,instr) ->
+                instr.Title.Replace(" ","") = delInstruction.Title.Replace(" ",""))
+            |> function
+                | delInstrWithPos when delInstrWithPos.IsSome ->
+                    let (instrId,_) = delInstrWithPos.Value
+                    let usrId = usrData.Id
+
+                    let dbIds =
+                        {
+                            UserId = usrId |> string
+                            InstructionId = instrId |> string
+                        }
+
+                    let deleteMsges =
+                        delInstruction
+                        |> User.Types.DatabaseDeleteOptions.DeleteInstruction
+                        |> User.Types.DatabaseSavingOptions.PartsToDeleteInstruction
+                        |> fun x ->seq[x]
+                        |> User.Logic.saveInstructionToDatabase dbIds positions
+                        |> Cmd.batch
+
+                    model, deleteMsges
+                | _ -> model,[]
+        | _ -> model,[]
+        

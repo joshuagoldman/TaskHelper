@@ -221,9 +221,8 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         match model.CurrInstruction with
         | Ok (instr,_) ->
             let msgsIfYesClicked =
-                (positions,instr)
-                |> DeleteInstruction
-                |> User.Types.InstructionMsg
+                (instr,positions)
+                |> User.Types.DeleteInstructionMsg
                 |> fun x -> seq[x]
 
             let popupMsgs =
@@ -246,7 +245,3 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
 
 
         | _ -> model, []
-    | DeleteInstruction (positions,instruction) ->
-        User.Logic.saveInstructionToDatabase
-        
-        
