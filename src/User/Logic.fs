@@ -1599,9 +1599,19 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             ]
             |> fun x -> seq[x]
 
-        let funcChaining positions msg =
+        let funcChainingOptions positions popupMsg msgs =
             
-            (msg |> newStatus,positions) |>
+            (popupMsg |> newStatus,positions,msgs) |>
+            (
+                PopUpSettings.DefaultWithOptions >>
+                Some >>
+                User.Types.PopUpMsg >>
+                Cmd.ofMsg
+            )
+
+        let funcChaining positions popupMsg =
+            
+            (popupMsg |> newStatus,positions) |>
             (
                 PopUpSettings.DefaultWithButton >>
                 Some >>
@@ -1620,14 +1630,12 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 positions
             )
             |> (NewAdd.Types.SaveNewData >>
-                User.Types.NewAddMsg >>
-                Cmd.ofMsg)
+                User.Types.NewAddMsg)
             |> fun msg1 ->
                 
                 seq [
                     msg1
                 ]
-                |> Cmd.batch
         let databaseMsg instrId savingOptions  =
             let dbIds =
                 {
@@ -1650,36 +1658,61 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             |> Seq.append(
                 seq[
                     popupMsg
-                    
                 ]
             )
             |> Cmd.batch
+            |> User.Types.CmdMsging
+            |> fun x -> seq[x]
             
         let msg =
             match result with
             | SaveNew (newInstr,instrId) ->
+                let popupMsg =
+                    "Are you sure you want to save a new instruction?"
                 saveNewMsg newInstr instrId
+                |> funcChainingOptions positions popupMsg
             | SaveExistingNewTitles (savingOptions,instrId) ->
+                let popupMsg =
+                    "Are you sure you want to save a new instruction?"
                 savingOptions
                 |> databaseMsg instrId
+                |> funcChainingOptions positions popupMsg
             | SaveExisitngNewFIles (savingOptions,instrId) ->
+                let popupMsg =
+                    "Are you sure you want to save existing instruction with new files?"
                 savingOptions
                 |> databaseMsg instrId
+                |> funcChainingOptions positions popupMsg
             | SaveExistingNewFilesAndTItles (savingOptions,instrId) ->
+                let popupMsg =
+                    "Are you sure you want to save existing instruction with new files and titles?"
                 savingOptions
                 |> databaseMsg instrId
+                |> funcChainingOptions positions popupMsg
             | SaveExistingNewFilesPartsToDelete (savingOptions,instrId) ->
+                let popupMsg =
+                    "Are you sure you want to save existing instruction with new files?"
                 savingOptions
                 |> databaseMsg instrId
+                |> funcChainingOptions positions popupMsg
             | SaveExistingNewTItlesPartsToDelete (savingOptions,instrId) ->
+                let popupMsg =
+                    "Are you sure you want to save existing instruction with new part titles?"
                 savingOptions
                 |> databaseMsg instrId
+                |> funcChainingOptions positions popupMsg
             | SaveExistingNewFilesAndTItlesPartsToDelete (savingOptions,instrId) ->
+                let popupMsg =
+                    "Are you sure you want to save existing instruction with new files and titles?"
                 savingOptions
                 |> databaseMsg instrId
+                |> funcChainingOptions positions popupMsg
             | SaveExistingPartsToDelete (savingOptions,instrId) ->
+                let popupMsg =
+                    "Are you sure you want to save the changes?"
                 savingOptions
                 |> databaseMsg instrId
+                |> funcChainingOptions positions popupMsg
             | InstructionIsDelete errorMsg ->
                 errorMsg
                 |> funcChaining positions

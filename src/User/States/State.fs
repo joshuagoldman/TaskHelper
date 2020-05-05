@@ -50,6 +50,8 @@ let matchValidity validityObject =
 
 let update msg model : Model * Cmd<User.Types.Msg> =
     match msg with
+    | CmdMsging cmdMsg ->
+        model,cmdMsg
     | LoadedInstructions Started ->
         console.log("LoadedInstructions Started")
         { model with UserData = InProgress }, Cmd.batch

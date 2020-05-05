@@ -78,6 +78,7 @@ type Msg =
                                                Position
     | SaveInstructionToDataBase of Data.InstructionData * string
     | DeleteInstructionMsg of Data.InstructionData * Position
+    | CmdMsging of Elmish.Cmd<Msg>
 
 type Model =
     {

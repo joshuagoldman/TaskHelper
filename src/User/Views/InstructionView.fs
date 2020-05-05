@@ -428,8 +428,8 @@ let root model dispatch =
                   Html.div[
                       prop.className "column is-3"
                       prop.onClick (fun ev ->
-                        (model.CurrInstruction,model.CurrPositions, User.Logic.getPositions ev)
-                        |>  ( Instruction.Types.SaveData >> dispatch))
+                          User.Logic.getPositions ev
+                          |>  ( Instruction.Types.SaveInstructionToDataBase >> dispatch))
                       prop.children[
                           modificationButtons model dispatch "Save" model.DeleteButton.Disable
                       ]
@@ -437,8 +437,8 @@ let root model dispatch =
                   Html.div[
                       prop.className "column"
                       prop.onClick (fun ev ->
-                          (model.CurrInstruction,model.CurrPositions, User.Logic.getPositions ev)
-                          |>  ( Instruction.Types.SaveData >> dispatch))
+                          User.Logic.getPositions ev
+                          |>  ( Instruction.Types.Msg.CreateDeletePopup >> dispatch))
                       prop.children[
                           modificationButtons model dispatch "Delete Instruction" model.DeleteButton.Disable
                       ]
