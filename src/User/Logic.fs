@@ -376,35 +376,35 @@ let instructionToSqlNewNames ( instructionId : string ) instruction =
 
 let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
 
-    let partDelete instructionId parts =
+    let partDelete usrId instructionId parts =
         parts
         |> Seq.map (fun part ->
               String.Format(
-                "DELETE FROM parts WHERE instruction_id = {0} AND instruction_video = {1} AND instruction_txt = {2} AND part_title = {3};",
-                seq[instructionId ; part.InstructionVideo ; part.InstructionTxt ; part.Title]
+                "DELETE FROM parts WHERE id = {0} AND instruction_id = {1} AND instruction_video = '{2}' AND instruction_txt = '{3}' AND part_title = '{4}';",
+                usrId,
+                instructionId,
+                part.InstructionVideo,
+                part.InstructionTxt,
+                part.Title
               ))
         |> String.concat ""
     match dbOptions with
     | DatabaseDeleteOptions.DeleteInstruction instruction ->
-        let sqlInstructionVars =
-            seq[
-                ids.UserId
-                ids.InstructionId
-                instruction.Title
-            ]
         let instructionDelete =
             String.Format(
                 "DELETE FROM instructions ( id, instruction_id, title ) VALUES ( {0}, {1}, '{2}');",
-                sqlInstructionVars )
+                ids.UserId,
+                ids.InstructionId,
+                instruction.Title)
         let partsCommand =
             instruction.Data
-            |> partDelete ids.InstructionId
+            |> partDelete ids.UserId ids.InstructionId
 
         instructionDelete + partsCommand
-    | DeleteParts (parts,ids) ->
+    | DeleteParts parts ->
         let partsCommand =
             parts
-            |> partDelete ids
+            |> partDelete ids.UserId ids.InstructionId
         partsCommand
 
 let saveInstructionToDatabase ( ids : DBIds )
@@ -455,7 +455,7 @@ let saveInstructionToDatabase ( ids : DBIds )
                 | DatabaseDeleteOptions.DeleteInstruction instr ->
                     instr.Data
                     |> deletePartMsgs
-                | DatabaseDeleteOptions.DeleteParts(parts,_) ->
+                | DatabaseDeleteOptions.DeleteParts parts ->
                     parts
                     |> deletePartMsgs 
             | _ ->
@@ -1169,12 +1169,19 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         ]
     match popupSettings with
     | PopUpSettings.DefaultWithOptions (divs,positions,msgs) ->
+        let buttonSettings =
+            seq[
+                Feliz.style.margin 30
+                Feliz.style.backgroundColor "grey"
+                Feliz.style.fontSize 18
+                Feliz.style.borderRadius 10
+            ]
 
         let popupNoMsg =
             (
                 {
                     Style = positions |> defaultStyle
-                    ButtonSettings = None
+                    ButtonSettings = buttonSettings |> Some
                     ClickMessages = msgs |> Some
                     Messages = divs
                 },
@@ -1443,7 +1450,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = newFileParts.Value }
                                                     |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
-                                                    (partsToDelete.Value,instrId)|>
+                                                    partsToDelete.Value|>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1471,7 +1478,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = newFileParts.Value }
                                                     |> User.Types.DatabaseSavingOptions.NewFilesInstruction
 
-                                                    (partsToDelete.Value,instrId) |>
+                                                    partsToDelete.Value |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1485,7 +1492,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = partsWithNewNames.Value }
                                                     |> User.Types.DatabaseSavingOptions.NewNameInstruction
 
-                                                    (partsToDelete.Value,instrId) |>
+                                                    partsToDelete.Value |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1513,7 +1520,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                     | _ ->
                                         let info =
                                             seq[
-                                                (partsToDelete.Value,instrId) |>
+                                                partsToDelete.Value |>
                                                 (DatabaseDeleteOptions.DeleteParts >>
                                                  User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
                                             ]

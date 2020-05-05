@@ -30,7 +30,7 @@ type PopUpSettings<'a> =
 
 type DatabaseDeleteOptions =
     | DeleteInstruction of Data.InstructionData 
-    | DeleteParts of seq<Data.partData> * string
+    | DeleteParts of seq<Data.partData>
 
 type DatabaseSavingOptions = 
     | NewFilesInstruction of Data.InstructionData

@@ -17,8 +17,8 @@ INSERT INTO users ( id, user_name, password )
 VALUES ( 2, 'admin', 'admin');
 
 CREATE TABLE instructions (
-    id BIGSERIAL NOT NULL,
-    instruction_id BIGSERIAL NOT NULL PRIMARY KEY,
+    id BIGSERIAL NOT NULL PRIMARY KEY,
+    instruction_id BIGSERIAL NOT NULL,
     title VARCHAR(50) NOT NULL
 );
 
@@ -29,6 +29,7 @@ INSERT INTO instructions ( id, instruction_id, title )
 VALUES ( 1, 2, 'Admin Example Instruction');
 
 CREATE TABLE parts (
+    id BIGSERIAL NOT NULL,
     instruction_id BIGSERIAL NOT NULL,
     instruction_video VARCHAR(50),
     instruction_txt VARCHAR(50),

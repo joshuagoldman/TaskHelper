@@ -12,17 +12,16 @@ type MediaChoice =
     | Txt
 
 let instructionVideo (model : Part.Types.Model) choice =
-    match model.UserId with
-    | Ok idResult ->
-        match model.Data with
-        | Ok dataResult ->
-            match choice with
-            | Video ->
-                dataResult.InstructionVideo
-            | Txt ->
-                dataResult.InstructionTxt
-        | Error dataError -> dataError
-    | Error idError -> idError
+    match model.Data with
+    | Ok dataResult ->
+        match choice with
+        | Video ->
+            console.log(dataResult.InstructionVideo)
+            dataResult.InstructionVideo
+        | Txt ->
+            console.log(dataResult.InstructionTxt)
+            dataResult.InstructionVideo
+    | _ -> ""
 
 let userId (model : Part.Types.Model) =
     match model.UserId with
@@ -50,9 +49,14 @@ let instrVideo (model : Part.Types.Model) dispatch =
         ]
 
 let instructionText (model : Part.Types.Model) =
-    match model.Data with
-    | Ok result ->result.InstructionTxt
-    | Error err -> err
+        Html.iframe[
+            prop.src(
+               match model.Data with
+               | Ok result -> result.InstructionTxt
+               | Error err -> err
+            ) 
+        ]
+        
 
 let goToInstructionButton ( model : Part.Types.Model ) dispatch =
     Html.div[
@@ -146,7 +150,7 @@ let root model dispatch =
                         style.color.white
                     ]
                     prop.children[
-                        str (instructionText model)
+                        instructionText model
                     ]
                 ]
             ]
