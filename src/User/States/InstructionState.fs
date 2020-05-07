@@ -152,41 +152,8 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
 
     | CheckIfSaveFinished positions ->
         let uploadOrDeleteFinished =
-            match model.CurrPositions with
-            | Some modInfos ->
-                modInfos
-                |> Seq.collect (fun modInfo ->
-                    modInfo.Status
-                    |> Seq.map (fun status ->
-                        match status with
-                        | PartStatus.UploadOrDeleteFinished(_,_) ->
-                            true
-                        | _ -> false))
-                |> Seq.forall (fun res -> res)
-                |> function
-                    | uploadOrDeleteFinished when uploadOrDeleteFinished = true ->
-                        let modInfosNew =
-                            modInfos
-                            |> Seq.map (fun modInfo ->
-                                modInfo.Status
-                                |> Seq.map (fun status ->
-                                    match status with
-                                    | PartStatus.UploadOrDeleteFinished(name,_) ->
-                                        PartStatus.StatusExisting name
-                                    | PartStatus.StatusExisting name ->
-                                        PartStatus.StatusExisting name
-                                    | PartStatus.Uploading name ->
-                                        PartStatus.StatusExisting name
-                                    | PartStatus.Delete name ->
-                                        PartStatus.StatusExisting name)
-                                |> fun newStatuses ->
-                                    { modInfo with Status = newStatuses}
-                                )
-                        Some modInfosNew
-                    | _ -> None
-            | _ -> None
-
-
+            model.CurrPositions
+            |> Instruction.Logic.uploadOrDeleteFinished
 
         ()
         |>function
@@ -232,3 +199,10 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
 
 
         | _ -> model, []
+
+    | DeletePartFilesMsg(status) ->
+        let msgs =
+            Instruction.Logic.deleteProcess status
+            |> Cmd.batch
+        model,msgs
+

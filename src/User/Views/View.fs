@@ -196,8 +196,8 @@ let popup ( model : User.Types.Model) dispatch =
                                                 None
                                                 |> User.Types.PopUpMsg
                                                 |> fun x -> seq[x]
-                                            removePopUpMsg
-                                            |> Seq.append clickMessages
+                                            clickMessages
+                                            |> Seq.append removePopUpMsg
                                             |> Seq.iter (fun msg -> msg |> dispatch))
                                         prop.children[
                                             Fable.React.Helpers.str "Yes"

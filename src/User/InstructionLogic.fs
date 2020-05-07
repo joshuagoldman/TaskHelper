@@ -405,10 +405,18 @@ let changeFileStatus ( model : Instruction.Types.Model )
             User.Logic.spinner
         ]
 
-    let funcChaining info =
+    let funcChainingButton info =
         info |>
         (
             PopUpSettings.DefaultWithButton >>
+            Some >>
+            User.Types.PopUpMsg
+        )
+
+    let funcChainingNoButton info =
+        info |>
+        (
+            PopUpSettings.Default >>
             Some >>
             User.Types.PopUpMsg
         )
@@ -436,11 +444,98 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 let newModInfos =
                     getNewModInfos modInfos name
                 (newModInfos,seq[Html.none])
+
+        let allFileStatusesAreStale =
+            modInfos
+            |> Seq.collect (fun modInfo ->
+                modInfo.Status
+                |> Seq.map (fun status ->
+                    match status with
+                    | PartStatus.UploadOrDeleteFinished(_,_) ->
+                        true
+                    | _ -> false))
+            |> Seq.forall (fun x -> x)
         let msg =
-            (msgElement,positions)
-            |> funcChaining
-            |> Cmd.ofMsg
+            ()
+            |> function
+                | _ when allFileStatusesAreStale = true ->
+                    (msgElement,positions)
+                    |> funcChainingButton
+                    |> Cmd.ofMsg
+                | _ ->
+                    (msgElement,positions)
+                    |> funcChainingNoButton
+                    |> Cmd.ofMsg
+
         { model with CurrPositions = Some newInfo }, msg
     | _ ->  model, []
 
+let deleteProcess ( status : DeleteProcess<string * Data.Position * Data.DBIds,string * Data.Position * ReactElement> ) =
+    match status with
+    | DeleteProcess.DeleteInProgress(mediaName,positions,ids) ->
+        let mediaToDeleteMsg =
+            mediaName
+            |> PartStatus.Delete
+            |> fun x ->
+                (x,positions)
+                |> ChangeFileStatus 
+                |> User.Types.InstructionMsg
+                |> User.Logic.delayedMessage 3000
+                |> Data.Cmd.fromAsync
 
+        let nextDeleteProcessMsg =
+            ids
+            |> User.Logic.deleteAsync mediaName positions
+            |> Data.Cmd.fromAsync
+            
+        seq[
+            mediaToDeleteMsg
+            nextDeleteProcessMsg
+        ]
+    | DeleteProcess.DeleteFinished(mediaName,positions,reactEL) ->
+        let mediaToDeleteMsg =
+            (mediaName,reactEL)
+            |> PartStatus.UploadOrDeleteFinished 
+            |> fun x ->
+                (x, positions)
+                |> ChangeFileStatus 
+                |> User.Types.InstructionMsg
+                |> Cmd.ofMsg
+        mediaToDeleteMsg
+        |> fun x -> seq[x]
+        
+        
+let uploadOrDeleteFinished modInfosOpt =
+    match modInfosOpt with
+    | Some modInfos ->
+        modInfos
+        |> Seq.collect (fun modInfo ->
+            modInfo.Status
+            |> Seq.map (fun status ->
+                match status with
+                | PartStatus.UploadOrDeleteFinished(_,_) ->
+                    true
+                | _ -> false))
+        |> Seq.forall (fun res -> res)
+        |> function
+            | uploadOrDeleteFinished when uploadOrDeleteFinished = true ->
+                let modInfosNew =
+                    modInfos
+                    |> Seq.map (fun modInfo ->
+                        modInfo.Status
+                        |> Seq.map (fun status ->
+                            match status with
+                            | PartStatus.UploadOrDeleteFinished(name,_) ->
+                                PartStatus.StatusExisting name
+                            | PartStatus.StatusExisting name ->
+                                PartStatus.StatusExisting name
+                            | PartStatus.Uploading name ->
+                                PartStatus.StatusExisting name
+                            | PartStatus.Delete name ->
+                                PartStatus.StatusExisting name)
+                        |> fun newStatuses ->
+                            { modInfo with Status = newStatuses}
+                        )
+                Some modInfosNew
+            | _ -> None
+    | _ -> None

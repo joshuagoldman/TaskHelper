@@ -279,9 +279,8 @@ let deleteAsync ( fileName : string )
 
     match response.statusCode with
     | 200 ->
-        let newStatus =
+        let newStatusMsg =
             (
-                fileName,
                 Html.div[
                     prop.className "column is-11"
                     prop.style[
@@ -296,18 +295,18 @@ let deleteAsync ( fileName : string )
                     ]
                 ]
             )
-            |> Instruction.Types.UploadOrDeleteFinished
         return (
-                newStatus
-                |> funcChainingIsUploading positions
+                (fullPath, positions,newStatusMsg)
+                |> Instruction.Types.DeleteProcess.DeleteFinished
+                |> Instruction.Types.DeletePartFilesMsg
+                |> User.Types.InstructionMsg
         )
     | _ ->
         let msg =
             ("file \"" + fileName + "\" failed with status code: " +
              ( response.statusCode |> string ) + response.responseText)
-        let newStatus =
+        let newStatusMsg =
             (
-                fileName,
                 Html.div[
                     prop.className "column is-11"
                     prop.style[
@@ -322,10 +321,11 @@ let deleteAsync ( fileName : string )
                     ]
                 ]
             )
-            |> Instruction.Types.UploadOrDeleteFinished
         return (
-                newStatus
-                |> funcChainingIsUploading positions
+                (fullPath, positions,newStatusMsg)
+                |> Instruction.Types.DeleteProcess.DeleteFinished
+                |> Instruction.Types.DeletePartFilesMsg
+                |> User.Types.InstructionMsg
         )
 }
 
@@ -432,20 +432,24 @@ let saveInstructionToDatabase ( ids : DBIds )
     let deletePartMsgs parts =
         parts
         |> Seq.collect (fun part ->
-            let subMsg1 =
-                deleteAsync
-                    part.InstructionTxt
-                    positions
-                    ids
-                |> Cmd.fromAsync
-            let subMsg2 =
-                deleteAsync
-                    part.InstructionVideo
-                    positions
-                    ids
-                |> Cmd.fromAsync
+            let startDelProcessInstructionTxt =
+                (part.InstructionVideo,positions,ids)
+                |> Instruction.Types.DeleteInProgress
+                |> Instruction.Types.DeletePartFilesMsg
+                |> User.Types.InstructionMsg
+                |> Cmd.ofMsg
 
-            seq[subMsg1 ; subMsg2])
+            let startDelProcessInstructionVideo =
+                (part.InstructionTxt,positions,ids)
+                |> Instruction.Types.DeleteInProgress
+                |> Instruction.Types.DeletePartFilesMsg
+                |> User.Types.InstructionMsg
+                |> Cmd.ofMsg
+            seq[
+                startDelProcessInstructionVideo
+                startDelProcessInstructionTxt
+            ])
+
     let ifDeleteMsg =
         databaseOptions
         |> Seq.collect (fun option ->
@@ -457,7 +461,7 @@ let saveInstructionToDatabase ( ids : DBIds )
                     |> deletePartMsgs
                 | DatabaseDeleteOptions.DeleteParts parts ->
                     parts
-                    |> deletePartMsgs 
+                    |> deletePartMsgs
             | _ ->
                 dbMessage
                 |> Cmd.fromAsync
@@ -1208,6 +1212,24 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
                 {
                     Style = style
                     ButtonSettings = Some buttonSettings
+                    Messages = str
+                    ClickMessages = None
+                },
+                Cmd.none
+            )
+            |> Some
+
+        popupNoMsgs
+
+    | Default (str,positions) ->
+        
+        let style = defaultStyle positions
+
+        let popupNoMsgs =
+            (
+                {
+                    Style = style
+                    ButtonSettings = None
                     Messages = str
                     ClickMessages = None
                 },

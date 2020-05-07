@@ -24,6 +24,7 @@ type PopUpControl<'a> =
 
 type PopUpSettings<'a> =
     | DefaultWithButton of seq<ReactElement> * Position
+    | Default of seq<ReactElement> * Position
     | DefaultWithOptions of seq<ReactElement> * Position * seq<'a>
     | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
     | DefaultNewPage of seq<ReactElement> * NewUserPage * Position

@@ -19,10 +19,9 @@ type DeleteResult =
     | DeleteSucceded of ReactElement
     | DeleteFailed of ReactElement
 
-type DeleteProcess<'a,'b,'c> =
-    | DeleteHasNotStartedYet of 'a
-    | DeleteInProgress of 'b
-    | DeleteFinished of DeleteResult
+type DeleteProcess<'a,'b> =
+    | DeleteInProgress of 'a
+    | DeleteFinished of 'b
 
 type DeleteInfo =
     | Delete of string
@@ -57,10 +56,11 @@ type Msg =
     | SaveData of Result<Data.InstructionData * string,string> *
                   option<seq<modificationInfo>> *
                   Position
-    | DeletePartFilesMsg of DeleteProcess<Data.partData * DBIds,ReactElement,DeleteResult>
+    | DeletePartFilesMsg of DeleteProcess<string * Data.Position * Data.DBIds,string * Data.Position * ReactElement> 
     | ChangeFileStatus of PartStatus  * Position
     | SaveInstructionToDataBase of Position
     | CheckIfSaveFinished of Position
+    | CheckIfDeleteFinished of Position
     | CreateDeletePopup of Position
 
 type InstructionMode  =
