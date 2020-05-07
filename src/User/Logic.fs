@@ -257,18 +257,10 @@ let deleteAsync ( fileName : string )
                   positions
                   ids = async{
 
-    let fullPath =
-        String.Format(
-            "User_{0}/Instruction_{1}/{2}",
-            ids.UserId,
-            ids.InstructionId,
-            fileName
-        )
-
     let fData =
         FormData.Create()
 
-    fData.append("filePath", fullPath)
+    fData.append("filePath", fileName)
 
     do! Async.Sleep 3000
     let! response =
@@ -296,7 +288,7 @@ let deleteAsync ( fileName : string )
                 ]
             )
         return (
-                (fullPath, positions,newStatusMsg)
+                (fileName, positions,newStatusMsg)
                 |> Instruction.Types.DeleteProcess.DeleteFinished
                 |> Instruction.Types.DeletePartFilesMsg
                 |> User.Types.InstructionMsg
@@ -322,7 +314,7 @@ let deleteAsync ( fileName : string )
                 ]
             )
         return (
-                (fullPath, positions,newStatusMsg)
+                (fileName, positions,newStatusMsg)
                 |> Instruction.Types.DeleteProcess.DeleteFinished
                 |> Instruction.Types.DeletePartFilesMsg
                 |> User.Types.InstructionMsg
