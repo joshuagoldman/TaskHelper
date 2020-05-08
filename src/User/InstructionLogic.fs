@@ -481,8 +481,7 @@ let deleteProcess ( status : DeleteProcess<string * Data.Position * Data.DBIds,s
                 (x,positions)
                 |> ChangeFileStatus 
                 |> User.Types.InstructionMsg
-                |> User.Logic.delayedMessage 3000
-                |> Cmd.fromAsync
+                |> Cmd.ofMsg
 
         let nextDeleteProcessMsg =
             ids
@@ -582,15 +581,21 @@ let databaseChangeProcedure  ( status : DatabaseChangeProcess<seq<Data.DatabaseS
         let funcChaining positions msg =
             (seq[msg],positions) |>
             (
-                PopUpSettings.DefaultWithButton >>
+                PopUpSettings.Default >>
                 Some >>
                 User.Types.PopUpMsg >>
                 Cmd.ofMsg
             )
 
+        let funcChainingDelayedPopupKill =
+            None 
+            |> User.Types.PopUpMsg
+            |> User.Logic.delayedMessage 3000
+            |> Cmd.fromAsync
+
         let databaseChangePopupMsg =
             msg
             |> funcChaining positions
 
-        seq[databaseChangePopupMsg]
+        seq[databaseChangePopupMsg ; funcChainingDelayedPopupKill]
         
