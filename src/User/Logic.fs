@@ -1672,8 +1672,12 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 |> Cmd.ofMsg
 
             let dbMsg =
-                savingOptions
-                |> saveInstructionToDatabase dbIds positions
+                (savingOptions,dbIds, positions)
+                |> Instruction.Types.DatabaseChangeBegun
+                |> Instruction.Types.Msg.DatabaseChangeMsg
+                |> User.Types.InstructionMsg
+                |> Cmd.ofMsg
+                |> fun x -> seq[x]
 
             dbMsg
             |> Seq.append(

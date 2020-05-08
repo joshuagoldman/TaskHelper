@@ -229,11 +229,6 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             | _ -> []
         model, msg
 
-    | NewInstructionToSave(instruction,instructionId) ->
-        model,[]
-        //let usrId = model.Id |> string
-        //Logic.saveInstructionToDatabase (instruction,instructionId) usrId
-
     | PopUpMsg settings ->
         let standardResult =
             { model with PopUp = None},[]

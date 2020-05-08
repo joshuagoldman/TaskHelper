@@ -66,7 +66,7 @@ type Msg =
     | CheckIfSaveFinished of Position
     | CheckIfDeleteFinished of Position
     | CreateDeletePopup of Position
-    | DatabaseChangeMsg of DatabaseChangeProcess<Data.DatabaseDeleteOptions * Data.DBIds * Data.Position,
+    | DatabaseChangeMsg of DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,
                                                  ReactElement * Data.Position> 
 
 type InstructionMode  =
