@@ -279,9 +279,9 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
                     let deleteMsges =
                         delInstruction
-                        |> User.Types.DatabaseDeleteOptions.DeleteInstruction
-                        |> User.Types.DatabaseSavingOptions.PartsToDeleteInstruction
-                        |> fun x ->seq[x]
+                        |> Data.DatabaseDeleteOptions.DeleteInstruction
+                        |> Data.DatabaseSavingOptions.PartsToDeleteInstruction
+                        |> fun x -> seq[x]
                         |> User.Logic.saveInstructionToDatabase dbIds positions
                         |> Cmd.batch
 

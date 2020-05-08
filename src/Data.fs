@@ -35,6 +35,15 @@ type InstructionData =
         Title : string
     }
 
+type DatabaseDeleteOptions =
+    | DeleteInstruction of InstructionData 
+    | DeleteParts of seq<partData> 
+
+type DatabaseSavingOptions = 
+    | NewFilesInstruction of InstructionData
+    | NewNameInstruction of InstructionData
+    | PartsToDeleteInstruction of DatabaseDeleteOptions 
+
 type UserData =
     {
         Id : int

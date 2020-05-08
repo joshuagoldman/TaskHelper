@@ -11,6 +11,7 @@ open Elmish.Navigation
 open Elmish
 open User.Types
 open Fable.SimpleHttp
+open Data
 
 
 let modifyOrNot model dispatch =
@@ -481,12 +482,12 @@ let deleteProcess ( status : DeleteProcess<string * Data.Position * Data.DBIds,s
                 |> ChangeFileStatus 
                 |> User.Types.InstructionMsg
                 |> User.Logic.delayedMessage 3000
-                |> Data.Cmd.fromAsync
+                |> Cmd.fromAsync
 
         let nextDeleteProcessMsg =
             ids
             |> User.Logic.deleteAsync mediaName positions
-            |> Data.Cmd.fromAsync
+            |> Cmd.fromAsync
             
         seq[
             mediaToDeleteMsg
@@ -539,3 +540,57 @@ let uploadOrDeleteFinished modInfosOpt =
                 Some modInfosNew
             | _ -> None
     | _ -> None
+
+let databaseChangeProcedure  ( status : DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,
+                                                              ReactElement * Data.Position> ) =
+    match status with
+    | DatabaseChangeBegun(dbSaveOpt,ids,positions) ->
+        let databaseChangesMsg =
+            "Performing database changes..."
+
+        let divWSpinner =
+            seq[
+                Html.div[
+                    prop.className "column"
+                    prop.children[
+                        Fable.React.Helpers.str databaseChangesMsg
+                    ]
+                ]
+                User.Logic.spinner
+            ]
+        let buttonFuncChaining info =
+            info |>
+            (
+                PopUpSettings.Default >>
+                Some >>
+                User.Types.PopUpMsg
+            )
+
+        let popupMsg =
+            (divWSpinner,positions)
+            |> buttonFuncChaining
+            |> Cmd.ofMsg
+
+        let dbChangeMsg =
+            dbSaveOpt
+            |> User.Logic.saveInstructionToDatabase ids positions
+
+        dbChangeMsg
+        |> Seq.append (seq[popupMsg])
+
+    | DatabseChangeFinished(msg,positions) ->
+        let funcChaining positions msg =
+            (seq[msg],positions) |>
+            (
+                PopUpSettings.DefaultWithButton >>
+                Some >>
+                User.Types.PopUpMsg >>
+                Cmd.ofMsg
+            )
+
+        let databaseChangePopupMsg =
+            msg
+            |> funcChaining positions
+
+        seq[databaseChangePopupMsg]
+        

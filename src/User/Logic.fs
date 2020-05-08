@@ -222,9 +222,9 @@ let sqlCommandToDB sqlCommand positions = async{
     let funcChaining positions msg =
         (msg,positions) |>
         (
-            PopUpSettings.DefaultWithButton >>
-            Some >>
-            User.Types.PopUpMsg
+            Instruction.Types.DatabaseChangeProcess.DatabseChangeFinished >>
+            Instruction.Types.Msg.DatabaseChangeMsg >>
+            User.Types.InstructionMsg
         )
 
     let newStatus =
@@ -240,7 +240,6 @@ let sqlCommandToDB sqlCommand positions = async{
                 str response.responseText
             ]
         ]
-        |> fun x -> seq[x]
         |> funcChaining positions
         
     return newStatus
@@ -420,6 +419,7 @@ let saveInstructionToDatabase ( ids : DBIds )
     let dbMessage =           
         positions
         |> sqlCommandToDB sqlCommands
+        |> Cmd.fromAsync
 
     let deletePartMsgs parts =
         parts
@@ -451,15 +451,15 @@ let saveInstructionToDatabase ( ids : DBIds )
                 | DatabaseDeleteOptions.DeleteInstruction instr ->
                     instr.Data
                     |> deletePartMsgs
+                    |> Seq.append (seq[dbMessage])
                 | DatabaseDeleteOptions.DeleteParts parts ->
                     parts
                     |> deletePartMsgs
+                    |> Seq.append (seq[dbMessage])
             | _ ->
                 dbMessage
-                |> Cmd.fromAsync
                 |> fun x -> seq[x])
     ifDeleteMsg
-        
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                               ( instruction2Add : option<Data.InstructionData> * string ) =
@@ -1459,14 +1459,14 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                             let info =
                                                 seq[
                                                     { newInstruction with Data = partsWithNewNames.Value }
-                                                    |> User.Types.DatabaseSavingOptions.NewNameInstruction
+                                                    |> DatabaseSavingOptions.NewNameInstruction
 
                                                     { newInstruction with Data = newFileParts.Value }
-                                                    |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                                    |> DatabaseSavingOptions.NewFilesInstruction
 
                                                     partsToDelete.Value|>
                                                     (DatabaseDeleteOptions.DeleteParts >>
-                                                     User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
+                                                     DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
 
                                             (info,instrId)
@@ -1477,10 +1477,10 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                              let info =
                                                  seq[
                                                      { newInstruction with Data = newFileParts.Value }
-                                                     |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                                     |> DatabaseSavingOptions.NewFilesInstruction
 
                                                      { newInstruction with Data = partsWithNewNames.Value }
-                                                     |> User.Types.DatabaseSavingOptions.NewNameInstruction
+                                                     |> DatabaseSavingOptions.NewNameInstruction
                                                  ]
 
                                              (info,instrId)
@@ -1490,11 +1490,11 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                             let info =
                                                 seq[
                                                     { newInstruction with Data = newFileParts.Value }
-                                                    |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                                    |> DatabaseSavingOptions.NewFilesInstruction
 
                                                     partsToDelete.Value |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
-                                                     User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
+                                                     DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
 
                                             (info,instrId)
@@ -1504,11 +1504,11 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                             let info =
                                                 seq[
                                                     { newInstruction with Data = partsWithNewNames.Value }
-                                                    |> User.Types.DatabaseSavingOptions.NewNameInstruction
+                                                    |> DatabaseSavingOptions.NewNameInstruction
 
                                                     partsToDelete.Value |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
-                                                     User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
+                                                     DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
 
                                             (info,instrId)
@@ -1517,7 +1517,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                         let info =
                                             seq[
                                                 { newInstruction with Data = newFileParts.Value }
-                                                |> User.Types.DatabaseSavingOptions.NewFilesInstruction
+                                                |> DatabaseSavingOptions.NewFilesInstruction
                                             ]
 
                                         (info,instrId)
@@ -1526,7 +1526,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                         let info =
                                             seq[
                                                 { newInstruction with Data = partsWithNewNames.Value }
-                                                |> User.Types.DatabaseSavingOptions.NewNameInstruction
+                                                |> DatabaseSavingOptions.NewNameInstruction
                                             ]
 
                                         (info,instrId)
@@ -1536,7 +1536,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                             seq[
                                                 partsToDelete.Value |>
                                                 (DatabaseDeleteOptions.DeleteParts >>
-                                                 User.Types.DatabaseSavingOptions.PartsToDeleteInstruction)
+                                                 DatabaseSavingOptions.PartsToDeleteInstruction)
                                             ]
 
                                         (info,instrId)

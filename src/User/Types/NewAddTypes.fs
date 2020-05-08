@@ -10,10 +10,6 @@ open Browser.Blob
 open Fable.React
 open Feliz
 
-type ModificationType =
-    | Add of Data.InstructionData
-    | New
-
 type MediaChoiceFormData =
     | Video of Types.File
     | InstructionTxt of Types.File

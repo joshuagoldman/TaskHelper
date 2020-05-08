@@ -27,16 +27,7 @@ type PopUpSettings<'a> =
     | Default of seq<ReactElement> * Position
     | DefaultWithOptions of seq<ReactElement> * Position * seq<'a>
     | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
-    | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
-
-type DatabaseDeleteOptions =
-    | DeleteInstruction of Data.InstructionData 
-    | DeleteParts of seq<Data.partData>
-
-type DatabaseSavingOptions = 
-    | NewFilesInstruction of Data.InstructionData
-    | NewNameInstruction of Data.InstructionData
-    | PartsToDeleteInstruction of DatabaseDeleteOptions   
+    | DefaultNewPage of seq<ReactElement> * NewUserPage * Position 
 
 // Many discriminated unions in order to facilitate unit testing
 type newSaveResult =

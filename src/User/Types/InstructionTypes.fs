@@ -19,6 +19,10 @@ type DeleteResult =
     | DeleteSucceded of ReactElement
     | DeleteFailed of ReactElement
 
+type DatabaseChangeProcess<'a,'b> =
+    | DatabaseChangeBegun of 'a
+    | DatabseChangeFinished of 'b
+
 type DeleteProcess<'a,'b> =
     | DeleteInProgress of 'a
     | DeleteFinished of 'b
@@ -62,6 +66,8 @@ type Msg =
     | CheckIfSaveFinished of Position
     | CheckIfDeleteFinished of Position
     | CreateDeletePopup of Position
+    | DatabaseChangeMsg of DatabaseChangeProcess<Data.DatabaseDeleteOptions * Data.DBIds * Data.Position,
+                                                 ReactElement * Data.Position> 
 
 type InstructionMode  =
 | Regular
