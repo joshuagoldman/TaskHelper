@@ -15,9 +15,9 @@ type PartStatus =
     | StatusExisting of string
     | UploadOrDeleteFinished of string * ReactElement
 
-type DeleteResult =
-    | DeleteSucceded of ReactElement
-    | DeleteFailed of ReactElement
+type DatabaseChangeResult =
+    | DatabaseChangeSucceeded of ReactElement * Data.Position * seq<DatabaseSavingOptions> * DBIds
+    | DatabaseChangeFailed of ReactElement * Data.Position
 
 type DatabaseChangeProcess<'a,'b> =
     | DatabaseChangeBegun of 'a
@@ -66,8 +66,7 @@ type Msg =
     | CheckIfSaveFinished of Position
     | CheckIfDeleteFinished of Position
     | CreateDeletePopup of Position
-    | DatabaseChangeMsg of DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,
-                                                 ReactElement * Data.Position> 
+    | DatabaseChangeMsg of DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,DatabaseChangeResult> 
 
 type InstructionMode  =
 | Regular

@@ -540,8 +540,8 @@ let uploadOrDeleteFinished modInfosOpt =
             | _ -> None
     | _ -> None
 
-let databaseChangeProcedure  ( status : DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,
-                                                              ReactElement * Data.Position> ) =
+let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,
+                                                               DatabaseChangeResult> ) =
     match status with
     | DatabaseChangeBegun(dbSaveOpt,ids,positions) ->
         let databaseChangesMsg =
@@ -576,8 +576,7 @@ let databaseChangeProcedure  ( status : DatabaseChangeProcess<seq<Data.DatabaseS
 
         dbChangeMsg
         |> Seq.append (seq[popupMsg])
-
-    | DatabseChangeFinished(msg,positions) ->
+    | DatabseChangeFinished(DatabaseChangeFailed(msg,positions)) ->
         let funcChaining positions msg =
             (seq[msg],positions) |>
             (
@@ -597,5 +596,70 @@ let databaseChangeProcedure  ( status : DatabaseChangeProcess<seq<Data.DatabaseS
             msg
             |> funcChaining positions
 
-        seq[databaseChangePopupMsg ; funcChainingDelayedPopupKill]
+        let databaseMsgsCombined =
+            seq[databaseChangePopupMsg ; funcChainingDelayedPopupKill]
+
+        databaseMsgsCombined
+
+    | DatabseChangeFinished(DatabaseChangeSucceeded(msg,positions,databaseOptions,ids)) ->
+        let funcChaining positions msg =
+            (seq[msg],positions) |>
+            (
+                PopUpSettings.Default >>
+                Some >>
+                User.Types.PopUpMsg >>
+                Cmd.ofMsg
+            )
+
+        let funcChainingDelayedPopupKill =
+            None 
+            |> User.Types.PopUpMsg
+            |> User.Logic.delayedMessage 3000
+            |> Cmd.fromAsync
+
+        let databaseChangePopupMsg =
+            msg
+            |> funcChaining positions
+
+        let databaseMsgsCombined =
+            seq[databaseChangePopupMsg ; funcChainingDelayedPopupKill]
+
+        let deletePartMsgs parts =
+            parts
+            |> Seq.collect (fun part ->
+                let startDelProcessInstructionTxt =
+                    (part.InstructionVideo,positions,ids)
+                    |> Instruction.Types.DeleteInProgress
+                    |> Instruction.Types.DeletePartFilesMsg
+                    |> User.Types.InstructionMsg
+                    |> Cmd.ofMsg
+
+                let startDelProcessInstructionVideo =
+                    (part.InstructionTxt,positions,ids)
+                    |> Instruction.Types.DeleteInProgress
+                    |> Instruction.Types.DeletePartFilesMsg
+                    |> User.Types.InstructionMsg
+                    |> Cmd.ofMsg
+                seq[
+                    startDelProcessInstructionVideo
+                    startDelProcessInstructionTxt
+                ])
+
+        let ifDeleteMsg =
+            databaseOptions
+            |> Seq.collect (fun option ->
+                match option with
+                | PartsToDeleteInstruction delOptions ->
+                    match delOptions with
+                    | DatabaseDeleteOptions.DeleteInstruction instr ->
+                        instr.Data
+                        |> deletePartMsgs
+                        |> Seq.append databaseMsgsCombined
+                    | DatabaseDeleteOptions.DeleteParts parts ->
+                        parts
+                        |> deletePartMsgs
+                        |> Seq.append databaseMsgsCombined
+                | _ ->
+                    databaseMsgsCombined)
+        ifDeleteMsg
         

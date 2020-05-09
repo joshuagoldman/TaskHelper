@@ -211,40 +211,6 @@ let loadInstructionItems ( id : int ) = async {
                                                         (response.statusCode |> string))))  
     }
 
-let sqlCommandToDB sqlCommand positions = async{
-    do! Async.Sleep 3000
-    let! response =
-        Http.request ("http://localhost:3001/" )
-        |> Http.method POST
-        |> Http.content (BodyContent.Text sqlCommand)
-        |> Http.send
-
-    let funcChaining positions msg =
-        (msg,positions) |>
-        (
-            Instruction.Types.DatabaseChangeProcess.DatabseChangeFinished >>
-            Instruction.Types.Msg.DatabaseChangeMsg >>
-            User.Types.InstructionMsg
-        )
-
-    let newStatus =
-        Html.div[
-            prop.className "column is-1"
-            prop.style[
-                style.color.red
-                style.fontWeight.bold
-                style.fontSize 12
-                style.maxWidth 400
-                   ] 
-            prop.children[
-                str response.responseText
-            ]
-        ]
-        |> funcChaining positions
-        
-    return newStatus
-}
-
 let funcChainingIsUploading positions status =
     (status,positions) |>
     ( 
@@ -398,9 +364,7 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
             |> partDelete ids.UserId ids.InstructionId
         partsCommand
 
-let saveInstructionToDatabase ( ids : DBIds )
-                              ( positions : Position )
-                              ( databaseOptions : seq<DatabaseSavingOptions> ) =
+let sqlCommandToDB databaseOptions ids positions = async{
     let sqlCommands =
         databaseOptions
         |> Seq.map (fun option ->
@@ -415,51 +379,79 @@ let saveInstructionToDatabase ( ids : DBIds )
                 ids
                 |> instructionToSqlDelete delOption)
         |> String.concat ""
+    do! Async.Sleep 3000
+    let! response =
+        Http.request ("http://localhost:3001/" )
+        |> Http.method POST
+        |> Http.content (BodyContent.Text sqlCommands)
+        |> Http.send
+
+    let funcChaining successOrNot =
+        successOrNot |>
+        (
+            Instruction.Types.DatabaseChangeProcess.DatabseChangeFinished >>
+            Instruction.Types.Msg.DatabaseChangeMsg >>
+            User.Types.InstructionMsg
+        )
+
+    match response.statusCode with
+    | 200 ->
+        let newStatus =
+            (
+                Html.div[
+                    prop.className "column is-1"
+                    prop.style[
+                        style.color.red
+                        style.fontWeight.bold
+                        style.fontSize 12
+                        style.maxWidth 400
+                           ] 
+                    prop.children[
+                        str response.responseText
+                    ]
+                ], positions, databaseOptions,ids
+            )
+            |> Instruction.Types.DatabaseChangeSucceeded
+            |> funcChaining 
+            
+        return newStatus
+    | _ ->
+        let newStatus =
+            (
+                Html.div[
+                    prop.className "column is-1"
+                    prop.style[
+                        style.color.red
+                        style.fontWeight.bold
+                        style.fontSize 12
+                        style.maxWidth 400
+                           ] 
+                    prop.children[
+                        str response.responseText
+                    ]
+                ], positions
+            )
+            |> Instruction.Types.DatabaseChangeFailed
+            |> funcChaining 
+            
+        return newStatus
+
+    
+}
+
+let saveInstructionToDatabase ( ids : DBIds )
+                              ( positions : Position )
+                              ( databaseOptions : seq<DatabaseSavingOptions> ) =
         
     let dbMessage =           
         positions
-        |> sqlCommandToDB sqlCommands
+        |> sqlCommandToDB databaseOptions ids
         |> Cmd.fromAsync
 
-    let deletePartMsgs parts =
-        parts
-        |> Seq.collect (fun part ->
-            let startDelProcessInstructionTxt =
-                (part.InstructionVideo,positions,ids)
-                |> Instruction.Types.DeleteInProgress
-                |> Instruction.Types.DeletePartFilesMsg
-                |> User.Types.InstructionMsg
-                |> Cmd.ofMsg
+    dbMessage
+    |> fun x -> seq[x]
 
-            let startDelProcessInstructionVideo =
-                (part.InstructionTxt,positions,ids)
-                |> Instruction.Types.DeleteInProgress
-                |> Instruction.Types.DeletePartFilesMsg
-                |> User.Types.InstructionMsg
-                |> Cmd.ofMsg
-            seq[
-                startDelProcessInstructionVideo
-                startDelProcessInstructionTxt
-            ])
-
-    let ifDeleteMsg =
-        databaseOptions
-        |> Seq.collect (fun option ->
-            match option with
-            | PartsToDeleteInstruction delOptions ->
-                match delOptions with
-                | DatabaseDeleteOptions.DeleteInstruction instr ->
-                    instr.Data
-                    |> deletePartMsgs
-                    |> Seq.append (seq[dbMessage])
-                | DatabaseDeleteOptions.DeleteParts parts ->
-                    parts
-                    |> deletePartMsgs
-                    |> Seq.append (seq[dbMessage])
-            | _ ->
-                dbMessage
-                |> fun x -> seq[x])
-    ifDeleteMsg
+    
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                               ( instruction2Add : option<Data.InstructionData> * string ) =
