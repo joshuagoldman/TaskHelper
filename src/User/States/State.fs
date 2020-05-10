@@ -272,15 +272,19 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                             InstructionId = instrId |> string
                         }
 
-                    let deleteMsges =
+                    let startDeletionMsg =
                         delInstruction
                         |> Data.DatabaseDeleteOptions.DeleteInstruction
                         |> Data.DatabaseSavingOptions.PartsToDeleteInstruction
                         |> fun x -> seq[x]
-                        |> User.Logic.saveInstructionToDatabase dbIds positions
-                        |> Cmd.batch
+                        |> fun saveOpt ->
+                            (saveOpt,dbIds,positions)
+                            |>Instruction.Types.DatabaseChangeBegun
+                            |> Instruction.Types.Msg.DatabaseChangeMsg
+                            |> User.Types.InstructionMsg
+                            |> Cmd.ofMsg
 
-                    model, deleteMsges
+                    model, startDeletionMsg
                 | _ -> model,[]
         | _ -> model,[]
         

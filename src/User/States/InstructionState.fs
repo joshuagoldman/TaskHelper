@@ -206,3 +206,10 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             |> Cmd.batch
         model,msgs
 
+     | DatabaseChangeMsg(status) ->
+        let msgs =
+            Instruction.Logic.databaseChangeProcedure status
+            |> Cmd.batch
+
+        model,msgs
+

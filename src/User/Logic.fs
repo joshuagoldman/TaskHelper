@@ -379,6 +379,7 @@ let sqlCommandToDB databaseOptions ids positions = async{
                 ids
                 |> instructionToSqlDelete delOption)
         |> String.concat ""
+
     do! Async.Sleep 3000
     let! response =
         Http.request ("http://localhost:3001/" )
@@ -441,8 +442,7 @@ let sqlCommandToDB databaseOptions ids positions = async{
 
 let saveInstructionToDatabase ( ids : DBIds )
                               ( positions : Position )
-                              ( databaseOptions : seq<DatabaseSavingOptions> ) =
-        
+                              ( databaseOptions : seq<DatabaseSavingOptions> ) =     
     let dbMessage =           
         positions
         |> sqlCommandToDB databaseOptions ids
