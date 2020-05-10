@@ -63,6 +63,7 @@ app.post("/delete", (req, res, next) => {
     let filePath = req.body.filePath;
     let path = `${__dirname}/../public/${filePath}`;
     let pubPath = `public/${filePath}`;
+    let fileName = filePath.replace(filePath.substring(0,str.lastIndexOf("/")),"");
     let fileInfo = {
         Name : fileName,
         Path : pubPath
@@ -87,17 +88,16 @@ app.post('/', (req,res) => {
         Queries : Joi.string().min(3).required()
     })
 
-    var result = Joi.validate(req.body,schema)
-    
+    var result = Joi.validate(req.body,schema);
     if(result.error){
         var resMsgsArray = result.error.details.map(x => x.message + '\n');
         var resMsg = resMsgsArray.join("");
-        res.send(resMsg.substring(0, resMsg.length - 1));
+        res.status(401).send(resMsg.substring(0, resMsg.length - 1));
     }
     else{
         db.query(req.body.Queries, function (err,dbRes) {
             if(err.error)
-                res.send(err)
+                res.status(401).send(err)
             res.send("Changes were sucessfully updated!")
         });
     }

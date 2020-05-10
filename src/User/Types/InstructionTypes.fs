@@ -16,7 +16,7 @@ type PartStatus =
     | UploadOrDeleteFinished of string * ReactElement
 
 type DatabaseChangeResult =
-    | DatabaseChangeSucceeded of ReactElement * Data.Position * seq<DatabaseSavingOptions> * DBIds
+    | DatabaseChangeSucceeded of ReactElement * Data.Position * seq<DatabaseSavingOptions>
     | DatabaseChangeFailed of ReactElement * Data.Position
 
 type DatabaseChangeProcess<'a,'b> =
@@ -60,7 +60,7 @@ type Msg =
     | SaveData of Result<Data.InstructionData * string,string> *
                   option<seq<modificationInfo>> *
                   Position
-    | DeletePartFilesMsg of DeleteProcess<string * Data.Position * Data.DBIds,string * Data.Position * ReactElement> 
+    | DeletePartFilesMsg of DeleteProcess<string * Data.Position,string * Data.Position * ReactElement> 
     | ChangeFileStatus of PartStatus  * Position
     | SaveInstructionToDataBase of Position
     | CheckIfSaveFinished of Position

@@ -32,6 +32,8 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         let delOrReg  =
             "Delete"
             |> ( Delete >> Some )
+        let getStatus name =
+            PartStatus.StatusExisting(name)
         let newModInfo =
             instruction.Data
             |> Seq.map (fun part ->
@@ -43,7 +45,12 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                 {
                     DelOrReg = delOrReg
                     Names = names
-                    Status = seq[StatusExisting part.Title]
+                    Status =
+                        seq[
+                            getStatus part.InstructionTxt
+                            getStatus part.InstructionVideo
+                        ]
+                        
                 })
         { model with CurrInstruction = Ok (instruction,id) ;
                      CurrPositions = Some newModInfo }, []
@@ -172,6 +179,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             | _ -> model,[]
 
     | CreateDeletePopup positions ->
+        let a = ""
         match model.CurrInstruction with
         | Ok (instr,_) ->
             let msgsIfYesClicked =
@@ -189,7 +197,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                 |> fun x -> seq[x]
                 
             let msg =
-                ( popupMsgs,positions,msgsIfYesClicked )
+                ( popupMsgs,positions,msgsIfYesClicked)
                 |> User.Types.PopUpSettings.DefaultWithOptions
                 |> Some
                 |> User.Types.Msg.PopUpMsg

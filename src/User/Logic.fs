@@ -219,8 +219,7 @@ let funcChainingIsUploading positions status =
     )
 
 let deleteAsync ( fileName : string )
-                  positions
-                  ids = async{
+                  positions = async{
 
     let fData =
         FormData.Create()
@@ -349,7 +348,7 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
     | DatabaseDeleteOptions.DeleteInstruction instruction ->
         let instructionDelete =
             String.Format(
-                "DELETE FROM instructions ( id, instruction_id, title ) VALUES ( {0}, {1}, '{2}');",
+                "DELETE FROM instructions WHERE id = {0} AND instruction_id = {1} AND title = '{2}';",
                 ids.UserId,
                 ids.InstructionId,
                 instruction.Title)
@@ -380,11 +379,14 @@ let sqlCommandToDB databaseOptions ids positions = async{
                 |> instructionToSqlDelete delOption)
         |> String.concat ""
 
+    let fd = FormData.Create()
+    fd.append ("Queries", sqlCommands)
+
     do! Async.Sleep 3000
     let! response =
         Http.request ("http://localhost:3001/" )
         |> Http.method POST
-        |> Http.content (BodyContent.Text sqlCommands)
+        |> Http.content (BodyContent.Form fd)
         |> Http.send
 
     let funcChaining successOrNot =
@@ -395,22 +397,27 @@ let sqlCommandToDB databaseOptions ids positions = async{
             User.Types.InstructionMsg
         )
 
+    let responseDiv msg =
+        Html.div[
+            prop.className "column is-1"
+            prop.style[
+                style.color.red
+                style.fontWeight.bold
+                style.fontSize 12
+                style.maxWidth 400
+                   ] 
+            prop.children[
+                str response.responseText
+            ]
+        ]
+
     match response.statusCode with
     | 200 ->
         let newStatus =
             (
-                Html.div[
-                    prop.className "column is-1"
-                    prop.style[
-                        style.color.red
-                        style.fontWeight.bold
-                        style.fontSize 12
-                        style.maxWidth 400
-                           ] 
-                    prop.children[
-                        str response.responseText
-                    ]
-                ], positions, databaseOptions,ids
+               responseDiv response.responseText ,
+               positions,
+               databaseOptions
             )
             |> Instruction.Types.DatabaseChangeSucceeded
             |> funcChaining 
@@ -419,39 +426,14 @@ let sqlCommandToDB databaseOptions ids positions = async{
     | _ ->
         let newStatus =
             (
-                Html.div[
-                    prop.className "column is-1"
-                    prop.style[
-                        style.color.red
-                        style.fontWeight.bold
-                        style.fontSize 12
-                        style.maxWidth 400
-                           ] 
-                    prop.children[
-                        str response.responseText
-                    ]
-                ], positions
+                responseDiv response.responseText,
+                positions
             )
             |> Instruction.Types.DatabaseChangeFailed
             |> funcChaining 
             
         return newStatus
-
-    
 }
-
-let saveInstructionToDatabase ( ids : DBIds )
-                              ( positions : Position )
-                              ( databaseOptions : seq<DatabaseSavingOptions> ) =     
-    let dbMessage =           
-        positions
-        |> sqlCommandToDB databaseOptions ids
-        |> Cmd.fromAsync
-
-    dbMessage
-    |> fun x -> seq[x]
-
-    
 
 let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                               ( instruction2Add : option<Data.InstructionData> * string ) =
@@ -1664,7 +1646,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 |> Cmd.ofMsg
 
             let dbMsg =
-                (savingOptions,dbIds, positions)
+                (savingOptions, dbIds,positions)
                 |> Instruction.Types.DatabaseChangeBegun
                 |> Instruction.Types.Msg.DatabaseChangeMsg
                 |> User.Types.InstructionMsg

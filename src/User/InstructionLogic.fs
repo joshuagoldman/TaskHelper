@@ -422,29 +422,49 @@ let changeFileStatus ( model : Instruction.Types.Model )
             User.Types.PopUpMsg
         )
 
+    let newStatusReactElements ( modInfos : seq<modificationInfo> ) =
+        modInfos
+        |> Seq.collect (fun modInfo ->
+            modInfo.Status
+            |> Seq.choose (fun status ->
+                match status with
+                | PartStatus.UploadOrDeleteFinished(_,msgElement) ->
+                    Some (seq[msgElement])
+                | PartStatus.Uploading name ->
+                    let msgElement =
+                        divWSpinner ("Uploading file " + name)
+                    Some msgElement
+                | PartStatus.Delete name ->
+                    let msgElement =
+                        divWSpinner ("Deleting file " + name)
+                    Some msgElement
+                | PartStatus.StatusExisting _ ->
+                    None)
+            |> Seq.collect(fun x -> x))
+
     match model.CurrPositions  with
     | Some modInfos ->
         let (newInfo,msgElement) =
             match newStatus with
             | PartStatus.UploadOrDeleteFinished(name,msgElement) ->
                 let newModInfos = getNewModInfos modInfos name
-                (newModInfos,seq[msgElement])
+                let newFileStatusMsgs = newStatusReactElements newModInfos
+                (newModInfos,newFileStatusMsgs)
             | PartStatus.Uploading name ->
                 let newModInfos =
                     getNewModInfos modInfos name
-                let msgElement =
-                    divWSpinner ("Uploading file " + name)
-                (newModInfos,msgElement)
+                let newFileStatusMsgs = newStatusReactElements newModInfos
+                (newModInfos,newFileStatusMsgs)
             | PartStatus.Delete name ->
                 let newModInfos =
                     getNewModInfos modInfos name
-                let msgElement =
-                    divWSpinner ("Deleting file " + name)
-                (newModInfos,msgElement)
+                let newFileStatusMsgs = newStatusReactElements newModInfos
+                (newModInfos,newFileStatusMsgs)
             | PartStatus.StatusExisting name ->
                 let newModInfos =
                     getNewModInfos modInfos name
-                (newModInfos,seq[Html.none])
+                let newFileStatusMsgs = newStatusReactElements newModInfos
+                (newModInfos,newFileStatusMsgs)
 
         let allFileStatusesAreStale =
             modInfos
@@ -471,9 +491,9 @@ let changeFileStatus ( model : Instruction.Types.Model )
         { model with CurrPositions = Some newInfo }, msg
     | _ ->  model, []
 
-let deleteProcess ( status : DeleteProcess<string * Data.Position * Data.DBIds,string * Data.Position * ReactElement> ) =
+let deleteProcess ( status : DeleteProcess<string * Data.Position,string * Data.Position * ReactElement> ) =
     match status with
-    | DeleteProcess.DeleteInProgress(mediaName,positions,ids) ->
+    | DeleteProcess.DeleteInProgress(mediaName,positions) ->
         let mediaToDeleteMsg =
             mediaName
             |> PartStatus.Delete
@@ -484,8 +504,8 @@ let deleteProcess ( status : DeleteProcess<string * Data.Position * Data.DBIds,s
                 |> Cmd.ofMsg
 
         let nextDeleteProcessMsg =
-            ids
-            |> User.Logic.deleteAsync mediaName positions
+            positions
+            |> User.Logic.deleteAsync mediaName 
             |> Cmd.fromAsync
             
         seq[
@@ -571,8 +591,10 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
             |> Cmd.ofMsg
 
         let dbChangeMsg =
-            dbSaveOpt
-            |> User.Logic.saveInstructionToDatabase ids positions
+            positions
+            |> User.Logic.sqlCommandToDB dbSaveOpt ids
+            |> Cmd.fromAsync
+            |> fun x -> seq[x]
 
         dbChangeMsg
         |> Seq.append (seq[popupMsg])
@@ -601,7 +623,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
 
         databaseMsgsCombined
 
-    | DatabseChangeFinished(DatabaseChangeSucceeded(msg,positions,databaseOptions,ids)) ->
+    | DatabseChangeFinished(DatabaseChangeSucceeded(msg,positions,databaseOptions)) ->
         let funcChaining positions msg =
             (seq[msg],positions) |>
             (
@@ -628,14 +650,14 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
             parts
             |> Seq.collect (fun part ->
                 let startDelProcessInstructionTxt =
-                    (part.InstructionVideo,positions,ids)
+                    (part.InstructionVideo,positions)
                     |> Instruction.Types.DeleteInProgress
                     |> Instruction.Types.DeletePartFilesMsg
                     |> User.Types.InstructionMsg
                     |> Cmd.ofMsg
 
                 let startDelProcessInstructionVideo =
-                    (part.InstructionTxt,positions,ids)
+                    (part.InstructionTxt,positions)
                     |> Instruction.Types.DeleteInProgress
                     |> Instruction.Types.DeletePartFilesMsg
                     |> User.Types.InstructionMsg
