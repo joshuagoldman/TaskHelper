@@ -581,7 +581,7 @@ let saveAsync ( file : Types.File )
 
 let saveUserData
         ( status : SaveDataProgress<Types.File * DBIds * Position,
-                                    bool * Position >) =
+                                    bool * ReactElement * Position >) =
     match status with 
     | SavingHasNostStartedYet (file,dbIds,positions) ->
         file.name
@@ -617,17 +617,21 @@ let saveUserData
                 |> Cmd.ofMsg
             ]
 
-    | SavingResolved (allSavingsFinished,positions) ->
-        ()
-        |> function
-            | _ when allSavingsFinished ->
-                positions
-                |> Instruction.Types.SaveInstructionToDataBase
+    | SavingResolved (allSavingsComplete,resolvedReactMsg,positions) ->
+        let resolvedMsg =
+            resolvedReactMsg
+            |> Instruction.Types.UploadOrDeleteFinished
+            |> fun x ->
+                (x,positions)
+                |> Instruction.Types.ChangeFileStatus
                 |> User.Types.InstructionMsg
                 |> Cmd.ofMsg
-                |> fun x -> seq[x]
+
+        ()
+        |> function
+            | _ when allSavingsComplete ->
+                
             | _ ->
-                seq[Cmd.Empty]
 
 let loadUserItems user password = async {
     do! Async.Sleep 3000
@@ -1662,6 +1666,34 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             |> Cmd.batch
             |> User.Types.CmdMsging
             |> fun x -> seq[x]
+
+        let bothFileAndDbMsg savingOptions instrId popupMsg =
+            let dbMsg =
+                savingOptions
+                |> databaseMsg instrId
+                |> funcChainingOptions positions popupMsg
+
+            let newInstr =
+                savingOptions
+                |> Seq.tryPick (fun opt ->
+                    match opt with
+                    | DatabaseSavingOptions.NewFilesInstruction newInstr ->
+                        Some newInstr
+                    | _ -> None)
+
+            ()
+            |> function
+                | _ when newInstr.IsSome ->
+                    let savingMsg =
+                        saveNewMsg newInstr.Value instrId
+                        |> funcChainingOptions positions popupMsg
+                    seq[
+                        savingMsg
+                        dbMsg
+                    ]
+                    |> Cmd.batch
+                | _ ->
+                    dbMsg
             
         let msg =
             match result with
@@ -1679,9 +1711,8 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             | SaveExisitngNewFIles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files?"
-                savingOptions
-                |> databaseMsg instrId
-                |> funcChainingOptions positions popupMsg
+                bothFileAndDbMsg savingOptions instrId popupMsg
+                
             | SaveExistingNewFilesAndTItles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles?"

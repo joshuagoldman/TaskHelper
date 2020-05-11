@@ -467,7 +467,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 (newModInfos,newFileStatusMsgs)
 
         let allFileStatusesAreStale =
-            modInfos
+            newInfo
             |> Seq.collect (fun modInfo ->
                 modInfo.Status
                 |> Seq.map (fun status ->

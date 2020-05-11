@@ -63,7 +63,7 @@ app.post("/delete", (req, res, next) => {
     let filePath = req.body.filePath;
     let path = `${__dirname}/../public/${filePath}`;
     let pubPath = `public/${filePath}`;
-    let fileName = filePath.replace(filePath.substring(0,str.lastIndexOf("/")),"");
+    let fileName = filePath.replace(filePath.substring(0,filePath.lastIndexOf("/")),"");
     let fileInfo = {
         Name : fileName,
         Path : pubPath
