@@ -63,7 +63,7 @@ type Msg =
     | DeletePartFilesMsg of DeleteProcess<string * Data.Position,string * Data.Position * ReactElement> 
     | ChangeFileStatus of PartStatus  * Position
     | SaveInstructionToDataBase of Position
-    | CheckIfSaveFinished of Position
+    | CheckIfSaveFinished of DBIds * Position
     | CheckIfDeleteFinished of Position
     | CreateDeletePopup of Position
     | DatabaseChangeMsg of DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,DatabaseChangeResult> 

@@ -157,26 +157,52 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             model,usrMsg
         | _ -> model,[]
 
-    | CheckIfSaveFinished positions ->
-        let uploadOrDeleteFinished =
-            model.CurrPositions
-            |> Instruction.Logic.uploadOrDeleteFinished
+    | CheckIfSaveFinished(ids,positions)->
+        match model.CurrInstruction with
+        | Ok (instruction,_) ->
+            let uploadOrDeleteFinished =
+                model.CurrPositions
+                |> Instruction.Logic.uploadOrDeleteFinished
 
-        ()
-        |>function
-            | _ when uploadOrDeleteFinished.IsSome ->
-                
-                let msg =
-                    (true,positions) |>
-                    (
-                        SavingResolved >>
-                        SavingFinished >>
-                        NewAdd.Types.CreateNewDataMsg >>
-                        User.Types.NewAddMsg >>
-                        Cmd.ofMsg
-                    )
-                { model with CurrPositions = uploadOrDeleteFinished},msg
-            | _ -> model,[]
+            ()
+            |>function
+                | _ when uploadOrDeleteFinished.IsSome ->
+                    let savingOpt =
+                        instruction
+                        |> NewFilesInstruction
+                        |> fun x -> seq[x]
+                    
+                    let msg =
+                        (savingOpt,ids,positions) |>
+                        (
+                            NewAdd.Types.SaveResult.AllSavesResolved >>
+                            SavingResolved >>
+                            SavingFinished >>
+                            NewAdd.Types.CreateNewDataMsg >>
+                            User.Types.NewAddMsg >>
+                            Cmd.ofMsg
+                        )
+                    { model with CurrPositions = uploadOrDeleteFinished},msg
+                | _ -> model,[]
+        | Error err ->
+            let reactElMsg =
+                seq[
+                    Html.div[
+                        prop.className "column"
+                        prop.children[
+                            Fable.React.Helpers.str err
+                        ]
+                    ]
+                    User.Logic.spinner
+                ]
+            let errMsg =
+                (reactElMsg,positions)
+                |> User.Types.PopUpSettings.DefaultWithButton
+                |> Some
+                |> User.Types.Msg.PopUpMsg
+                |> Cmd.ofMsg
+
+            model,errMsg
 
     | CreateDeletePopup positions ->
         let a = ""

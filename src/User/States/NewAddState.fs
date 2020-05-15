@@ -25,23 +25,11 @@ let init () : Model * Cmd<Msg> =
 
 let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     match msg with
-    | CreateNewDataMsg(SavingWillBegin(status)) ->
+    | CreateNewDataMsg(status) ->
         model,
             Cmd.batch(
                 Logic.saveUserData status
             )    
-
-    | CreateNewDataMsg(SavingOnGoing(status)) ->
-        model,
-            Cmd.batch(
-                Logic.saveUserData status
-                )
-    | CreateNewDataMsg(SavingFinished(status)) ->
-        model,
-            Cmd.batch(
-                Logic.saveUserData status
-            )
-
     | NewAddInfoMsg reactMessage ->
         { model with  NewAddMessages = reactMessage }, []
     | NewFilesChosenMsg (files,type') ->
@@ -58,7 +46,6 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
                                      dbIds
                                      positions
         model,msg
-    
 
         
 

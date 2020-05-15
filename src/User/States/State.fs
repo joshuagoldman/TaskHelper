@@ -50,6 +50,8 @@ let matchValidity validityObject =
 
 let update msg model : Model * Cmd<User.Types.Msg> =
     match msg with
+    | MsgNone ->
+        model,Cmd.none
     | CmdMsging cmdMsg ->
         model,cmdMsg
     | LoadedInstructions Started ->

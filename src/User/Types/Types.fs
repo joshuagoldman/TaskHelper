@@ -27,7 +27,7 @@ type PopUpSettings<'a> =
     | Default of seq<ReactElement> * Position
     | DefaultWithOptions of seq<ReactElement> * Position * seq<'a>
     | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
-    | DefaultNewPage of seq<ReactElement> * NewUserPage * Position 
+    | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
 
 // Many discriminated unions in order to facilitate unit testing
 type newSaveResult =
@@ -71,6 +71,7 @@ type Msg =
     | SaveInstructionToDataBase of Data.InstructionData * string
     | DeleteInstructionMsg of Data.InstructionData * Position
     | CmdMsging of Elmish.Cmd<Msg>
+    | MsgNone
 
 type Model =
     {

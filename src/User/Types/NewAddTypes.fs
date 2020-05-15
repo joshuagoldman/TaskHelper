@@ -14,6 +14,10 @@ type MediaChoiceFormData =
     | Video of Types.File
     | InstructionTxt of Types.File
 
+type SaveResult =
+    | AllSavesResolved of seq<DatabaseSavingOptions> * DBIds * Position
+    | NotAllSavesFinished of string * ReactElement * Position
+
 type Msg =
     | NewAddInfoMsg of seq<ReactElement>
     | NewInstructionIdMsg of string
@@ -22,10 +26,9 @@ type Msg =
     | NewInstructionsListMsg of seq<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>
     | SaveNewData of Data.InstructionData * DBIds * Position
-    | CheckIfSaveFinished of Position
+    | CheckIfSaveFinished of DBIds * Position
     | CreateNewDataMsg of
-        AsyncOperationSavingStatus<SaveDataProgress<(Types.File * DBIds * Position),
-                                                      bool * Position>>
+        AsyncOperationSavingStatus<SaveDataProgress<(Types.File * DBIds * Position),SaveResult>>
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
