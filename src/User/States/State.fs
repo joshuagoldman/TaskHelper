@@ -147,17 +147,44 @@ let update msg model : Model * Cmd<User.Types.Msg> =
     | NewUserDataToAddMsg instructionToAdd ->
         match model.UserData with
         | Data.Deferred.Resolved(Ok data) ->
-            let newInstructions =
+            let newInstructionWInfo =
                 data.Instructions
-                |> Seq.append [instructionToAdd]
-            {
-                Id = data.Id
-                Instructions = newInstructions
+                |> Seq.map (fun instructionComp ->
+                    instructionComp.Title.Replace(" ","") = instructionToAdd.Title.Replace(" ","")
+                    |>function
+                        | areEq when areEq = true ->
+                            (true,instructionToAdd)
+                        | _ ->
+                            (false,instructionComp))
+            newInstructionWInfo
+            |> Seq.exists (fun (isInstrWNewInfo,_) -> isInstrWNewInfo)
+            |> function
+                | existsDuplicateInstructionTitle when existsDuplicateInstructionTitle ->
+                    let newInstr =
+                        newInstructionWInfo
+                        |> Seq.map (fun (_,instr) -> instr)
 
-            }
-            |> ( Ok >> Deferred.Resolved )
-            |> fun newUserData ->
-                { model with UserData = newUserData}, Cmd.none
+                    {
+                        Id = data.Id
+                        Instructions = newInstr
+
+                    }
+                    |> ( Ok >> Deferred.Resolved )
+                    |> fun newUserData ->
+                        { model with UserData = newUserData}, Cmd.none
+                | _ ->
+                    let newInstructions =
+                        data.Instructions
+                        |> Seq.append [instructionToAdd]
+                    
+                    {
+                        Id = data.Id
+                        Instructions = newInstructions
+
+                    }
+                    |> ( Ok >> Deferred.Resolved )
+                    |> fun newUserData ->
+                        { model with UserData = newUserData}, Cmd.none
                 
         | Data.Deferred.Resolved(Error err) ->
             seq[

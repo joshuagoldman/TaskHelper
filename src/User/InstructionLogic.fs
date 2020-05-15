@@ -706,6 +706,20 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
                 Cmd.ofMsg
             )
 
+        let addNewInstructionMsg =
+            databaseOptions
+            |> Seq.map (fun opt ->
+                match opt with
+                | DatabaseSavingOptions.NewFilesInstruction instr ->
+                    NewUserDataToAddMsg instr
+                    |> Cmd.ofMsg
+                | DatabaseSavingOptions.NewNameInstruction instr ->
+                    NewUserDataToAddMsg instr
+                    |> Cmd.ofMsg
+                | _ ->
+                    Cmd.none)
+            |> Cmd.batch
+
         let funcChainingDelayedPopupKill =
             None 
             |> User.Types.PopUpMsg
@@ -717,7 +731,10 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
             |> funcChaining positions
 
         let databaseMsgsCombined =
-            seq[databaseChangePopupMsg ; funcChainingDelayedPopupKill]
+            seq[
+                databaseChangePopupMsg
+                funcChainingDelayedPopupKill
+                addNewInstructionMsg]
 
         let deletePartMsgs parts =
             parts
