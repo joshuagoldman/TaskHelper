@@ -174,7 +174,6 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                                 let msg =
                                     (savingOpt.Value,ids,positions) |>
                                     (
-                                        NewAdd.Types.SaveResult.AllSavesResolved >>
                                         SavingResolved >>
                                         SavingFinished >>
                                         NewAdd.Types.CreateNewDataMsg >>

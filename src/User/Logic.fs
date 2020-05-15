@@ -581,7 +581,8 @@ let saveAsync ( file : Types.File )
 }
 
 let saveUserData
-        ( status : AsyncOperationSavingStatus<SaveDataProgress<Types.File * DBIds * Position,SaveResult>>) =
+        ( status : AsyncOperationSavingStatus<SaveDataProgress<(Types.File * DBIds * Position),
+                                                                    seq<DatabaseSavingOptions> * DBIds * Position>>) =
     match status with 
     | SavingWillBegin(SavingHasNostStartedYet(file,dbIds,positions)) ->
         file.name
@@ -617,10 +618,7 @@ let saveUserData
                 |> Cmd.ofMsg
             ]
 
-    | SavingFinished(SavingResolved(SaveResult.NotAllSavesFinished)) ->
-        seq[Cmd.none]
-
-    | SavingFinished(SavingResolved(SaveResult.AllSavesResolved(savingOptions,ids,positions))) ->
+    | SavingFinished(SavingResolved(savingOptions,ids,positions)) ->
         let dbMsg =
             (savingOptions,ids,positions)
             |> Instruction.Types.DatabaseChangeBegun

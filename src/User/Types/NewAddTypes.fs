@@ -14,10 +14,6 @@ type MediaChoiceFormData =
     | Video of Types.File
     | InstructionTxt of Types.File
 
-type SaveResult =
-    | AllSavesResolved of seq<DatabaseSavingOptions> * DBIds * Position
-    | NotAllSavesFinished 
-
 type Msg =
     | NewAddInfoMsg of seq<ReactElement>
     | NewInstructionIdMsg of string
@@ -28,7 +24,7 @@ type Msg =
     | SaveNewData of Data.InstructionData * DBIds * Position
     | CheckIfSaveFinished of DBIds * Position
     | CreateNewDataMsg of
-        AsyncOperationSavingStatus<SaveDataProgress<(Types.File * DBIds * Position),SaveResult>>
+        AsyncOperationSavingStatus<SaveDataProgress<(Types.File * DBIds * Position),seq<DatabaseSavingOptions> * DBIds * Position>>
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
