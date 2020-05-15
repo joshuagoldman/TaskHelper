@@ -16,7 +16,7 @@ type MediaChoiceFormData =
 
 type SaveResult =
     | AllSavesResolved of seq<DatabaseSavingOptions> * DBIds * Position
-    | NotAllSavesFinished of string * ReactElement * Position
+    | NotAllSavesFinished 
 
 type Msg =
     | NewAddInfoMsg of seq<ReactElement>

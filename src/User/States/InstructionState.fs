@@ -160,29 +160,32 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
     | CheckIfSaveFinished(ids,positions)->
         match model.CurrInstruction with
         | Ok (instruction,_) ->
-            let uploadOrDeleteFinished =
+            let info =
                 model.CurrPositions
-                |> Instruction.Logic.uploadOrDeleteFinished
+                |> Instruction.Logic.uploadOrDeleteFinished instruction
 
             ()
             |>function
-                | _ when uploadOrDeleteFinished.IsSome ->
-                    let savingOpt =
-                        instruction
-                        |> NewFilesInstruction
-                        |> fun x -> seq[x]
-                    
-                    let msg =
-                        (savingOpt,ids,positions) |>
-                        (
-                            NewAdd.Types.SaveResult.AllSavesResolved >>
-                            SavingResolved >>
-                            SavingFinished >>
-                            NewAdd.Types.CreateNewDataMsg >>
-                            User.Types.NewAddMsg >>
-                            Cmd.ofMsg
-                        )
-                    { model with CurrPositions = uploadOrDeleteFinished},msg
+                | _ when info.IsSome ->
+                    let saveToDBIfSomeUploadSuccess =
+                        info.Value
+                        |> function
+                            | (uploadOrDeleteFinished,savingOpt) when savingOpt.IsSome ->
+                                let msg =
+                                    (savingOpt.Value,ids,positions) |>
+                                    (
+                                        NewAdd.Types.SaveResult.AllSavesResolved >>
+                                        SavingResolved >>
+                                        SavingFinished >>
+                                        NewAdd.Types.CreateNewDataMsg >>
+                                        User.Types.NewAddMsg >>
+                                        Cmd.ofMsg
+                                    )
+
+                                { model with CurrPositions = Some uploadOrDeleteFinished},msg
+                            | (uploadOrDeleteFinished,_) ->
+                                { model with CurrPositions = Some uploadOrDeleteFinished},[]
+                    saveToDBIfSomeUploadSuccess
                 | _ -> model,[]
         | Error err ->
             let reactElMsg =

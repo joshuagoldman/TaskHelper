@@ -390,7 +390,9 @@ let changeFileStatus ( model : Instruction.Types.Model )
                     upDatNameIfMatch name nameComp currPartStatus
                 | PartStatus.StatusExisting nameComp ->
                     upDatNameIfMatch name nameComp currPartStatus
-                | PartStatus.UploadOrDeleteFinished (nameComp,_) ->
+                | PartStatus.UploadOrDeleteFinishedSuccesfully (nameComp,_) ->
+                    upDatNameIfMatch name nameComp currPartStatus
+                | PartStatus.UploadOrDeleteFinishedWithFailure (nameComp,_) ->
                     upDatNameIfMatch name nameComp currPartStatus)
             |> fun newStatuses ->
                 { modInfo with Status = newStatuses })
@@ -428,7 +430,9 @@ let changeFileStatus ( model : Instruction.Types.Model )
             modInfo.Status
             |> Seq.choose (fun status ->
                 match status with
-                | PartStatus.UploadOrDeleteFinished(_,msgElement) ->
+                | PartStatus.UploadOrDeleteFinishedSuccesfully(_,msgElement) ->
+                    Some (seq[msgElement])
+                | PartStatus.UploadOrDeleteFinishedWithFailure(_,msgElement) ->
                     Some (seq[msgElement])
                 | PartStatus.Uploading name ->
                     let msgElement =
@@ -446,7 +450,11 @@ let changeFileStatus ( model : Instruction.Types.Model )
     | Some modInfos ->
         let (newInfo,msgElement) =
             match newStatus with
-            | PartStatus.UploadOrDeleteFinished(name,msgElement) ->
+            | PartStatus.UploadOrDeleteFinishedSuccesfully(name,_) ->
+                let newModInfos = getNewModInfos modInfos name
+                let newFileStatusMsgs = newStatusReactElements newModInfos
+                (newModInfos,newFileStatusMsgs)
+            | PartStatus.UploadOrDeleteFinishedWithFailure(name,_) ->
                 let newModInfos = getNewModInfos modInfos name
                 let newFileStatusMsgs = newStatusReactElements newModInfos
                 (newModInfos,newFileStatusMsgs)
@@ -472,10 +480,13 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 modInfo.Status
                 |> Seq.map (fun status ->
                     match status with
-                    | PartStatus.UploadOrDeleteFinished(_,_) ->
+                    | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
+                        true
+                    | PartStatus.UploadOrDeleteFinishedWithFailure(_,_) ->
                         true
                     | _ -> false))
             |> Seq.forall (fun x -> x)
+
         let msg =
             ()
             |> function
@@ -515,7 +526,7 @@ let deleteProcess ( status : DeleteProcess<string * Data.Position,string * Data.
     | DeleteProcess.DeleteFinished(mediaName,positions,reactEL) ->
         let mediaToDeleteMsg =
             (mediaName,reactEL)
-            |> PartStatus.UploadOrDeleteFinished 
+            |> PartStatus.UploadOrDeleteFinishedSuccesfully 
             |> fun x ->
                 (x, positions)
                 |> ChangeFileStatus 
@@ -525,15 +536,25 @@ let deleteProcess ( status : DeleteProcess<string * Data.Position,string * Data.
         |> fun x -> seq[x]
         
         
-let uploadOrDeleteFinished modInfosOpt =
+let uploadOrDeleteFinished instruction modInfosOpt =
     match modInfosOpt with
     | Some modInfos ->
         modInfos
+        |> Seq.choose (fun modInfo ->
+            match modInfo.DelOrReg with
+            | Some delOrReg ->
+                match delOrReg with
+                | DeleteInfo.Delete _ ->
+                    Some modInfo
+                | _ -> None
+            | _ -> None)
         |> Seq.collect (fun modInfo ->
             modInfo.Status
             |> Seq.map (fun status ->
                 match status with
-                | PartStatus.UploadOrDeleteFinished(_,_) ->
+                | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
+                    true
+                | PartStatus.UploadOrDeleteFinishedWithFailure(_,_) ->
                     true
                 | _ -> false))
         |> Seq.forall (fun res -> res)
@@ -545,7 +566,9 @@ let uploadOrDeleteFinished modInfosOpt =
                         modInfo.Status
                         |> Seq.map (fun status ->
                             match status with
-                            | PartStatus.UploadOrDeleteFinished(name,_) ->
+                            | PartStatus.UploadOrDeleteFinishedSuccesfully(name,_) ->
+                                PartStatus.StatusExisting name
+                            | PartStatus.UploadOrDeleteFinishedWithFailure(name,_) ->
                                 PartStatus.StatusExisting name
                             | PartStatus.StatusExisting name ->
                                 PartStatus.StatusExisting name
@@ -556,7 +579,57 @@ let uploadOrDeleteFinished modInfosOpt =
                         |> fun newStatuses ->
                             { modInfo with Status = newStatuses}
                         )
-                Some modInfosNew
+
+                let partsToAddToDB =
+                    modInfos
+                    |> Seq.choose (fun modInfo ->
+                        modInfo.Status
+                        |> Seq.exists (fun status ->
+                            match status with
+                            | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
+                                true
+                            | _ -> false)
+                        |> function
+                            | existsSuccessUpload when existsSuccessUpload = true ->
+                                Some modInfo.Names.CurrName
+                            | _ -> None)
+                    |> function
+                        | successUploads when successUploads |> Seq.length <> 0 ->
+                            Some successUploads
+                        | _ -> None
+
+                let newInstructionInfoForDB =
+                    ()
+                    |>function
+                        | _ when partsToAddToDB.IsSome ->
+                            let instruction4NewDBInfo =
+                                instruction.Data
+                                |> Seq.choose (fun part ->
+                                    partsToAddToDB.Value
+                                    |> Seq.exists (fun partComp ->
+                                        partComp.Replace(" ","") = part.Title.Replace(" ",""))
+                                    |> function
+                                        | existsPartToAddToDB when existsPartToAddToDB = true ->
+                                            Some part
+                                        | _ -> None)
+                                |> function
+                                    | existsPartsToAddToDB when existsPartsToAddToDB |> Seq.length <> 0 ->
+                                        let instruction4DBInfo =
+                                            {
+                                                Title = instruction.Title
+                                                Data = existsPartsToAddToDB
+                                            }
+
+                                        let savingOptions =
+                                            instruction4DBInfo
+                                            |> DatabaseSavingOptions.NewFilesInstruction
+
+                                        Some(seq[savingOptions])
+
+                            instruction4NewDBInfo
+                                    | _ -> None
+                        | _ -> None
+                Some (modInfosNew,newInstructionInfoForDB)
             | _ -> None
     | _ -> None
 

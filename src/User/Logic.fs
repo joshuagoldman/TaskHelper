@@ -547,7 +547,7 @@ let saveAsync ( file : Types.File )
                     ]
                 ]
             )
-            |> Instruction.Types.UploadOrDeleteFinished
+            |> Instruction.Types.UploadOrDeleteFinishedSuccesfully
         return (
                 newStatus
                 |> funcChainingIsUploading positions
@@ -573,7 +573,7 @@ let saveAsync ( file : Types.File )
                     ]
                 ]
             )
-            |> Instruction.Types.PartStatus.UploadOrDeleteFinished
+            |> Instruction.Types.PartStatus.UploadOrDeleteFinishedWithFailure
         return (
                 newStatus
                 |> funcChainingIsUploading positions
@@ -617,18 +617,8 @@ let saveUserData
                 |> Cmd.ofMsg
             ]
 
-    | SavingFinished(SavingResolved(SaveResult.NotAllSavesFinished(fileName,resolvedReactMsg,positions))) ->
-        let resolvedMsg =
-            (fileName,resolvedReactMsg)
-            |> Instruction.Types.UploadOrDeleteFinished
-            |> fun x ->
-                (x,positions)
-                |> Instruction.Types.ChangeFileStatus
-                |> User.Types.InstructionMsg
-                |> Cmd.ofMsg
-                |> fun x -> seq[x]
-
-        resolvedMsg
+    | SavingFinished(SavingResolved(SaveResult.NotAllSavesFinished)) ->
+        seq[Cmd.none]
 
     | SavingFinished(SavingResolved(SaveResult.AllSavesResolved(savingOptions,ids,positions))) ->
         let dbMsg =

@@ -13,7 +13,8 @@ type PartStatus =
     | Delete of string
     | Uploading of string
     | StatusExisting of string
-    | UploadOrDeleteFinished of string * ReactElement
+    | UploadOrDeleteFinishedSuccesfully of string * ReactElement
+    | UploadOrDeleteFinishedWithFailure of string * ReactElement
 
 type DatabaseChangeResult =
     | DatabaseChangeSucceeded of ReactElement * Data.Position * seq<DatabaseSavingOptions>
