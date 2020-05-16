@@ -21,10 +21,9 @@ type Msg =
     | NewFilesChosenMsg of seq<MediaChoiceFormData> * string
     | NewInstructionsListMsg of seq<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>
-    | SaveNewData of Data.InstructionData * DBIds * Position
-    | CheckIfSaveFinished of DBIds * Position
+    | SaveNewData of DatabaseNewFilesOptions * DBIds * Position
     | CreateNewDataMsg of
-        AsyncOperationSavingStatus<SaveDataProgress<(Types.File * DBIds * Position),seq<DatabaseSavingOptions> * DBIds * Position>>
+        SaveDataProgress<(Types.File * DBIds * Position * DatabaseNewFilesOptions),seq<DatabaseSavingOptions> * DBIds * Position>
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>

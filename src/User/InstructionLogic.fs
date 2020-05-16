@@ -364,7 +364,24 @@ let filenameWStatus (msg : seq<ReactElement> ) =
             msg
         )  
     ]
-        
+
+let currStatList ( modInfos : seq<modificationInfo> ) =
+    modInfos
+    |> Seq.collect (fun modInfo ->
+        modInfo.Status
+        |> Seq.map (fun stat ->
+            match stat with
+            | PartStatus.Uploading nameComp ->
+                nameComp + " has status Uploiading"
+            | PartStatus.Delete nameComp ->
+                nameComp + " has status Delete"
+            | PartStatus.StatusExisting nameComp ->
+                nameComp + " has status StatusExisting"
+            | PartStatus.UploadOrDeleteFinishedSuccesfully (nameComp,_) ->
+                nameComp + " has status SuccessUpload"
+            | PartStatus.UploadOrDeleteFinishedWithFailure (nameComp,_) ->
+                nameComp + " has status FailedUpload"))
+    |> String.concat "\n"
 
 let changeFileStatus ( model : Instruction.Types.Model )
                      ( newStatus : PartStatus)
@@ -474,6 +491,8 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 let newFileStatusMsgs = newStatusReactElements newModInfos
                 (newModInfos,newFileStatusMsgs)
 
+        let test1 = currStatList modInfos
+        let test2 = currStatList newInfo
         let allFileStatusesAreStale =
             newInfo
             |> Seq.collect (fun modInfo ->
@@ -483,6 +502,8 @@ let changeFileStatus ( model : Instruction.Types.Model )
                     | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
                         true
                     | PartStatus.UploadOrDeleteFinishedWithFailure(_,_) ->
+                        true
+                    | PartStatus.StatusExisting _ ->
                         true
                     | _ -> false))
             |> Seq.forall (fun x -> x)
@@ -536,18 +557,11 @@ let deleteProcess ( status : DeleteProcess<string * Data.Position,string * Data.
         |> fun x -> seq[x]
         
         
-let uploadOrDeleteFinished instruction modInfosOpt =
+let uploadOrDeleteFinished modInfosOpt options =
     match modInfosOpt with
     | Some modInfos ->
+        let test1 = currStatList modInfos
         modInfos
-        |> Seq.choose (fun modInfo ->
-            match modInfo.DelOrReg with
-            | Some delOrReg ->
-                match delOrReg with
-                | DeleteInfo.Delete _ ->
-                    Some modInfo
-                | _ -> None
-            | _ -> None)
         |> Seq.collect (fun modInfo ->
             modInfo.Status
             |> Seq.map (fun status ->
@@ -556,12 +570,14 @@ let uploadOrDeleteFinished instruction modInfosOpt =
                     true
                 | PartStatus.UploadOrDeleteFinishedWithFailure(_,_) ->
                     true
+                | PartStatus.StatusExisting _ ->
+                    true
                 | _ -> false))
         |> Seq.forall (fun res -> res)
         |> function
             | uploadOrDeleteFinished when uploadOrDeleteFinished = true ->
                 let modInfosNew =
-                    modInfos
+                    modInfos 
                     |> Seq.map (fun modInfo ->
                         modInfo.Status
                         |> Seq.map (fun status ->
@@ -584,13 +600,13 @@ let uploadOrDeleteFinished instruction modInfosOpt =
                     modInfos
                     |> Seq.choose (fun modInfo ->
                         modInfo.Status
-                        |> Seq.exists (fun status ->
+                        |> Seq.forall (fun status ->
                             match status with
                             | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
                                 true
                             | _ -> false)
                         |> function
-                            | existsSuccessUpload when existsSuccessUpload = true ->
+                            | isSuccessUpload when isSuccessUpload = true ->
                                 Some modInfo.Names.CurrName
                             | _ -> None)
                     |> function
@@ -603,31 +619,59 @@ let uploadOrDeleteFinished instruction modInfosOpt =
                     |>function
                         | _ when partsToAddToDB.IsSome ->
                             let instruction4NewDBInfo =
-                                instruction.Data
-                                |> Seq.choose (fun part ->
-                                    partsToAddToDB.Value
-                                    |> Seq.exists (fun partComp ->
-                                        partComp.Replace(" ","") = part.Title.Replace(" ",""))
+                                match options with
+                                | DatabaseNewFilesOptions.SameInstructionOption instruction ->
+                                    instruction.Data
+                                    |> Seq.choose (fun part ->
+                                        partsToAddToDB.Value
+                                        |> Seq.exists (fun partCompTitle ->
+                                            partCompTitle.Replace(" ","") = part.Title.Replace(" ",""))
+                                        |> function
+                                            | existsPartToAddToDB when existsPartToAddToDB = true ->
+                                                Some part
+                                            | _ -> None)
                                     |> function
-                                        | existsPartToAddToDB when existsPartToAddToDB = true ->
-                                            Some part
-                                        | _ -> None)
-                                |> function
-                                    | existsPartsToAddToDB when existsPartsToAddToDB |> Seq.length <> 0 ->
-                                        let instruction4DBInfo =
-                                            {
-                                                Title = instruction.Title
-                                                Data = existsPartsToAddToDB
-                                            }
+                                        | existsPartsToAddToDB when existsPartsToAddToDB |> Seq.length <> 0 ->
+                                            let instruction4DBInfo =
+                                                {
+                                                    Title = instruction.Title
+                                                    Data = existsPartsToAddToDB
+                                                }
 
-                                        let savingOptions =
-                                            instruction4DBInfo
-                                            |> DatabaseSavingOptions.NewFilesInstruction
+                                            let savingOptions =
+                                                instruction4DBInfo
+                                                |> DatabaseNewFilesOptions.SameInstructionOption
+                                                |> DatabaseSavingOptions.NewFilesInstruction
 
-                                        Some(seq[savingOptions])
+                                            Some(seq[savingOptions])
+                                        | _ -> None
+                                | DatabaseNewFilesOptions.NewInstructionOption instruction ->
+                                    instruction.Data
+                                    |> Seq.choose (fun part ->
+                                        partsToAddToDB.Value
+                                        |> Seq.exists (fun partCompTitle ->
+                                            partCompTitle.Replace(" ","") = part.Title.Replace(" ",""))
+                                        |> function
+                                            | existsPartToAddToDB when existsPartToAddToDB = true ->
+                                                Some part
+                                            | _ -> None)
+                                    |> function
+                                        | existsPartsToAddToDB when existsPartsToAddToDB |> Seq.length <> 0 ->
+                                            let instruction4DBInfo =
+                                                {
+                                                    Title = instruction.Title
+                                                    Data = existsPartsToAddToDB
+                                                }
+
+                                            let savingOptions =
+                                                instruction4DBInfo
+                                                |> DatabaseNewFilesOptions.NewInstructionOption
+                                                |> DatabaseSavingOptions.NewFilesInstruction
+
+                                            Some(seq[savingOptions])
+                                        | _ -> None
 
                             instruction4NewDBInfo
-                                    | _ -> None
                         | _ -> None
                 Some (modInfosNew,newInstructionInfoForDB)
             | _ -> None
@@ -706,20 +750,6 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
                 Cmd.ofMsg
             )
 
-        let addNewInstructionMsg =
-            databaseOptions
-            |> Seq.map (fun opt ->
-                match opt with
-                | DatabaseSavingOptions.NewFilesInstruction instr ->
-                    NewUserDataToAddMsg instr
-                    |> Cmd.ofMsg
-                | DatabaseSavingOptions.NewNameInstruction instr ->
-                    NewUserDataToAddMsg instr
-                    |> Cmd.ofMsg
-                | _ ->
-                    Cmd.none)
-            |> Cmd.batch
-
         let funcChainingDelayedPopupKill =
             None 
             |> User.Types.PopUpMsg
@@ -734,7 +764,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
             seq[
                 databaseChangePopupMsg
                 funcChainingDelayedPopupKill
-                addNewInstructionMsg]
+                ]
 
         let deletePartMsgs parts =
             parts
@@ -774,4 +804,59 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
                 | _ ->
                     databaseMsgsCombined)
         ifDeleteMsg
+
+let saveNewData newInstrDataOpt
+              ( options : DatabaseNewFilesOptions )
+                dbIds
+                positions =
+    match newInstrDataOpt with
+    | Some medias ->
+        let matchMaking str =
+            medias
+            |> Seq.exists (fun media ->
+                match media with
+                | NewAdd.Types.Video vid ->
+                    vid.name = str
+                | NewAdd.Types.InstructionTxt instr ->
+                    instr.name = str)
+
+        let newInstr =
+            match options with
+            | DatabaseNewFilesOptions.NewInstructionOption instr ->
+                instr
+            | DatabaseNewFilesOptions.SameInstructionOption instr ->
+                instr
+
+        newInstr.Data
+        |> Seq.forall (fun part ->
+            matchMaking part.InstructionTxt &&
+            matchMaking part.InstructionVideo)
+        |> function
+            | res when res = true ->
+                let funcChaining info =
+                    info |>
+                    (
+                        SavingHasNostStartedYet >>
+                        NewAdd.Types.CreateNewDataMsg >>
+                        User.Types.NewAddMsg
+                    )
+                medias
+                |> Seq.map (fun media ->
+                    match media with
+                    | NewAdd.Types.MediaChoiceFormData.Video file -> file
+                    | NewAdd.Types.MediaChoiceFormData.InstructionTxt file -> file)
+                |> Seq.map (fun file ->
+                    (file,dbIds,positions,options)
+                    |> funcChaining
+                    |> Cmd.ofMsg)
+                |> Cmd.batch
+                |> fun msg ->
+                    msg
+            | _ ->
+                "Not all necesarry media exist!"
+                |> User.Logic.errorPopupMsg positions
+                |> Cmd.ofMsg
+                |> fun msg ->
+                    msg
+    | None -> []
         

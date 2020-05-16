@@ -286,21 +286,12 @@ let deleteAsync ( fileName : string )
         )
 }
 
-let instructionToSqlSaveNew userId ( instructionId : string ) instruction =
+let instructionToSqlSaveNew userId
+                            ( instructionId : string )
+                            ( databaseNewFilesOptions : DatabaseNewFilesOptions ) =
 
-    let sqlInstructionVars =
-        seq[
-            userId
-            instructionId
-            instruction.Title
-        ]
-    let instructionInsert =
-        String.Format(
-            "INSERT INTO instructions ( id, instruction_id, title )
-             VALUES ( {0}, {1}, '{2}');", sqlInstructionVars )
-
-    let partInsert =
-        instruction.Data
+    let getPartInsert parts =
+        parts
         |> Seq.map (fun part ->
               String.Format(
                 "INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
@@ -309,8 +300,27 @@ let instructionToSqlSaveNew userId ( instructionId : string ) instruction =
               ))
         |> String.concat ""
 
-    instructionInsert + partInsert
+    match databaseNewFilesOptions with
+    | DatabaseNewFilesOptions.NewInstructionOption instruction ->
+        let instructionInsert =
+            String.Format(
+                "INSERT INTO instructions ( id, instruction_id, title )
+                 VALUES ( {0}, {1}, '{2}');",
+                 userId,
+                 instructionId,
+                 instruction.Title)
 
+        let partInsert =
+            getPartInsert instruction.Data
+
+        instructionInsert + partInsert
+
+    | DatabaseNewFilesOptions.SameInstructionOption instruction ->
+        let partInsert =
+            getPartInsert instruction.Data
+
+        partInsert
+    
 let instructionToSqlNewNames ( instructionId : string ) instruction =
 
     let instructionInsert =
@@ -369,8 +379,8 @@ let sqlCommandToDB databaseOptions ids positions = async{
         databaseOptions
         |> Seq.map (fun option ->
             match option with
-            | DatabaseSavingOptions.NewFilesInstruction instr ->
-                instr
+            | DatabaseSavingOptions.NewFilesInstruction savingOptions ->
+                savingOptions
                 |> instructionToSqlSaveNew ids.UserId ids.InstructionId
             | DatabaseSavingOptions.NewNameInstruction instr ->
                 instr
@@ -503,6 +513,7 @@ let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
         msgs
 
 let saveAsync ( file : Types.File )
+              ( options : DatabaseNewFilesOptions )
                 positions
                ( ids : DBIds ) = async{
 
@@ -516,6 +527,11 @@ let saveAsync ( file : Types.File )
 
     let fData =
         FormData.Create()
+
+    let checkSavingMsg =
+        (ids,positions,options)
+        |> Instruction.Types.CheckIfSaveFinished
+        |> User.Types.InstructionMsg
 
     fData.append("filePath", fullPath)
     fData.append("file", file)
@@ -551,6 +567,14 @@ let saveAsync ( file : Types.File )
         return (
                 newStatus
                 |> funcChainingIsUploading positions
+                |> fun x ->
+                    seq[
+                        x
+                        checkSavingMsg
+                    ]
+                    |> Seq.map (fun msg -> msg |> Cmd.ofMsg)
+                    |> Cmd.batch
+                    |> User.Types.CmdMsging
         )
     | _ ->
         let msg =
@@ -577,14 +601,22 @@ let saveAsync ( file : Types.File )
         return (
                 newStatus
                 |> funcChainingIsUploading positions
+                |> fun x ->
+                    seq[
+                        x
+                        checkSavingMsg
+                    ]
+                    |> Seq.map (fun msg -> msg |> Cmd.ofMsg)
+                    |> Cmd.batch
+                    |> User.Types.CmdMsging
         )
 }
 
 let saveUserData
-        ( status : AsyncOperationSavingStatus<SaveDataProgress<(Types.File * DBIds * Position),
-                                                                    seq<DatabaseSavingOptions> * DBIds * Position>>) =
+        ( status : SaveDataProgress<(Types.File * DBIds * Position * DatabaseNewFilesOptions),
+                                        seq<DatabaseSavingOptions> * DBIds * Position>) =
     match status with 
-    | SavingWillBegin(SavingHasNostStartedYet(file,dbIds,positions)) ->
+    | SavingHasNostStartedYet(file,dbIds,positions,options) ->
         file.name
         |> Instruction.Types.Uploading
         |> funcChainingIsUploading positions
@@ -593,32 +625,25 @@ let saveUserData
                 info |>
                 (
                     SavingInProgress >>
-                    SavingOnGoing >>
                     NewAdd.Types.CreateNewDataMsg >>
                     User.Types.NewAddMsg
                 )
             seq[
                 x
-                (file,dbIds,positions)
+                (file,dbIds,positions,options)
                 |> funcChainingSavingInProgress
             ]
             |> Seq.map ( fun msg -> msg |> Cmd.ofMsg )
 
-    | SavingOnGoing(SavingInProgress(file,dbIds,positions)) ->
-        dbIds
-        |> saveAsync file positions
-        |> Cmd.fromAsync
-        |> fun x ->
-            seq[
-                x
+    | SavingInProgress(file,dbIds,positions,options) ->
+        let savingMsg =  
+            dbIds
+            |> saveAsync file options positions
+            |> Cmd.fromAsync
 
-                (dbIds,positions)
-                |> NewAdd.Types.CheckIfSaveFinished
-                |> User.Types.NewAddMsg
-                |> Cmd.ofMsg
-            ]
+        seq[savingMsg]
 
-    | SavingFinished(SavingResolved(savingOptions,ids,positions)) ->
+    | SavingResolved(savingOptions,ids,positions) ->
         let dbMsg =
             (savingOptions,ids,positions)
             |> Instruction.Types.DatabaseChangeBegun
@@ -1436,6 +1461,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     |> DatabaseSavingOptions.NewNameInstruction
 
                                                     { newInstruction with Data = newFileParts.Value }
+                                                    |> DatabaseNewFilesOptions.SameInstructionOption
                                                     |> DatabaseSavingOptions.NewFilesInstruction
 
                                                     partsToDelete.Value|>
@@ -1451,6 +1477,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                              let info =
                                                  seq[
                                                      { newInstruction with Data = newFileParts.Value }
+                                                     |> DatabaseNewFilesOptions.SameInstructionOption
                                                      |> DatabaseSavingOptions.NewFilesInstruction
 
                                                      { newInstruction with Data = partsWithNewNames.Value }
@@ -1464,6 +1491,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                             let info =
                                                 seq[
                                                     { newInstruction with Data = newFileParts.Value }
+                                                    |> DatabaseNewFilesOptions.SameInstructionOption
                                                     |> DatabaseSavingOptions.NewFilesInstruction
 
                                                     partsToDelete.Value |>
@@ -1491,6 +1519,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                         let info =
                                             seq[
                                                 { newInstruction with Data = newFileParts.Value }
+                                                |> DatabaseNewFilesOptions.SameInstructionOption
                                                 |> DatabaseSavingOptions.NewFilesInstruction
                                             ]
 
@@ -1589,7 +1618,6 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                        ]
                 prop.children[
                     msgDiv
-                    spinner
                 ]
             ]
             |> fun x -> seq[x]
@@ -1657,7 +1685,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             |> Cmd.batch
             |> User.Types.Msg.CmdMsging
 
-        let createNewSaveAndDBCHangeMsgs savingOptions instrId =
+        let createNewSaveAndDBChangeMsgs savingOptions instrId =
             let newInstr =
                 savingOptions
                 |> Seq.tryPick (fun opt ->
@@ -1705,6 +1733,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                     let newSaveMsg =
                         instrId
                         |> saveNewMsg newInstr.Value
+
                     newSaveMsg
                     |> fun x -> seq[x]
 
@@ -1727,53 +1756,54 @@ let savingChoices userDataOpt positions instruction instructionInfo =
 
                 let savingOptions =
                     newInstr
+                    |> DatabaseNewFilesOptions.NewInstructionOption
                     |> DatabaseSavingOptions.NewFilesInstruction
                     |> fun x -> seq[x]
 
-                createNewSaveAndDBCHangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg
             | SaveExistingNewTitles (savingOptions,instrId) ->
                 let popupMsg =
-                    "Are you sure you want to save a new instruction?"
+                    "Are you sure you want to save an existing instruction with new titles?"
 
-                createNewSaveAndDBCHangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg
             | SaveExisitngNewFIles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files?"
 
-                createNewSaveAndDBCHangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg
                 
             | SaveExistingNewFilesAndTItles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles?"
 
-                createNewSaveAndDBCHangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg
             | SaveExistingNewFilesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files?"
 
-                createNewSaveAndDBCHangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg
             | SaveExistingNewTItlesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new part titles?"
 
-                createNewSaveAndDBCHangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg
             | SaveExistingNewFilesAndTItlesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles?"
 
-                createNewSaveAndDBCHangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg
             | SaveExistingPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save the changes?"
 
-                createNewSaveAndDBCHangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg
             | InstructionIsDelete errorMsg ->
                 errorMsg

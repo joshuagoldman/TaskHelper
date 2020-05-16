@@ -35,12 +35,16 @@ type InstructionData =
         Title : string
     }
 
+type DatabaseNewFilesOptions =
+    | NewInstructionOption of InstructionData 
+    | SameInstructionOption of InstructionData
+
 type DatabaseDeleteOptions =
     | DeleteInstruction of InstructionData 
     | DeleteParts of seq<partData> 
 
 type DatabaseSavingOptions = 
-    | NewFilesInstruction of InstructionData
+    | NewFilesInstruction of DatabaseNewFilesOptions
     | NewNameInstruction of InstructionData
     | PartsToDeleteInstruction of DatabaseDeleteOptions 
 
@@ -122,10 +126,10 @@ type SaveDataProgress<'a,'b> =
     | SavingInProgress of 'a
     | SavingResolved  of 'b
 
-type AsyncOperationSavingStatus<'t> =
+type AsyncOperationSavingStatus<'t,'u> =
     | SavingWillBegin of 't 
-    | SavingOnGoing of 't
-    | SavingFinished of 't
+    | SavingOnGoing of 'u
+    | SavingFinished of 'u
 
 type AsyncOperationEvent<'t> =
     | Started 

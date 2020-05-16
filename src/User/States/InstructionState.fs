@@ -157,54 +157,32 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             model,usrMsg
         | _ -> model,[]
 
-    | CheckIfSaveFinished(ids,positions)->
-        match model.CurrInstruction with
-        | Ok (instruction,_) ->
-            let info =
-                model.CurrPositions
-                |> Instruction.Logic.uploadOrDeleteFinished instruction
+    | CheckIfSaveFinished(ids,positions,options)->
+        let info =
+            options
+            |> Instruction.Logic.uploadOrDeleteFinished model.CurrPositions
+            
+        ()
+        |>function
+            | _ when info.IsSome ->
+                let saveToDBIfSomeUploadSuccess =
+                    info.Value
+                    |> function
+                        | (uploadOrDeleteFinished,savingOpt) when savingOpt.IsSome ->
+                            let msg =
+                                (savingOpt.Value,ids,positions) |>
+                                (
+                                    SavingResolved >>
+                                    NewAdd.Types.CreateNewDataMsg >>
+                                    User.Types.NewAddMsg >>
+                                    Cmd.ofMsg
+                                )
 
-            ()
-            |>function
-                | _ when info.IsSome ->
-                    let saveToDBIfSomeUploadSuccess =
-                        info.Value
-                        |> function
-                            | (uploadOrDeleteFinished,savingOpt) when savingOpt.IsSome ->
-                                let msg =
-                                    (savingOpt.Value,ids,positions) |>
-                                    (
-                                        SavingResolved >>
-                                        SavingFinished >>
-                                        NewAdd.Types.CreateNewDataMsg >>
-                                        User.Types.NewAddMsg >>
-                                        Cmd.ofMsg
-                                    )
-
-                                { model with CurrPositions = Some uploadOrDeleteFinished},msg
-                            | (uploadOrDeleteFinished,_) ->
-                                { model with CurrPositions = Some uploadOrDeleteFinished},[]
-                    saveToDBIfSomeUploadSuccess
-                | _ -> model,[]
-        | Error err ->
-            let reactElMsg =
-                seq[
-                    Html.div[
-                        prop.className "column"
-                        prop.children[
-                            Fable.React.Helpers.str err
-                        ]
-                    ]
-                    User.Logic.spinner
-                ]
-            let errMsg =
-                (reactElMsg,positions)
-                |> User.Types.PopUpSettings.DefaultWithButton
-                |> Some
-                |> User.Types.Msg.PopUpMsg
-                |> Cmd.ofMsg
-
-            model,errMsg
+                            { model with CurrPositions = Some uploadOrDeleteFinished},msg
+                        | (uploadOrDeleteFinished,_) ->
+                            { model with CurrPositions = Some uploadOrDeleteFinished},[]
+                saveToDBIfSomeUploadSuccess
+            | _ -> model,[]
 
     | CreateDeletePopup positions ->
         let a = ""
