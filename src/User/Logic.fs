@@ -290,15 +290,24 @@ let instructionToSqlSaveNew userId
                             ( instructionId : string )
                             ( databaseNewFilesOptions : DatabaseNewFilesOptions ) =
 
+    let fullPath name =
+        String.Format(
+            "User_{0}/Instruction_{1}/{2}",
+            userId,
+            instructionId,
+            name
+        )
+
     let getPartInsert parts =
         parts
         |> Seq.map (fun part ->
               String.Format(
-                "INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
-                VALUES ( {0}, '{1}', '{2}', '{3}');",
+                "INSERT INTO parts ( id,instruction_id, instruction_video, instruction_txt, part_title)
+                VALUES ( {0}, {1}, '{2}', '{3}','{4}');",
+                userId,
                 instructionId,
-                part.InstructionVideo,
-                part.InstructionTxt,
+                fullPath part.InstructionVideo,
+                fullPath part.InstructionTxt,
                 part.Title
               ))
         |> String.concat ""
@@ -324,12 +333,13 @@ let instructionToSqlSaveNew userId
 
         partInsert
     
-let instructionToSqlNewNames ( instructionId : string ) instruction =
+let instructionToSqlNewNames userId ( instructionId : string ) instruction =
 
     let instructionInsert =
         String.Format(
-            "UPDATE instructions SET title = '{0}' WHERE instruction_id = {1}",
+            "UPDATE instructions SET title = '{0}' WHERE id = {1} AND instruction_id = {2}",
             instruction.Title,
+            userId,
             instructionId
         )
 
@@ -338,7 +348,10 @@ let instructionToSqlNewNames ( instructionId : string ) instruction =
         |> Seq.map (fun part ->
               String.Format(
                 "UPDATE parts SET part_title = {0] WHERE instruction_id = {1} AND instruction_video = {2} AND instruction_txt = {3};",
-                seq[part.Title ; instructionId ; part.InstructionVideo ; part.InstructionTxt]
+                part.Title,
+                instructionId,
+                part.InstructionVideo,
+                part.InstructionTxt
               ))
         |> String.concat ""
 
@@ -387,7 +400,7 @@ let sqlCommandToDB databaseOptions ids positions = async{
                 |> instructionToSqlSaveNew ids.UserId ids.InstructionId
             | DatabaseSavingOptions.NewNameInstruction instr ->
                 instr
-                |> instructionToSqlNewNames ids.InstructionId
+                |> instructionToSqlNewNames ids.UserId ids.InstructionId
             | DatabaseSavingOptions.PartsToDeleteInstruction delOption ->
                 ids
                 |> instructionToSqlDelete delOption)
