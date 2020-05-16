@@ -37,6 +37,7 @@ let init() : Model * Cmd<Msg> =
         InstructionSearch = InstructionSearch.State.init() |> fun (a,_) -> a
         UserData = Data.HasNostStartedYet
         NewAdd = NewAdd.State.init() |> fun(a,_) -> a
+        PossibleNewInstruction = NoSaveOrDeleteAttempt
         Instruction = Instruction.State.init() |> fun (a,b) -> a
         LoginSpinner =
             { Controls.defaultAppearanceAttributes with Visible = style.visibility.hidden }
@@ -144,48 +145,19 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with LoginSpinner =
                         { model.LoginSpinner with Visible = visibility } }, []
 
-    | NewUserDataToAddMsg instructionToAdd ->
+    | NewUserDataInstructionToPossiblyAdd updateType ->
+        { model with PossibleNewInstruction = NewPossibleInstructionOptions.SaveOrDeleteAttempt(updateType)}, []
+
+    | NewUserDataToAddMsg ->
         match model.UserData with
         | Data.Deferred.Resolved(Ok data) ->
-            let newInstructionWInfo =
-                data.Instructions
-                |> Array.map (fun instructionComp ->
-                    instructionComp.Title.Replace(" ","") = instructionToAdd.Title.Replace(" ","")
-                    |>function
-                        | areEq when areEq = true ->
-                            (true,instructionToAdd)
-                        | _ ->
-                            (false,instructionComp))
-            newInstructionWInfo
-            |> Array.exists (fun (isInstrWNewInfo,_) -> isInstrWNewInfo)
-            |> function
-                | existsDuplicateInstructionTitle when existsDuplicateInstructionTitle ->
-                    let newInstr =
-                        newInstructionWInfo
-                        |> Array.map (fun (_,instr) -> instr)
+            let result =
+                Instruction.Logic.updateUserInstructions model.PossibleNewInstruction data.Instructions data.Id
 
-                    {
-                        Id = data.Id
-                        Instructions = newInstr
-
-                    }
-                    |> ( Ok >> Deferred.Resolved )
-                    |> fun newUserData ->
-                        { model with UserData = newUserData}, Cmd.none
-                | _ ->
-                    let newInstructions =
-                        data.Instructions
-                        |> Array.append [|instructionToAdd|]
-                    
-                    {
-                        Id = data.Id
-                        Instructions = newInstructions
-
-                    }
-                    |> ( Ok >> Deferred.Resolved )
-                    |> fun newUserData ->
-                        { model with UserData = newUserData}, Cmd.none
-                
+            match result with
+            | Some newUserData ->
+                { model with UserData = newUserData}, []
+            | _ -> model, []
         | Data.Deferred.Resolved(Error err) ->
             [|
                 divWithStyle

@@ -747,41 +747,18 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
             |> User.Logic.delayedMessage 3000
             |> Cmd.fromAsync
 
-        let updateInstructionInApplication =
-            databaseOptions
-            |> Array.map (fun opt ->
-                match opt with
-                | DatabaseSavingOptions.NewFilesInstruction newFileOpt ->
-                    match newFileOpt with
-                    | DatabaseNewFilesOptions.NewInstructionOption instruction ->
-                        instruction
-                    | DatabaseNewFilesOptions.SameInstructionOption instruction ->
-                        instruction
-                | DatabaseSavingOptions.NewNameInstruction instruction ->
-                    instruction
-                | DatabaseSavingOptions.PartsToDeleteInstruction deleteopt ->
-                    match deleteopt with
-                    | DatabaseDeleteOptions.DeleteInstruction instruction ->
-                        instruction
-                    | DatabaseDeleteOptions.DeleteParts instruction ->
-                        instruction)
-            |> Array.map (fun instr ->
-                instr
-                |> User.Types.NewUserDataToAddMsg
-                |> Cmd.ofMsg)
-
         let databaseChangePopupMsg =
             msg
             |> funcChaining positions
 
         let databaseMsgsCombined =
-            updateInstructionInApplication
-            |> Array.append(
                 [|
+                    User.Types.NewUserDataToAddMsg
+                    |> Cmd.ofMsg
+
                     databaseChangePopupMsg
                     funcChainingDelayedPopupKill
                 |]
-            )
 
         let deletePartMsgs parts =
             parts
@@ -876,4 +853,95 @@ let saveNewData newInstrDataOpt
                 |> fun msg ->
                     msg
     | None -> []
+
+
+let updateUserInstructions possibInstrOpt currentInstructions id =
+    match possibInstrOpt with
+    | NewPossibleInstructionOptions.SaveOrDeleteAttempt updateType ->
+        match updateType with
+        | UpdateUserInstructionsType.AddNewInstruction instruction ->
+            let isInstructionUnique =
+                currentInstructions
+                |> Array.forall (fun instructionComp ->
+                    instructionComp.Title.Replace(" ","") <> instruction.Title.Replace(" ",""))
+
+            ()
+            |> function
+                | _ when isInstructionUnique = true ->
+                    let newInstructions =
+                        [|instruction|]
+                        |> Array.append currentInstructions
+
+                    {
+                        Id = id
+                        Instructions = newInstructions
+
+                    }
+                    |> ( Ok >> Deferred.Resolved )
+                    |> fun newUserData ->
+                        Some newUserData
+                | _ ->
+                    None
+                
+        | UpdateUserInstructionsType.DeleteInstruction instruction ->
+                let isInstructionUnique =
+                    currentInstructions
+                    |> Array.forall (fun instructionComp ->
+                        instructionComp.Title.Replace(" ","") <> instruction.Title.Replace(" ",""))
+
+                ()
+                |> function
+                    | _ when isInstructionUnique = false ->
+                        let newInstructions =
+                            currentInstructions
+                            |> Array.filter (fun instructionCompare ->
+                                    instructionCompare.Title.Replace(" ","") <> instruction.Title.Replace(" ","")) 
+
+                        {
+                            Id = id
+                            Instructions = newInstructions
+
+                        }
+                        |> ( Ok >> Deferred.Resolved )
+                        |> fun newUserData ->
+                            Some newUserData
+                    | _ ->
+                        None
+                
+        | UpdateUserInstructionsType.UpdateInstruction instruction ->
+            let isInstructionUnique =
+                currentInstructions
+                |> Array.forall (fun instructionComp ->
+                    instructionComp.Title.Replace(" ","") <> instruction.Title.Replace(" ",""))
+
+            ()
+            |> function
+                | _ when isInstructionUnique = false ->
+                    let newInstructions =
+                        currentInstructions
+                        |> Array.map (fun instructionCompare ->
+                            let hasSameTitle =
+                                instructionCompare.Title.Replace(" ","") <> instruction.Title.Replace(" ","")
+
+                            ()
+                            |> function
+                                | _ when hasSameTitle = true ->
+                                    instruction
+                                | _ -> instructionCompare)
+
+                    {
+                        Id = id
+                        Instructions = newInstructions
+
+                    }
+                    |> ( Ok >> Deferred.Resolved )
+                    |> fun newUserData ->
+                        Some newUserData
+                | _ ->
+                    None
+    | NewPossibleInstructionOptions.NoSaveOrDeleteAttempt ->
+        None
+        
+                
+            
         

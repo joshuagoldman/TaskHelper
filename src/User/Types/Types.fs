@@ -10,9 +10,14 @@ type NewUserPage =
     | NoDelay of UserPage
     | Delay of UserPage * int
 
-type RecursiveAction<'t,'u> =
-    | First of 't
-    | Second of 'u
+type UpdateUserInstructionsType =
+    | AddNewInstruction of InstructionData
+    | DeleteInstruction of InstructionData
+    | UpdateInstruction of InstructionData
+
+type NewPossibleInstructionOptions =
+    | NoSaveOrDeleteAttempt
+    | SaveOrDeleteAttempt of UpdateUserInstructionsType
 
 type PopUpControl<'a> =
     {
@@ -59,7 +64,8 @@ type Msg =
     | NewUserId of int
     | LoadInstructions of UserData
     | LoginSpinnerMsg of IStyleAttribute
-    | NewUserDataToAddMsg of Data.InstructionData
+    | NewUserDataInstructionToPossiblyAdd of UpdateUserInstructionsType
+    | NewUserDataToAddMsg
     | ChangePage of NewUserPage
     | NewAddNewCurrentInstruction of Option<string>
     | GiveResetInstruction of string
@@ -83,6 +89,7 @@ type Model =
       InstructionSearch: InstructionSearch.Types.Model
       NewAdd : NewAdd.Types.Model
       UserData : Data.Deferred<Result<UserData, string>>
+      PossibleNewInstruction: NewPossibleInstructionOptions
       Instruction: Instruction.Types.Model
       LoginSpinner : AppearanceAttributes
       PopUp : PopUpControl<Msg> Option

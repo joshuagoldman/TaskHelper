@@ -1571,6 +1571,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                         |> string
                 (newInstruction,instrid)
                 |> User.Types.newSaveResult.SaveNew
+
                 
     match instructionInfo with
     | Some modInfos ->
@@ -1593,23 +1594,39 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
         |> Array.choose id 
         |> function
             | res when res |> Array.length <> 0 ->
-                { instruction with Data = res }
-                |> compareWithExistingInstruction
+                let newinstruction =
+                    { instruction with Data = res }
+
+                let msg =
+                    newinstruction
+                    |> compareWithExistingInstruction
+
+                match msg with
+                | newSaveResult.SaveNew _ ->
+                    (msg, User.Types.UpdateUserInstructionsType.AddNewInstruction(newinstruction) |> Some)
+                | _ ->
+                    (msg, User.Types.UpdateUserInstructionsType.UpdateInstruction(newinstruction) |> Some)
                 
             | _ ->
-                ("You are attempting to save an empty instruction.
-                Click the delete button if you wish to delete the instruction")
-                |> User.Types.newSaveResult.InstructionIsDelete
+                let msg =
+                    ("You are attempting to save an empty instruction.
+                    Click the delete button if you wish to delete the instruction")
+                    |> User.Types.newSaveResult.InstructionIsDelete
+
+                (msg,None)
                 
     | _ ->
-        "No media has been loaded, re-upload your shit"
-        |> User.Types.newSaveResult.NoUserData
+        let msg =
+            "No media has been loaded, re-upload your shit"
+            |> User.Types.newSaveResult.NoUserData
+
+        (msg,None)
 
 
 let savingChoices userDataOpt positions instruction instructionInfo =
     match userDataOpt with
     | Resolved( Ok data) ->
-        let result =
+        let (result,possibleNewInstruction) =
             savingChoicesTestable instruction
                                   instructionInfo
                                   data.Instructions
@@ -1838,6 +1855,18 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 errorMsg
                 |> funcChaining positions
                 |> Cmd.ofMsg
-        msg
+        ()
+        |> function
+            | _ when possibleNewInstruction.IsSome ->
+                [|
+                    possibleNewInstruction.Value
+                    |> User.Types.Msg.NewUserDataInstructionToPossiblyAdd
+                    |> Cmd.ofMsg
+
+                    msg
+                |]
+                |> Cmd.batch
+            | _ ->
+                msg
     |   _ ->
         []

@@ -499,7 +499,7 @@ let ``TestSavingChoices`` () =
 
     cases
     |> Array.iter (fun case ->
-        let resultActual =
+        let (resultActual,_) =
             User.Logic.savingChoicesTestable
                         case.Instruction
                         case.ModInfo
