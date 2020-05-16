@@ -17,6 +17,6 @@ type SearchResult =
 type Model =
     {
        SearchBar : AppearanceAttributes
-       ResultFromSearch : seq<Result<SearchResult,string>>
+       ResultFromSearch : array<Result<SearchResult,string>>
     }
 

@@ -58,34 +58,34 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         console.log("LoadedInstructions Started")
         { model with UserData = InProgress }, Cmd.batch
                                                     (Logic.getUserDataUpdate InProgress
-                                                    |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                                                    |> Seq.append [Cmd.fromAsync (Logic.loadInstructionItems model.Id)])
+                                                    |> Array.map (fun msg -> Cmd.ofMsg msg)
+                                                    |> Array.append [|Cmd.fromAsync (Logic.loadInstructionItems model.Id)|])
                                                     
     | LoadedInstructions (Finished (Error error)) ->
         { model with UserData = Resolved ( Error error)}, Cmd.batch
                                                                 (Logic.getUserDataUpdate
                                                                             (Resolved ( Error error))
-                                                                |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                                                                |> Seq.append(
+                                                                |> Array.map (fun msg -> Cmd.ofMsg msg)
+                                                                |> Array.append(
                                                                     style.visibility.hidden
                                                                     |> ( LoginSpinnerMsg >> Cmd.ofMsg)
-                                                                    |> fun x -> seq[x]
+                                                                    |> fun x -> [|x|]
                                                                    ))
     | LoadedInstructions (Finished (Ok items)) ->
         { model with UserData = Resolved (Ok items) }, Cmd.batch
                                                             (Logic.getUserDataUpdate (Resolved ( Ok items))
-                                                            |> Seq.map (fun msg -> Cmd.ofMsg msg)
-                                                            |> Seq.append(
-                                                                seq[
+                                                            |> Array.map (fun msg -> Cmd.ofMsg msg)
+                                                            |> Array.append(
+                                                                [|
                                                                     (style.visibility.hidden
                                                                     |> ( LoginSpinnerMsg >> Cmd.ofMsg))
                                                                     (items
                                                                      |> LoginSuceeded
                                                                      |> delayedMessage 2000
                                                                      |> Cmd.fromAsync)
-                                                                ]
+                                                                |]
                                                             )
-                                                            |> Seq.append (NewAdd.Logic.createNewInstructionSequence items)
+                                                            |> Array.append (NewAdd.Logic.createNewInstructionSequence items)
                                                     )                                        
     | LoadedUsers Started ->
         let (username,password) =
@@ -96,18 +96,18 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                     
         { model with User = InProgress } , Cmd.batch
                                                     (Logic.loginAttempt model InProgress
-                                                    |> Seq.map (fun msg -> Cmd.ofMsg msg )
-                                                    |> Seq.append [userValidationMsg])
+                                                    |> Array.map (fun msg -> Cmd.ofMsg msg )
+                                                    |> Array.append [|userValidationMsg|])
                                                   
                                                         
     | LoadedUsers (Finished (Error error)) ->
         { model with User = Resolved ( Error error)}, Cmd.batch
                                                                 (Logic.loginAttempt model (Resolved ( Error error))
-                                                                |> Seq.map (fun msg -> Cmd.ofMsg msg ))
+                                                                |> Array.map (fun msg -> Cmd.ofMsg msg ))
     | LoadedUsers (Finished (Ok items)) ->
         { model with User = Resolved ( Ok items)}, Cmd.batch
                                                             (Logic.loginAttempt model (Resolved ( Ok items))
-                                                            |> Seq.map (fun msg -> Cmd.ofMsg msg ))
+                                                            |> Array.map (fun msg -> Cmd.ofMsg msg ))
                                                                                     
     | InstructionMsg msg ->
         let (instruction, instructionCmd) = Instruction.State.update msg model.Instruction
@@ -149,7 +149,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         | Data.Deferred.Resolved(Ok data) ->
             let newInstructionWInfo =
                 data.Instructions
-                |> Seq.map (fun instructionComp ->
+                |> Array.map (fun instructionComp ->
                     instructionComp.Title.Replace(" ","") = instructionToAdd.Title.Replace(" ","")
                     |>function
                         | areEq when areEq = true ->
@@ -157,12 +157,12 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         | _ ->
                             (false,instructionComp))
             newInstructionWInfo
-            |> Seq.exists (fun (isInstrWNewInfo,_) -> isInstrWNewInfo)
+            |> Array.exists (fun (isInstrWNewInfo,_) -> isInstrWNewInfo)
             |> function
                 | existsDuplicateInstructionTitle when existsDuplicateInstructionTitle ->
                     let newInstr =
                         newInstructionWInfo
-                        |> Seq.map (fun (_,instr) -> instr)
+                        |> Array.map (fun (_,instr) -> instr)
 
                     {
                         Id = data.Id
@@ -175,7 +175,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                 | _ ->
                     let newInstructions =
                         data.Instructions
-                        |> Seq.append [instructionToAdd]
+                        |> Array.append [|instructionToAdd|]
                     
                     {
                         Id = data.Id
@@ -187,12 +187,12 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         { model with UserData = newUserData}, Cmd.none
                 
         | Data.Deferred.Resolved(Error err) ->
-            seq[
+            [|
                 divWithStyle
                     None
                     (err)
                     (prop.style[style.color.black ; style.fontWeight.bolder])
-            ]
+            |]
             |> ( NewAdd.Types.NewAddInfoMsg >> User.Types.NewAddMsg)
             |> Cmd.ofMsg
             |> fun msg -> model, msg
@@ -224,7 +224,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                 |> function
                     | res when res.IsSome ->
                         data.Instructions
-                        |> Seq.tryFind (fun (instruction) ->
+                        |> Array.tryFind (fun (instruction) ->
                             instruction.Title.Trim() = titleOpt.Value.Trim())
                         |> function
                             | res when res.IsSome ->
@@ -244,8 +244,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         let msg =
             match model.UserData with
             | Resolved (Ok data) ->
-                Seq.zip data.Instructions [0..data.Instructions |> Seq.length |> fun x -> x - 1]
-                |> Seq.tryFind (fun (instruction,pos) ->
+                Array.zip data.Instructions [|0..data.Instructions |> Array.length |> fun x -> x - 1|]
+                |> Array.tryFind (fun (instruction,pos) ->
                     instruction.Title = str)
                 |> function
                     | res when res.IsSome ->
@@ -287,8 +287,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         match model.UserData with
         | Resolved(Ok(usrData)) ->
             usrData.Instructions
-            |> Seq.indexed
-            |> Seq.tryFind (fun (_,instr) ->
+            |> Array.indexed
+            |> Array.tryFind (fun (_,instr) ->
                 instr.Title.Replace(" ","") = delInstruction.Title.Replace(" ",""))
             |> function
                 | delInstrWithPos when delInstrWithPos.IsSome ->
@@ -305,7 +305,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         delInstruction
                         |> Data.DatabaseDeleteOptions.DeleteInstruction
                         |> Data.DatabaseSavingOptions.PartsToDeleteInstruction
-                        |> fun x -> seq[x]
+                        |> fun x -> [|x|]
                         |> fun saveOpt ->
                             (saveOpt,dbIds,positions)
                             |>Instruction.Types.DatabaseChangeBegun

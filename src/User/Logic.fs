@@ -62,7 +62,7 @@ let errorPopupMsg positions str =
             None
             str
             (prop.style[style.color.black;style.fontWeight.bold])
-        |> fun x -> seq[x]
+        |> fun x -> [|x|]
     (popUpDiv,positions) |>
     (
         User.Types.DefaultWithButton >>
@@ -120,13 +120,13 @@ let searchInfo info (keyWord : string) =
 let loadInitData data =
 
     let initInstruction =
-        data.Instructions |> Seq.item 0
+        data.Instructions |> Array.item 0
 
     let initPart =
         data.Instructions
-        |> Seq.item 0
+        |> Array.item 0
         |> fun x -> x.Data
-        |> Seq.item 0
+        |> Array.item 0
 
     let newPartMsgChaining initPart initInstruction =
         (initPart,initInstruction) |>
@@ -151,12 +151,12 @@ let loadInitData data =
             User.Types.NewAddMsg
         )
         
-    seq
-        [
-            data.Id |> newInstr2ShowFuncChaining initInstruction
-            initInstruction |> newPartMsgChaining initPart
-            data.Id |> initNewAddInstruction
-        ]
+    
+    [|
+        data.Id |> newInstr2ShowFuncChaining initInstruction
+        initInstruction |> newPartMsgChaining initPart
+        data.Id |> initNewAddInstruction
+    |]
 
                        
 
@@ -300,7 +300,7 @@ let instructionToSqlSaveNew userId
 
     let getPartInsert parts =
         parts
-        |> Seq.map (fun part ->
+        |> Array.map (fun part ->
               String.Format(
                 "INSERT INTO parts ( id,instruction_id, instruction_video, instruction_txt, part_title)
                 VALUES ( {0}, {1}, '{2}', '{3}','{4}');",
@@ -345,7 +345,7 @@ let instructionToSqlNewNames userId ( instructionId : string ) instruction =
 
     let partInsert =
         instruction.Data
-        |> Seq.map (fun part ->
+        |> Array.map (fun part ->
               String.Format(
                 "UPDATE parts SET part_title = {0] WHERE instruction_id = {1} AND instruction_video = {2} AND instruction_txt = {3};",
                 part.Title,
@@ -361,7 +361,7 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
 
     let partDelete usrId instructionId parts =
         parts
-        |> Seq.map (fun part ->
+        |> Array.map (fun part ->
               String.Format(
                 "DELETE FROM parts WHERE id = {0} AND instruction_id = {1} AND instruction_video = '{2}' AND instruction_txt = '{3}' AND part_title = '{4}';",
                 usrId,
@@ -393,7 +393,7 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
 let sqlCommandToDB databaseOptions ids positions = async{
     let sqlCommands =
         databaseOptions
-        |> Seq.map (fun option ->
+        |> Array.map (fun option ->
             match option with
             | DatabaseSavingOptions.NewFilesInstruction savingOptions ->
                 savingOptions
@@ -462,24 +462,24 @@ let sqlCommandToDB databaseOptions ids positions = async{
         return newStatus
 }
 
-let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
+let createInstructionFromFile ( medias : array<NewAdd.Types.MediaChoiceFormData>)
                               ( instruction2Add : option<Data.InstructionData> * string ) =
     let (insOpt,id) =
         instruction2Add
         |> fun (insOpt,id) -> (insOpt,id)
-    let mutable videosSequence = seq[]
-    let mutable instructionSequence = seq[]
+    let mutable videosSequence = [||]
+    let mutable instructionSequence = [||]
 
     medias
-    |> Seq.iter (fun mediaContent ->
+    |> Array.iter (fun mediaContent ->
                         match mediaContent with
                         | NewAdd.Types.Video vid ->
-                            videosSequence <- Seq.append videosSequence [vid]
+                            videosSequence <- Array.append videosSequence [|vid|]
                         | NewAdd.Types.InstructionTxt instrctn ->
-                            instructionSequence <- (Seq.append instructionSequence [instrctn]))
+                            instructionSequence <- (Array.append instructionSequence [|instrctn|]))
 
-    Seq.zip3 videosSequence instructionSequence [0..videosSequence |> Seq.length |> fun x -> x - 1]
-    |> Seq.map (fun (video,txt,pos) ->
+    Array.zip3 videosSequence instructionSequence [|0..videosSequence |> Array.length |> fun x -> x - 1|]
+    |> Array.map (fun (video,txt,pos) ->
                 {
                     Title = "Please_provide_Title" + (pos |> string)
                     InstructionVideo = video.name
@@ -494,7 +494,7 @@ let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
         | res when insOpt.IsSome ->
             let newParts =
                 insOpt.Value.Data
-                |> Seq.append res.Data
+                |> Array.append res.Data
 
             {
                 Title = insOpt.Value.Title
@@ -508,23 +508,23 @@ let createInstructionFromFile ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
             style.visibility.visible
             |> Instruction.Types.ModifyInstructionMsg
             |> fun msg1 ->
-                seq[
+                [|
                     msg1
                     (false |>
                      Instruction.Types.DeleteButtonEnablenMsg)
-                ]
-            |> Seq.map (fun msg -> msg |> User.Types.InstructionMsg)
+                |]
+            |> Array.map (fun msg -> msg |> User.Types.InstructionMsg)
         let changeToInstructionMsg =
             (UserPage.Instruction, 2000)
             |> User.Types.Delay
             |> (User.Types.ChangePage)
         let msgs =
             turnToModMode
-            |> Seq.append(
-                    seq[
+            |> Array.append(
+                    [|
                         x
                         changeToInstructionMsg
-                    ]
+                    |]
                 )
         msgs
 
@@ -584,11 +584,11 @@ let saveAsync ( file : Types.File )
                 newStatus
                 |> funcChainingIsUploading positions
                 |> fun x ->
-                    seq[
+                    [|
                         x
                         checkSavingMsg
-                    ]
-                    |> Seq.map (fun msg -> msg |> Cmd.ofMsg)
+                    |]
+                    |> Array.map (fun msg -> msg |> Cmd.ofMsg)
                     |> Cmd.batch
                     |> User.Types.CmdMsging
         )
@@ -618,11 +618,11 @@ let saveAsync ( file : Types.File )
                 newStatus
                 |> funcChainingIsUploading positions
                 |> fun x ->
-                    seq[
+                    [|
                         x
                         checkSavingMsg
-                    ]
-                    |> Seq.map (fun msg -> msg |> Cmd.ofMsg)
+                    |]
+                    |> Array.map (fun msg -> msg |> Cmd.ofMsg)
                     |> Cmd.batch
                     |> User.Types.CmdMsging
         )
@@ -630,7 +630,7 @@ let saveAsync ( file : Types.File )
 
 let saveUserData
         ( status : SaveDataProgress<(Types.File * DBIds * Position * DatabaseNewFilesOptions),
-                                        seq<DatabaseSavingOptions> * DBIds * Position>) =
+                                        array<DatabaseSavingOptions> * DBIds * Position>) =
     match status with 
     | SavingHasNostStartedYet(file,dbIds,positions,options) ->
         file.name
@@ -644,12 +644,12 @@ let saveUserData
                     NewAdd.Types.CreateNewDataMsg >>
                     User.Types.NewAddMsg
                 )
-            seq[
+            [|
                 x
                 (file,dbIds,positions,options)
                 |> funcChainingSavingInProgress
-            ]
-            |> Seq.map ( fun msg -> msg |> Cmd.ofMsg )
+            |]
+            |> Array.map ( fun msg -> msg |> Cmd.ofMsg )
 
     | SavingInProgress(file,dbIds,positions,options) ->
         let savingMsg =  
@@ -657,7 +657,7 @@ let saveUserData
             |> saveAsync file options positions
             |> Cmd.fromAsync
 
-        seq[savingMsg]
+        [|savingMsg|]
 
     | SavingResolved(savingOptions,ids,positions) ->
         let dbMsg =
@@ -666,7 +666,7 @@ let saveUserData
             |> Instruction.Types.Msg.DatabaseChangeMsg
             |> User.Types.InstructionMsg
             |> Cmd.ofMsg
-            |> fun x -> seq[x]
+            |> fun x -> [|x|]
 
         dbMsg
 
@@ -719,30 +719,30 @@ let getUserValidationMsg ( username : string Option )
 
 let getUserDataUpdate ( userData : Data.Deferred<Result<Data.UserData, string>> ) =
     match userData with
-    | Data.HasNostStartedYet -> seq["" |> User.Types.LoginMessages] 
-    | Data.InProgress -> seq["Loading User Data" |> User.Types.LoginMessages] 
+    | Data.HasNostStartedYet -> [|"" |> User.Types.LoginMessages|] 
+    | Data.InProgress -> [|"Loading User Data" |> User.Types.LoginMessages|] 
     | Data.Resolved response ->
         match response with
         | Ok result ->
             let successMessage =
-                seq
-                    [
+                
+                    [|
                         ("received query with " +
-                         (result.Instructions |> Seq.length |> string) +
+                         (result.Instructions |> Array.length |> string) +
                          " instructions :)" |> User.Types.LoginMessages)
-                    ]
+                    |]
             successMessage
-            |> Seq.append (loadInitData result)
+            |> Array.append (loadInitData result)
 
             
 
-        | Error err ->seq[ err |> User.Types.LoginMessages]
+        | Error err ->[| err |> User.Types.LoginMessages|]
 
 let existOrNot compareVal result =
      match compareVal with
      | Valid str ->
          result
-         |> Seq.tryFind (fun usrName -> usrName.Username = str)
+         |> Array.tryFind (fun usrName -> usrName.Username = str)
          |> function
             | res when res <> None ->
                      Some res.Value
@@ -753,14 +753,14 @@ let existOrNot compareVal result =
 let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<LoginInfo, string>> ) =
     match status with
     | HasNostStartedYet ->
-        seq[
+        [|
             style.visibility.visible |> User.Types.LoginSpinnerMsg
             User.Types.LoadedUsers Started
-        ]
+        |]
         
         
     | InProgress ->
-        seq["loading user" |> User.Types.LoginMessages]
+        [|"loading user" |> User.Types.LoginMessages|]
         
     | Resolved response ->
         let spinnerMessage =
@@ -768,14 +768,14 @@ let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<Lo
 
         match response with
         | Ok loginInfo ->
-            seq[
+            [|
                     loginInfo.Id |> NewUserId
                     loginInfo.Id |> (Part.Types.NewUserIdMsg >>
                                      Instruction.Types.PartMsg >>
                                      User.Types.InstructionMsg)
                     User.Types.LoadedInstructions Started
-            ]       
-        | Error err -> seq[err|> User.Types.LoginMessages ; spinnerMessage]
+            |]       
+        | Error err -> [|err|> User.Types.LoginMessages ; spinnerMessage|]
         
 let validateLoginInfo info =
     info
@@ -787,7 +787,7 @@ let validateLoginInfo info =
 
 let createNewInstructionId id userData =
     userData.Instructions
-    |> Seq.length
+    |> Array.length
     |> fun len -> (id |> string) + "_" + (len + 1 |> string)
     |> NewAdd.Types.NewInstructionIdMsg
     |> User.Types.NewAddMsg
@@ -805,7 +805,7 @@ let chooseMediaByName name file =
 let extractFileNames files name =
         
     files
-    |> Seq.map (fun media ->
+    |> Array.map (fun media ->
         name
         |> function
             | res when res = "videos" ->
@@ -818,18 +818,18 @@ let extractFileNames files name =
                 | NewAdd.Types.Video _ -> None
                 | NewAdd.Types.InstructionTxt instr ->
                     Some instr)
-    |> Seq.choose id
-    |> Seq.map (fun file -> divWithFileName file)
+    |> Array.choose id
+    |> Array.map (fun file -> divWithFileName file)
     |> fun elements ->
         Seq.append [ str "Files chosen are:" ; Html.br[] ; Html.br[]] elements   
 
-let currFilesInfo ( filesOption : Option<seq<NewAdd.Types.MediaChoiceFormData>> )
+let currFilesInfo ( filesOption : Option<array<NewAdd.Types.MediaChoiceFormData>> )
                     name =
 
     match filesOption with
     | Some files ->
         files
-        |> Seq.filter (fun media ->
+        |> Array.filter (fun media ->
             name
             |> function
                 | res when res = "videos" ->
@@ -841,7 +841,7 @@ let currFilesInfo ( filesOption : Option<seq<NewAdd.Types.MediaChoiceFormData>> 
                     | NewAdd.Types.Video _ -> false
                     | NewAdd.Types.InstructionTxt _ -> true)
         |> function
-            | res when (res |> Seq.length) = 0 ->
+            | res when (res |> Array.length) = 0 ->
                 seq[Html.div[prop.children[str "No files chosen"]]]
             | _ -> extractFileNames files name
     | None -> seq[Html.div[prop.children[str "No files chosen"]]]
@@ -859,13 +859,13 @@ let infoText ( model : NewAdd.Types.Model ) dispatch name =
         )
     ]
 
-let removeOldOfSame ( medias : seq<NewAdd.Types.MediaChoiceFormData> )
+let removeOldOfSame ( medias : array<NewAdd.Types.MediaChoiceFormData> )
                       name =
     name
     |> function
         | res when res = "videos" ->
             medias
-            |> Seq.filter (fun media ->
+            |> Array.filter (fun media ->
                 match media with
                 | NewAdd.Types.Video _ ->
                     false
@@ -873,7 +873,7 @@ let removeOldOfSame ( medias : seq<NewAdd.Types.MediaChoiceFormData> )
                     true)
         | _ ->
             medias
-            |> Seq.filter (fun media ->
+            |> Array.filter (fun media ->
                 match media with
                 | NewAdd.Types.Video _ ->
                     true
@@ -881,18 +881,18 @@ let removeOldOfSame ( medias : seq<NewAdd.Types.MediaChoiceFormData> )
                     false)
 
 
-let extractMedia ( medias : Option<seq<NewAdd.Types.MediaChoiceFormData>> )
-                 ( newVids : seq<NewAdd.Types.MediaChoiceFormData> )
+let extractMedia ( medias : Option<array<NewAdd.Types.MediaChoiceFormData>> )
+                 ( newVids : array<NewAdd.Types.MediaChoiceFormData> )
                    name =
     match medias with
     | Some vids->
         newVids
-        |> Seq.append (removeOldOfSame vids name)
+        |> Array.append (removeOldOfSame vids name)
     | None -> newVids
 
-let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
+let decideIfRightFormat ( medias : array<NewAdd.Types.MediaChoiceFormData>) =
     medias
-    |> Seq.filter (fun media ->
+    |> Array.filter (fun media ->
         match media with
         | NewAdd.Types.Video vid ->
             vid.``type`` <> "video/mpeg" &&
@@ -903,11 +903,11 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
         | NewAdd.Types.InstructionTxt instrctn ->
             instrctn.``type`` <> "text/plain")
     |> function
-        | res when ( res |> Seq.length ) = 0 ->
+        | res when ( res |> Array.length ) = 0 ->
             None
         | res ->
             let initialMessage =
-                seq[
+                [|
                     divWithStyle
                         None
                         "The following files did not have the the right file type:"
@@ -916,13 +916,13 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                                     style.fontWeight.bold
                                     style.fontSize 13
                         ] )
-                ]
+                |]
             let secondMessage = 
                 res
-                |> Seq.map (fun media ->
+                |> Array.map (fun media ->
                     match media with
                     | NewAdd.Types.Video vid ->
-                        seq[
+                        [|
                             divWithStyle
                                 None
                                 vid.name
@@ -931,10 +931,10 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                                     style.fontWeight.bold
                                     style.fontSize 13
                                 ])
-                        ] 
+                        |] 
 
                     | NewAdd.Types.InstructionTxt instrctn ->
-                        seq[
+                        [|
                             divWithStyle
                                 None
                                 instrctn.name
@@ -943,10 +943,10 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                                     style.fontWeight.bold
                                     style.fontSize 13
                                 ])
-                        ])
-                |> Seq.collect (fun components -> components)
+                        |])
+                |> Array.collect (fun components -> components)
             let finalMessage =
-                seq[
+                [|
                     divWithStyle
                         None
                         "Allowed video formats are:"
@@ -979,31 +979,31 @@ let decideIfRightFormat ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
                             style.fontWeight.bold
                             style.fontSize 13
                         ])
-                ]
+                |]
 
             finalMessage
-            |> Seq.append secondMessage
-            |> Seq.append initialMessage
+            |> Array.append secondMessage
+            |> Array.append initialMessage
             |> Some
                  
 
-let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormData>) =
-    let mutable videos = seq[]
-    let mutable instructions = seq[]
+let decideIfUploadableByTypeCount ( medias : array<NewAdd.Types.MediaChoiceFormData>) =
+    let mutable videos = [||]
+    let mutable instructions = [||]
     medias
-    |> Seq.iter (fun media ->
+    |> Array.iter (fun media ->
         match media with
         | NewAdd.Types.Video vid ->
-            videos <- videos |> Seq.append [vid]
+            videos <- videos |> Array.append [|vid|]
         | NewAdd.Types.InstructionTxt instrctn ->
-            instructions <- instructions |> Seq.append [instrctn])
+            instructions <- instructions |> Array.append [|instrctn|])
 
     ()
     |> function
-        | _ when ( videos |> Seq.length ) = ( instructions |> Seq.length ) ->
+        | _ when ( videos |> Array.length ) = ( instructions |> Array.length ) ->
             None
         | _ ->
-            seq[
+            [|
                 divWithStyle
                     None
                     "צריך לבחור אותו כמות של קבצי וידאו ומארקדבן"
@@ -1012,7 +1012,7 @@ let decideIfUploadableByTypeCount ( medias : seq<NewAdd.Types.MediaChoiceFormDat
                         style.fontWeight.bold
                         style.fontSize 13
                     ])
-            ]
+            |]
             |> Some
 
 let provideNewAddPopUpWait ( ev : Types.Event )
@@ -1054,20 +1054,20 @@ let provideNewAddPopUp ( ev : Types.Event )
     msgs
     |> funcChaining
 
-let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
+let decideIfUploadValid ( medias : array<NewAdd.Types.MediaChoiceFormData>)
                         ( ev : Types.MouseEvent )
                         ( model : NewAdd.Types.Model )
                           dispatch =
 
-    seq[decideIfUploadableByTypeCount medias]
-    |> Seq.append [decideIfRightFormat medias]
-    |> Seq.filter (fun msgs ->
+    [|decideIfUploadableByTypeCount medias|]
+    |> Array.append [|decideIfRightFormat medias|]
+    |> Array.filter (fun msgs ->
         match msgs with
         | Some _ -> true
         | None -> false)
     |> function
-        | res when ( res |> Seq.length = 0 ) ->
-            seq[
+        | res when ( res |> Array.length = 0 ) ->
+            [|
                 divWithStyle
                     None
                     "Shortly you'll be directed to modify the instruction"
@@ -1076,7 +1076,7 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                         style.fontWeight.bold
                         style.fontSize 15
                     ])
-            ]
+            |]
             |> provideNewAddPopUpWait ev 2000
             |> fun x ->
                         match model.CurrentInstruction with
@@ -1084,13 +1084,13 @@ let decideIfUploadValid ( medias : seq<NewAdd.Types.MediaChoiceFormData>)
                             let instructionCreationMsg =
                                 instrOptWId
                                 |> createInstructionFromFile medias
-                            seq[x]
-                            |> Seq.append instructionCreationMsg
-                            |> Seq.iter (fun msg -> (msg |> dispatch))
+                            [|x|]
+                            |> Array.append instructionCreationMsg
+                            |> Array.iter (fun msg -> (msg |> dispatch))
                         | _ -> ()
         | res ->
             res
-            |> Seq.collect (fun msgs -> msgs.Value)
+            |> Array.collect (fun msgs -> msgs.Value)
             |> provideNewAddPopUp ev
             |> dispatch
 
@@ -1101,8 +1101,8 @@ let isUploadable ( model : NewAdd.Types.Model )
     | Some res ->
         res
         |> function
-            | _ when res |> Seq.length = 0 ->
-                seq[
+            | _ when res |> Array.length = 0 ->
+                [|
                     divWithStyle
                         None
                         "לא היה הבחרת קביצה, ומספר זהות לא קיימת"
@@ -1111,13 +1111,13 @@ let isUploadable ( model : NewAdd.Types.Model )
                             style.fontWeight.bold
                             style.fontSize 13
                         ])
-                ]
+                |]
                 |> fun x ->
                     x
                     |> provideNewAddPopUp ev
                     |> dispatch
-            | _ when res |> Seq.length = 0 ->
-                seq[
+            | _ when res |> Array.length = 0 ->
+                [|
                     divWithStyle
                         None
                         ("לא היה הבחרת קביצה")
@@ -1126,7 +1126,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                             style.fontWeight.bold
                             style.fontSize 13
                         ])
-                ]
+                |]
                 |> fun x ->
                     x
                     |> provideNewAddPopUp ev
@@ -1134,7 +1134,7 @@ let isUploadable ( model : NewAdd.Types.Model )
             | _  ->
                 decideIfUploadValid res ev model dispatch
     | None ->
-        seq[
+        [|
             divWithStyle
                 None
                 "לא היה הבחרת קביצה"
@@ -1143,7 +1143,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                     style.fontWeight.bold
                     style.fontSize 13
                 ])
-        ]
+        |]
         |> fun x ->
             x
             |> provideNewAddPopUp ev
@@ -1158,8 +1158,8 @@ let fileHandle ( ev : Types.Event)
     infoOpt
     |> function
         | _ when infoOpt.IsSome ->
-            seq[0..files.length - 1]
-            |> Seq.map (fun pos -> chooseMediaByName name
+            [|0..files.length - 1|]
+            |> Array.map (fun pos -> chooseMediaByName name
                                                      files.[pos])
             |> fun medias -> (medias,name)
             |> ( NewAdd.Types.NewFilesChosenMsg >>
@@ -1181,12 +1181,12 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
     match popupSettings with
     | PopUpSettings.DefaultWithOptions (divs,positions,msgs) ->
         let buttonSettings =
-            seq[
+            [|
                 Feliz.style.margin 30
                 Feliz.style.backgroundColor "grey"
                 Feliz.style.fontSize 18
                 Feliz.style.borderRadius 10
-            ]
+            |]
 
         let popupNoMsg =
             (
@@ -1206,12 +1206,12 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         let style = defaultStyle positions
 
         let buttonSettings =
-            seq[
+            [|
                 Feliz.style.margin 30
                 Feliz.style.backgroundColor "grey"
                 Feliz.style.fontSize 18
                 Feliz.style.borderRadius 10
-            ]
+            |]
 
 
         let popupNoMsgs =
@@ -1304,13 +1304,13 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         (popupNoMsg,msgs) |> Some
 
 let savingChoicesTestable   instruction
-                          ( instructionInfo : seq<Instruction.Types.modificationInfo> Option )
+                          ( instructionInfo : array<Instruction.Types.modificationInfo> Option )
                             userDataInstructions =
 
     let compareWithExistingInstruction newInstruction =
         userDataInstructions
-        |> Seq.indexed
-        |> Seq.tryFind (fun (_,existInstr) ->
+        |> Array.indexed
+        |> Array.tryFind (fun (_,existInstr) ->
             existInstr.Title.Replace(" ", "") = newInstruction.Title.Replace(" ", ""))
         |> function
             | res when res.IsSome ->
@@ -1322,24 +1322,24 @@ let savingChoicesTestable   instruction
 
                 let allTitlesUnique =
                     newInstruction.Data
-                    |> Seq.map (fun newPart ->
+                    |> Array.map (fun newPart ->
                         newInstruction.Data
-                        |> Seq.filter (fun newPartCompare ->
+                        |> Array.filter (fun newPartCompare ->
                                 let result =
                                     newPart.Title.Replace(" ", "") =
                                         newPartCompare.Title.Replace(" ", "")
                                 result)
                         |> function
-                            | res when res |> Seq.length = 1 ->
+                            | res when res |> Array.length = 1 ->
                                 None
                             | _ -> Some newPart.Title 
                             )
-                    |> Seq.choose id
+                    |> Array.choose id
                     |> function
-                        | res when res |> Seq.length <> 0 ->
+                        | res when res |> Array.length <> 0 ->
                             res
-                            |> Seq.distinct
-                            |> Seq.map (fun title ->
+                            |> Array.distinct
+                            |> Array.map (fun title ->
                                 "\"" + title + "\", ")
                             |> String.concat ""
                             |> fun str -> str.Substring(0,str.LastIndexOf(", "))
@@ -1362,14 +1362,14 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                     | _ ->
                         let alreadyExistingInstruction =
                             let newAndOldInstructionAreOfSameLength =
-                                existingInstr.Data |> Seq.length =
-                                    (newInstruction.Data |> Seq.length)
+                                existingInstr.Data |> Array.length =
+                                    (newInstruction.Data |> Array.length)
 
                             let newAndOldInstructionHaveSameParts =
                                 newInstruction.Data
-                                |> Seq.forall (fun newPart ->
+                                |> Array.forall (fun newPart ->
                                     existingInstr.Data
-                                    |> Seq.exists (fun part ->
+                                    |> Array.exists (fun part ->
                                         let sameTitle =
                                             newPart.Title.Replace(" ", "") =
                                                 part.Title.Replace(" ", "")
@@ -1392,9 +1392,9 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                             | _ ->
                                 let newFileParts =
                                     newInstruction.Data
-                                    |> Seq.choose (fun newPart ->
+                                    |> Array.choose (fun newPart ->
                                         existingInstr.Data
-                                        |> Seq.forall (fun part ->
+                                        |> Array.forall (fun part ->
                                             let notSameInstructionText =
                                                 part.InstructionTxt.Replace(" ", "") <>
                                                     newPart.InstructionTxt.Replace(" ", "")
@@ -1408,14 +1408,14 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                 Some newPart
                                             | _ -> None)
                                     |> function
-                                        | partsWNewTitles when partsWNewTitles |> Seq.length <> 0 ->
+                                        | partsWNewTitles when partsWNewTitles |> Array.length <> 0 ->
                                             partsWNewTitles |> Some
                                         | _ -> None
                                 let partsWithNewNames =
                                     newInstruction.Data
-                                    |> Seq.choose (fun newPart ->
+                                    |> Array.choose (fun newPart ->
                                         existingInstr.Data
-                                        |> Seq.tryFind (fun part ->
+                                        |> Array.tryFind (fun part ->
                                             let nameDoesNotMatch =
                                                 newPart.Title.Replace(" ", "") <>
                                                     part.Title.Replace(" ", "")
@@ -1437,15 +1437,15 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                 Some newPart
                                             | _ -> None)
                                     |> function
-                                        | partsWNewTitles when partsWNewTitles |> Seq.length <> 0 ->
+                                        | partsWNewTitles when partsWNewTitles |> Array.length <> 0 ->
                                             partsWNewTitles |> Some
                                         | _ -> None
 
                                 let partsToDelete =
                                     existingInstr.Data
-                                    |> Seq.choose (fun part ->
+                                    |> Array.choose (fun part ->
                                         newInstruction.Data
-                                        |> Seq.tryFind (fun partNew ->
+                                        |> Array.tryFind (fun partNew ->
 
                                             let sameInstructionText =
                                                 part.InstructionTxt.Replace(" ", "") =
@@ -1463,7 +1463,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                 None
                                             | _ -> Some part )
                                     |> function
-                                        | partsToDelete when partsToDelete |> Seq.length <> 0 ->
+                                        | partsToDelete when partsToDelete |> Array.length <> 0 ->
                                             Some partsToDelete
                                         | _ -> None
                                 ()
@@ -1472,7 +1472,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                 newFileParts.IsSome &&
                                                 partsToDelete.IsSome ->
                                             let info =
-                                                seq[
+                                                [|
                                                     { newInstruction with Data = partsWithNewNames.Value }
                                                     |> DatabaseSavingOptions.NewNameInstruction
 
@@ -1484,7 +1484,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = partsToDelete.Value } |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
-                                                ]
+                                                |]
 
                                             (info,instrId)
                                             |> User.Types.newSaveResult.SaveExistingNewFilesAndTItlesPartsToDelete
@@ -1492,21 +1492,21 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                     | _ when partsWithNewNames.IsSome &&
                                              newFileParts.IsSome ->
                                              let info =
-                                                 seq[
+                                                 [|
                                                      { newInstruction with Data = newFileParts.Value }
                                                      |> DatabaseNewFilesOptions.SameInstructionOption
                                                      |> DatabaseSavingOptions.NewFilesInstruction
 
                                                      { newInstruction with Data = partsWithNewNames.Value }
                                                      |> DatabaseSavingOptions.NewNameInstruction
-                                                 ]
+                                                 |]
 
                                              (info,instrId)
                                              |> User.Types.newSaveResult.SaveExistingNewFilesAndTItles
                                     | _ when newFileParts.IsSome &&
                                              partsToDelete.IsSome ->
                                             let info =
-                                                seq[
+                                                [|
                                                     { newInstruction with Data = newFileParts.Value }
                                                     |> DatabaseNewFilesOptions.SameInstructionOption
                                                     |> DatabaseSavingOptions.NewFilesInstruction
@@ -1514,58 +1514,58 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = partsToDelete.Value } |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
-                                                ]
+                                                |]
 
                                             (info,instrId)
                                             |> User.Types.newSaveResult.SaveExistingNewFilesPartsToDelete
                                     | _ when partsWithNewNames.IsSome &&
                                              partsToDelete.IsSome ->
                                             let info =
-                                                seq[
+                                                [|
                                                     { newInstruction with Data = partsWithNewNames.Value }
                                                     |> DatabaseSavingOptions.NewNameInstruction
 
                                                     { newInstruction with Data = partsToDelete.Value } |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
-                                                ]
+                                                |]
 
                                             (info,instrId)
                                             |> User.Types.newSaveResult.SaveExistingNewTItlesPartsToDelete
                                     | _ when newFileParts.IsSome ->
                                         let info =
-                                            seq[
+                                            [|
                                                 { newInstruction with Data = newFileParts.Value }
                                                 |> DatabaseNewFilesOptions.SameInstructionOption
                                                 |> DatabaseSavingOptions.NewFilesInstruction
-                                            ]
+                                            |]
 
                                         (info,instrId)
                                         |> User.Types.newSaveResult.SaveExisitngNewFIles
                                     | _ when partsWithNewNames.IsSome ->
                                         let info =
-                                            seq[
+                                            [|
                                                 { newInstruction with Data = partsWithNewNames.Value }
                                                 |> DatabaseSavingOptions.NewNameInstruction
-                                            ]
+                                            |]
 
                                         (info,instrId)
                                         |> User.Types.newSaveResult.SaveExistingNewTitles
                                     | _ ->
                                         let info =
-                                            seq[
+                                            [|
                                                 { newInstruction with Data = partsToDelete.Value } |>
                                                 (DatabaseDeleteOptions.DeleteParts >>
                                                  DatabaseSavingOptions.PartsToDeleteInstruction)
-                                            ]
+                                            |]
 
                                         (info,instrId)
                                         |> User.Types.newSaveResult.SaveExistingPartsToDelete
             | _ ->
                 let instrid =
                     userDataInstructions
-                    |> Seq.indexed
-                    |> Seq.last
+                    |> Array.indexed
+                    |> Array.last
                     |> fun (pos,_) ->
                         pos + 1
                         |> string
@@ -1575,9 +1575,9 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
     match instructionInfo with
     | Some modInfos ->
         instruction.Data
-        |> Seq.map (fun part ->
+        |> Array.map (fun part ->
             modInfos
-            |> Seq.tryFind (fun modInfo ->
+            |> Array.tryFind (fun modInfo ->
                 modInfo.Names.CurrName.Trim() = part.Title.Trim())
             |> function
                 | res when res.IsSome ->
@@ -1590,9 +1590,9 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                             None
                     | _ -> None
                 | _ -> None)
-        |> Seq.choose id 
+        |> Array.choose id 
         |> function
-            | res when res |> Seq.length <> 0 ->
+            | res when res |> Array.length <> 0 ->
                 { instruction with Data = res }
                 |> compareWithExistingInstruction
                 
@@ -1637,7 +1637,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                     msgDiv
                 ]
             ]
-            |> fun x -> seq[x]
+            |> fun x -> [|x|]
 
         let funcChainingOptions positions popupMsg msgs =
             
@@ -1695,17 +1695,17 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 |> Cmd.ofMsg
 
 
-            seq[
+            [|
                 popupMsg
                 dbMsg
-            ]
+            |]
             |> Cmd.batch
             |> User.Types.Msg.CmdMsging
 
         let createNewSaveAndDBChangeMsgs savingOptions instrId =
             let newInstr =
                 savingOptions
-                |> Seq.tryPick (fun opt ->
+                |> Array.tryPick (fun opt ->
                     match opt with
                     | DatabaseSavingOptions.NewFilesInstruction newInstr ->
                         Some newInstr
@@ -1713,13 +1713,13 @@ let savingChoices userDataOpt positions instruction instructionInfo =
 
             let onlyDbChange =
                 savingOptions
-                |> Seq.choose (fun opt ->
+                |> Array.choose (fun opt ->
                     match opt with
                     | DatabaseSavingOptions.NewFilesInstruction _ ->
                         None
                     | _ -> Some opt)
                 |> function
-                    | onlyDbChange when onlyDbChange |> Seq.length <> 0 ->
+                    | onlyDbChange when onlyDbChange |> Array.length <> 0 ->
                         Some onlyDbChange
                     | _ -> None
 
@@ -1737,13 +1737,13 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                         |> getDatabaseMsg instrId
                         |> Cmd.ofMsg
 
-                    seq[
+                    [|
                         newSaveMsg
                         dbMsg
-                    ]
+                    |]
                     |> Cmd.batch
                     |> User.Types.CmdMsging
-                    |> fun x -> seq[x]
+                    |> fun x -> [|x|]
 
                 | _ when newInstr.IsSome ->
 
@@ -1752,7 +1752,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                         |> saveNewMsg newInstr.Value
 
                     newSaveMsg
-                    |> fun x -> seq[x]
+                    |> fun x -> [|x|]
 
                 | _ when onlyDbChange.IsSome ->
 
@@ -1761,9 +1761,9 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                         |> getDatabaseMsg instrId
 
                     dbMsg
-                    |> fun x -> seq[x]
+                    |> fun x -> [|x|]
 
-                | _ -> seq[User.Types.Msg.MsgNone]
+                | _ -> [|User.Types.Msg.MsgNone|]
             
         let msg =
             match result with
@@ -1775,7 +1775,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                     newInstr
                     |> DatabaseNewFilesOptions.NewInstructionOption
                     |> DatabaseSavingOptions.NewFilesInstruction
-                    |> fun x -> seq[x]
+                    |> fun x -> [|x|]
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
                 |> funcChainingOptions positions popupMsg

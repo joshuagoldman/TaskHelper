@@ -15,15 +15,15 @@ type MediaChoiceFormData =
     | InstructionTxt of Types.File
 
 type Msg =
-    | NewAddInfoMsg of seq<ReactElement>
+    | NewAddInfoMsg of array<ReactElement>
     | NewInstructionIdMsg of string
     | SpinnerVisibleMsg of IStyleAttribute
-    | NewFilesChosenMsg of seq<MediaChoiceFormData> * string
-    | NewInstructionsListMsg of seq<string>
+    | NewFilesChosenMsg of array<MediaChoiceFormData> * string
+    | NewInstructionsListMsg of array<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>
     | SaveNewData of DatabaseNewFilesOptions * DBIds * Position
     | CreateNewDataMsg of
-        SaveDataProgress<(Types.File * DBIds * Position * DatabaseNewFilesOptions),seq<DatabaseSavingOptions> * DBIds * Position>
+        SaveDataProgress<(Types.File * DBIds * Position * DatabaseNewFilesOptions),array<DatabaseSavingOptions> * DBIds * Position>
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>
@@ -31,12 +31,12 @@ type SearchResult =
 
 type Model =
     {
-       NewInstructionData : Option<seq<MediaChoiceFormData>>
-       NewAddMessages : seq<ReactElement>
+       NewInstructionData : Option<array<MediaChoiceFormData>>
+       NewAddMessages : array<ReactElement>
        LoadIcon : AppearanceAttributes
        VideosUploadInput : AppearanceAttributes
        InstructionTxtUploadInput : AppearanceAttributes
-       InstructionList : Option<seq<string>>
+       InstructionList : Option<array<string>>
        CurrentInstruction : Option<Data.InstructionData option * string>
     }
 

@@ -15,7 +15,7 @@ open Browser
 let init () : Model * Cmd<Msg> =
     {
        NewInstructionData =  None
-       NewAddMessages = seq[str ""]
+       NewAddMessages = [|str ""|]
        LoadIcon = defaultAppearanceAttributes
        VideosUploadInput = defaultAppearanceAttributes
        InstructionTxtUploadInput = defaultAppearanceAttributes

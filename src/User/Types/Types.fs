@@ -17,28 +17,28 @@ type RecursiveAction<'t,'u> =
 type PopUpControl<'a> =
     {
         Style : IReactProperty
-        ButtonSettings : option<seq<IStyleAttribute>>
-        ClickMessages : option<seq<'a>>
-        Messages : seq<ReactElement>
+        ButtonSettings : option<array<IStyleAttribute>>
+        ClickMessages : option<array<'a>>
+        Messages : array<ReactElement>
     }
 
 type PopUpSettings<'a> =
-    | DefaultWithButton of seq<ReactElement> * Position
-    | Default of seq<ReactElement> * Position
-    | DefaultWithOptions of seq<ReactElement> * Position * seq<'a>
-    | OptionalWithMsg of seq<ReactElement> * Position * seq<IStyleAttribute>
-    | DefaultNewPage of seq<ReactElement> * NewUserPage * Position
+    | DefaultWithButton of array<ReactElement> * Position
+    | Default of array<ReactElement> * Position
+    | DefaultWithOptions of array<ReactElement> * Position * array<'a>
+    | OptionalWithMsg of array<ReactElement> * Position * array<IStyleAttribute>
+    | DefaultNewPage of array<ReactElement> * NewUserPage * Position
 
 // Many discriminated unions in order to facilitate unit testing
 type newSaveResult =
     | SaveNew of Data.InstructionData * string
-    | SaveExistingNewTitles of seq<DatabaseSavingOptions> * string
-    | SaveExisitngNewFIles of seq<DatabaseSavingOptions> * string
-    | SaveExistingNewFilesAndTItles of seq<DatabaseSavingOptions> * string
-    | SaveExistingNewFilesPartsToDelete of seq<DatabaseSavingOptions> * string
-    | SaveExistingNewTItlesPartsToDelete of seq<DatabaseSavingOptions> * string
-    | SaveExistingNewFilesAndTItlesPartsToDelete of seq<DatabaseSavingOptions> * string
-    | SaveExistingPartsToDelete of seq<DatabaseSavingOptions> * string
+    | SaveExistingNewTitles of array<DatabaseSavingOptions> * string
+    | SaveExisitngNewFIles of array<DatabaseSavingOptions> * string
+    | SaveExistingNewFilesAndTItles of array<DatabaseSavingOptions> * string
+    | SaveExistingNewFilesPartsToDelete of array<DatabaseSavingOptions> * string
+    | SaveExistingNewTItlesPartsToDelete of array<DatabaseSavingOptions> * string
+    | SaveExistingNewFilesAndTItlesPartsToDelete of array<DatabaseSavingOptions> * string
+    | SaveExistingPartsToDelete of array<DatabaseSavingOptions> * string
     | InstructionIsDelete of string
     | NoUserData of string
     | ThatInstructionAlreadyExists of string
@@ -66,7 +66,7 @@ type Msg =
     | NewInstructionToSave of Data.InstructionData * string
     | PopUpMsg of PopUpSettings<Msg> Option
     | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
-                                               Option<seq<Instruction.Types.modificationInfo>> *
+                                               Option<array<Instruction.Types.modificationInfo>> *
                                                Position
     | SaveInstructionToDataBase of Data.InstructionData * string
     | DeleteInstructionMsg of Data.InstructionData * Position

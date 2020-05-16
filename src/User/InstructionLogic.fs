@@ -21,24 +21,24 @@ let modifyOrNot model dispatch =
             style.visibility.visible |>
             Instruction.Types.ModifyInstructionMsg
             |> fun msg1 ->
-                    seq[
+                    [|
                         msg1
                         (false |>
                          Instruction.Types.DeleteButtonEnablenMsg)
-                    ]
+                    |]
                     
-            |> Seq.iter (fun msg -> msg |> dispatch)
+            |> Array.iter (fun msg -> msg |> dispatch)
 
         | _ -> style.visibility.hidden |>
                 Instruction.Types.ModifyInstructionMsg
                 |> fun msg1 ->
-                        seq[
+                        [|
                             msg1
                             (true |>
                              Instruction.Types.DeleteButtonEnablenMsg)
-                        ]
+                        |]
                         
-                |> Seq.iter (fun msg -> msg |> dispatch)
+                |> Array.iter (fun msg -> msg |> dispatch)
 
 let go2PartFromInstruction part instruction dispatch =
         Part.Types.NewPart2Show (part,instruction)
@@ -50,7 +50,7 @@ let go2PartFromInstruction part instruction dispatch =
 
 let newModInfo4Debugging newModinfo =
     newModinfo
-    |> Seq.map (fun info ->
+    |> Array.map (fun info ->
         ()
         |> function
             | _ when info.DelOrReg.IsSome ->
@@ -68,38 +68,38 @@ let newModInfo4Debugging newModinfo =
             |> String.concat ""
 
 let ajustAfterNewModinfo ( currInstruction : Data.InstructionData )
-                         ( newModinfo : seq<modificationInfo> ) :
-                           ( Data.InstructionData * seq<modificationInfo> ) =
+                         ( newModinfo : array<modificationInfo> ) :
+                           ( Data.InstructionData * array<modificationInfo> ) =
     newModinfo
-    |> Seq.map (fun info ->
+    |> Array.map (fun info ->
         currInstruction.Data
-        |> Seq.tryFind (fun part ->
+        |> Array.tryFind (fun part ->
             part.Title.Trim() = info.Names.CurrName.Trim())
         |> function
             | res when res.IsSome ->
                 Some res.Value
             | _ -> None)
-    |> Seq.choose id
+    |> Array.choose id
     |> fun parts ->
         let newParts4Debugging =
             parts
-            |> Seq.map (fun part ->
+            |> Array.map (fun part ->
                 part.Title + "\n")
             |> String.concat ""
         { currInstruction with Data = parts}, newModinfo
 
 let updateCurrPositionsTestable (currInstruction : Data.InstructionData)
-                        ( currModInfo : seq<modificationInfo> )
+                        ( currModInfo : array<modificationInfo> )
                         ( delOrReg : DeleteInfo Option )
                           currName
                         ( newName : Option<string> ) :
                         Data.InstructionData *
-                        seq<modificationInfo> =
+                        array<modificationInfo> =
     ()
     |> function
         | _ when delOrReg.IsSome && newName.IsNone ->
             currModInfo
-            |> Seq.map (fun info ->
+            |> Array.map (fun info ->
                 info.Names.CurrName
                 |> function
                     | name when name = currName ->
@@ -122,25 +122,37 @@ let updateCurrPositionsTestable (currInstruction : Data.InstructionData)
         | _ when newName.IsSome && delOrReg.IsNone ->
             let isNewNameValid =
                 currInstruction.Data
-                |> Seq.exists (fun part ->
+                |> Array.exists (fun part ->
                     part.Title.Trim() = newName.Value)
+
+            let getNewNameStatus ( name : string ) =
+                currModInfo
+                |> Array.pick (fun modInfo ->
+                    ()
+                    |> function
+                        | _ when modInfo.Names.CurrName.Trim() = name.Trim() ->
+                            Some modInfo.Status
+                        | _ -> None)
+
             ()
             |> function
                 | _ when isNewNameValid = true ->
                     currModInfo
-                    |> Seq.map (fun info ->
+                    |> Array.map (fun info ->
                         ()
                         |> function
                             | _ when info.Names.CurrName.Trim() = currName.Trim() ->
                                 { info with Names = {
                                                 CurrName = newName.Value
                                                 NewName = None
-                                            }}
+                                            }
+                                            Status = getNewNameStatus newName.Value }
                             | _ when info.Names.CurrName.Trim() = newName.Value.Trim() ->
                                 { info with Names = {
                                                 CurrName = currName
                                                 NewName = None
-                                            }}
+                                            }
+                                            Status = getNewNameStatus currName}
                             | _ -> info
                         )
                         
@@ -154,7 +166,7 @@ let getCurrentDelOrReg model ( part : Data.partData ) =
     match model.CurrPositions with
     | Some modinfo ->
         modinfo
-        |> Seq.tryFind (fun info ->
+        |> Array.tryFind (fun info ->
             info.Names.CurrName.Trim() = part.Title.Trim())
         |> function
             | res when res.IsSome ->
@@ -190,17 +202,17 @@ let newPartSelected ( ev : Types.Event ) partName dispatch =
 
     (None,partName,Some newPartName)
     |> Instruction.Types.NewModificationInfo
-    |> fun x -> seq[x]
-    |> Seq.append (
-            seq[
+    |> fun x -> [|x|]
+    |> Array.append (
+            [|
                 Global.UserPage.Instruction
                 |> Global.Page.User
                 |> fun page ->
                     (page,None)
                     |> NewPage
-            ]
+            |]
         )
-    |> Seq.iter (fun msg -> msg |> dispatch)
+    |> Array.iter (fun msg -> msg |> dispatch)
 
 let partNameToChange dispatch
                      ( part : Data.partData )
@@ -214,9 +226,9 @@ let partNameToChange dispatch
                 |> ( Instruction.Types.UpdateNewName >> dispatch )
             | _ -> ()
 let updateNewNameTestable currPositions ( currName : string ) newName=
-    let result =    
+    let result =
         currPositions
-        |> Seq.map (fun modInfo ->
+        |> Array.map (fun modInfo ->
             ()
             |> function
                 | _ when modInfo.Names.CurrName.Trim() = currName.Trim() ->
@@ -235,13 +247,13 @@ let modifyNames model dispatch =
         (Instruction.Types.ImplementNewNames |> dispatch)
      | _ -> ()
 
-let enableModificationTestable ( modInfoSeq : seq<modificationInfo> Option )
+let enableModificationTestable ( modInfoSeq : array<modificationInfo> Option )
                                ( part : Data.partData )  =
     ()
     |> function
         | _ when modInfoSeq.IsSome ->
             modInfoSeq.Value
-            |> Seq.tryFind (fun modInfo ->
+            |> Array.tryFind (fun modInfo ->
                 modInfo.Names.CurrName.Trim() = part.Title.Trim())
             |> function
                 | res when res.IsSome ->
@@ -256,9 +268,9 @@ let enableModificationTestable ( modInfoSeq : seq<modificationInfo> Option )
                 | _ -> false
         | _ -> false
             
-let newNameBecomesCurrent ( modinfo : seq<modificationInfo> ) =
+let newNameBecomesCurrent ( modinfo : array<modificationInfo> ) =
     modinfo
-    |> Seq.map (fun info ->
+    |> Array.map (fun info ->
         ()
         |> function
             | _ when info.Names.NewName.IsSome ->
@@ -273,9 +285,9 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
         | Some modInfo ->
             let result =
                 instruction.Data
-                |> Seq.map (fun part ->
+                |> Array.map (fun part ->
                     modInfo
-                    |> Seq.tryFind (fun info ->
+                    |> Array.tryFind (fun info ->
                         info.Names.CurrName.Trim() = part.Title.Trim() &&
                         info.Names.NewName.IsSome)
                     |> function
@@ -293,7 +305,7 @@ let newnameValue model ( part : Data.partData ) =
     match model.CurrPositions with
     | Some modificationInfo ->
         modificationInfo
-        |> Seq.tryFind (fun info ->
+        |> Array.tryFind (fun info ->
             info.Names.CurrName.Trim() = part.Title.Trim())
         |> function
             | res when res.IsSome ->
@@ -331,7 +343,7 @@ let createHoverMessageCommponents ( part : Data.partData )
         ]
 
     let divs =
-        seq[
+        [|
             Global.divWithStyle
                     (Some "columns is-gapless")
                     ("Instruction Video: " + part.InstructionVideo.Replace("Videos/",""))
@@ -341,17 +353,17 @@ let createHoverMessageCommponents ( part : Data.partData )
                     (Some "columns is-gapless")
                     ("Instruction Text: " + part.InstructionTxt)
                     style
-        ]
+        |]
 
-    seq[
+    [|
         visible
         Feliz.style.left ( positions.X |> int )
         Feliz.style.top ( positions.Y |> int )
-    ]
+    |]
     |> fun styles ->
         divs,positions,styles
 
-let filenameWStatus (msg : seq<ReactElement> ) =
+let filenameWStatus (msg : array<ReactElement> ) =
     Html.div[
         prop.className "columns is-centered"
         prop.style[
@@ -365,24 +377,6 @@ let filenameWStatus (msg : seq<ReactElement> ) =
         )  
     ]
 
-let currStatList ( modInfos : seq<modificationInfo> ) =
-    modInfos
-    |> Seq.collect (fun modInfo ->
-        modInfo.Status
-        |> Seq.map (fun stat ->
-            match stat with
-            | PartStatus.Uploading nameComp ->
-                nameComp + " has status Uploiading"
-            | PartStatus.Delete nameComp ->
-                nameComp + " has status Delete"
-            | PartStatus.StatusExisting nameComp ->
-                nameComp + " has status StatusExisting"
-            | PartStatus.UploadOrDeleteFinishedSuccesfully (nameComp,_) ->
-                nameComp + " has status SuccessUpload"
-            | PartStatus.UploadOrDeleteFinishedWithFailure (nameComp,_) ->
-                nameComp + " has status FailedUpload"))
-    |> String.concat "\n"
-
 let changeFileStatus ( model : Instruction.Types.Model )
                      ( newStatus : PartStatus)
                      ( positions ) =
@@ -395,11 +389,11 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 newStatus
             | _ -> currStatus
 
-    let getNewModInfos ( modInfos : seq<modificationInfo> ) name =
+    let getNewModInfos ( modInfos : array<modificationInfo> ) name =
         modInfos
-        |> Seq.map (fun modInfo ->
+        |> Array.map (fun modInfo ->
             modInfo.Status
-            |> Seq.map (fun currPartStatus ->
+            |> Array.map (fun currPartStatus ->
                 match currPartStatus with
                 | PartStatus.Uploading nameComp ->
                     upDatNameIfMatch name nameComp currPartStatus
@@ -415,7 +409,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 { modInfo with Status = newStatuses })
 
     let divWSpinner msg =
-        seq[
+        [|
             Html.div[
                 prop.className "column"
                 prop.children[
@@ -423,7 +417,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 ]
             ]
             User.Logic.spinner
-        ]
+        |]
 
     let funcChainingButton info =
         info |>
@@ -441,16 +435,16 @@ let changeFileStatus ( model : Instruction.Types.Model )
             User.Types.PopUpMsg
         )
 
-    let newStatusReactElements ( modInfos : seq<modificationInfo> ) =
+    let newStatusReactElements ( modInfos : array<modificationInfo> ) =
         modInfos
-        |> Seq.collect (fun modInfo ->
+        |> Array.collect (fun modInfo ->
             modInfo.Status
-            |> Seq.choose (fun status ->
+            |> Array.choose (fun status ->
                 match status with
                 | PartStatus.UploadOrDeleteFinishedSuccesfully(_,msgElement) ->
-                    Some (seq[msgElement])
+                    Some ([|msgElement|])
                 | PartStatus.UploadOrDeleteFinishedWithFailure(_,msgElement) ->
-                    Some (seq[msgElement])
+                    Some ([|msgElement|])
                 | PartStatus.Uploading name ->
                     let msgElement =
                         divWSpinner ("Uploading file " + name)
@@ -461,7 +455,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
                     Some msgElement
                 | PartStatus.StatusExisting _ ->
                     None)
-            |> Seq.collect(fun x -> x))
+            |> Array.collect(fun x -> x))
 
     match model.CurrPositions  with
     | Some modInfos ->
@@ -491,13 +485,11 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 let newFileStatusMsgs = newStatusReactElements newModInfos
                 (newModInfos,newFileStatusMsgs)
 
-        let test1 = currStatList modInfos
-        let test2 = currStatList newInfo
         let allFileStatusesAreStale =
             newInfo
-            |> Seq.collect (fun modInfo ->
+            |> Array.collect (fun modInfo ->
                 modInfo.Status
-                |> Seq.map (fun status ->
+                |> Array.map (fun status ->
                     match status with
                     | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
                         true
@@ -506,7 +498,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
                     | PartStatus.StatusExisting _ ->
                         true
                     | _ -> false))
-            |> Seq.forall (fun x -> x)
+            |> Array.forall (fun x -> x)
 
         let msg =
             ()
@@ -560,11 +552,10 @@ let deleteProcess ( status : DeleteProcess<string * Data.Position,string * Data.
 let uploadOrDeleteFinished modInfosOpt options =
     match modInfosOpt with
     | Some modInfos ->
-        let test1 = currStatList modInfos
         modInfos
-        |> Seq.collect (fun modInfo ->
+        |> Array.collect (fun modInfo ->
             modInfo.Status
-            |> Seq.map (fun status ->
+            |> Array.map (fun status ->
                 match status with
                 | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
                     true
@@ -573,14 +564,14 @@ let uploadOrDeleteFinished modInfosOpt options =
                 | PartStatus.StatusExisting _ ->
                     true
                 | _ -> false))
-        |> Seq.forall (fun res -> res)
+        |> Array.forall (fun res -> res)
         |> function
             | uploadOrDeleteFinished when uploadOrDeleteFinished = true ->
                 let modInfosNew =
                     modInfos 
-                    |> Seq.map (fun modInfo ->
+                    |> Array.map (fun modInfo ->
                         modInfo.Status
-                        |> Seq.map (fun status ->
+                        |> Array.map (fun status ->
                             match status with
                             | PartStatus.UploadOrDeleteFinishedSuccesfully(name,_) ->
                                 PartStatus.StatusExisting name
@@ -598,9 +589,9 @@ let uploadOrDeleteFinished modInfosOpt options =
 
                 let partsToAddToDB =
                     modInfos
-                    |> Seq.choose (fun modInfo ->
+                    |> Array.choose (fun modInfo ->
                         modInfo.Status
-                        |> Seq.forall (fun status ->
+                        |> Array.forall (fun status ->
                             match status with
                             | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
                                 true
@@ -610,7 +601,7 @@ let uploadOrDeleteFinished modInfosOpt options =
                                 Some modInfo.Names.CurrName
                             | _ -> None)
                     |> function
-                        | successUploads when successUploads |> Seq.length <> 0 ->
+                        | successUploads when successUploads |> Array.length <> 0 ->
                             Some successUploads
                         | _ -> None
 
@@ -622,16 +613,16 @@ let uploadOrDeleteFinished modInfosOpt options =
                                 match options with
                                 | DatabaseNewFilesOptions.SameInstructionOption instruction ->
                                     instruction.Data
-                                    |> Seq.choose (fun part ->
+                                    |> Array.choose (fun part ->
                                         partsToAddToDB.Value
-                                        |> Seq.exists (fun partCompTitle ->
+                                        |> Array.exists (fun partCompTitle ->
                                             partCompTitle.Replace(" ","") = part.Title.Replace(" ",""))
                                         |> function
                                             | existsPartToAddToDB when existsPartToAddToDB = true ->
                                                 Some part
                                             | _ -> None)
                                     |> function
-                                        | existsPartsToAddToDB when existsPartsToAddToDB |> Seq.length <> 0 ->
+                                        | existsPartsToAddToDB when existsPartsToAddToDB |> Array.length <> 0 ->
                                             let instruction4DBInfo =
                                                 {
                                                     Title = instruction.Title
@@ -643,24 +634,24 @@ let uploadOrDeleteFinished modInfosOpt options =
                                                 |> DatabaseNewFilesOptions.SameInstructionOption
                                                 |> DatabaseSavingOptions.NewFilesInstruction
 
-                                            Some(seq[savingOptions])
+                                            Some([|savingOptions|])
                                         | _ -> None
                                 | DatabaseNewFilesOptions.NewInstructionOption instruction ->
                                     instruction.Data
-                                    |> Seq.choose (fun part ->
+                                    |> Array.choose (fun part ->
                                         partsToAddToDB.Value
-                                        |> Seq.exists (fun partCompTitle ->
+                                        |> Array.exists (fun partCompTitle ->
                                             partCompTitle.Replace(" ","") = part.Title.Replace(" ",""))
                                         |> function
                                             | existsPartToAddToDB when existsPartToAddToDB = true ->
                                                 Some part
                                             | _ -> None)
                                     |> function
-                                        | existsPartsToAddToDB when existsPartsToAddToDB |> Seq.length <> 0 ->
+                                        | existsPartsToAddToDB when existsPartsToAddToDB |> Array.length <> 0 ->
                                             let instruction4DBInfo =
                                                 {
                                                     Title = instruction.Title
-                                                    Data = existsPartsToAddToDB
+                                                    Data = existsPartsToAddToDB 
                                                 }
 
                                             let savingOptions =
@@ -668,7 +659,7 @@ let uploadOrDeleteFinished modInfosOpt options =
                                                 |> DatabaseNewFilesOptions.NewInstructionOption
                                                 |> DatabaseSavingOptions.NewFilesInstruction
 
-                                            Some(seq[savingOptions])
+                                            Some([|savingOptions|])
                                         | _ -> None
 
                             instruction4NewDBInfo
@@ -677,7 +668,7 @@ let uploadOrDeleteFinished modInfosOpt options =
             | _ -> None
     | _ -> None
 
-let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,
+let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,
                                                                DatabaseChangeResult> ) =
     match status with
     | DatabaseChangeBegun(dbSaveOpt,ids,positions) ->
@@ -685,7 +676,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
             "Performing database changes..."
 
         let divWSpinner =
-            seq[
+            [|
                 Html.div[
                     prop.className "column"
                     prop.children[
@@ -693,7 +684,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
                     ]
                 ]
                 User.Logic.spinner
-            ]
+            |]
         let buttonFuncChaining info =
             info |>
             (
@@ -711,13 +702,13 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
             positions
             |> User.Logic.sqlCommandToDB dbSaveOpt ids
             |> Cmd.fromAsync
-            |> fun x -> seq[x]
+            |> fun x -> [|x|]
 
         dbChangeMsg
-        |> Seq.append (seq[popupMsg])
+        |> Array.append ([|popupMsg|])
     | DatabseChangeFinished(DatabaseChangeFailed(msg,positions)) ->
         let funcChaining positions msg =
-            (seq[msg],positions) |>
+            ([|msg|],positions) |>
             (
                 PopUpSettings.Default >>
                 Some >>
@@ -736,13 +727,13 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
             |> funcChaining positions
 
         let databaseMsgsCombined =
-            seq[databaseChangePopupMsg ; funcChainingDelayedPopupKill]
+            [|databaseChangePopupMsg ; funcChainingDelayedPopupKill|]
 
         databaseMsgsCombined
 
     | DatabseChangeFinished(DatabaseChangeSucceeded(msg,positions,databaseOptions)) ->
         let funcChaining positions msg =
-            (seq[msg],positions) |>
+            ([|msg|],positions) |>
             (
                 PopUpSettings.Default >>
                 Some >>
@@ -758,7 +749,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
 
         let updateInstructionInApplication =
             databaseOptions
-            |> Seq.map (fun opt ->
+            |> Array.map (fun opt ->
                 match opt with
                 | DatabaseSavingOptions.NewFilesInstruction newFileOpt ->
                     match newFileOpt with
@@ -774,7 +765,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
                         instruction
                     | DatabaseDeleteOptions.DeleteParts instruction ->
                         instruction)
-            |> Seq.map (fun instr ->
+            |> Array.map (fun instr ->
                 instr
                 |> User.Types.NewUserDataToAddMsg
                 |> Cmd.ofMsg)
@@ -785,16 +776,16 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
 
         let databaseMsgsCombined =
             updateInstructionInApplication
-            |> Seq.append(
-                seq[
+            |> Array.append(
+                [|
                     databaseChangePopupMsg
                     funcChainingDelayedPopupKill
-                    ]
+                |]
             )
 
         let deletePartMsgs parts =
             parts
-            |> Seq.collect (fun part ->
+            |> Array.collect (fun part ->
                 let startDelProcessInstructionTxt =
                     (part.InstructionVideo,positions)
                     |> Instruction.Types.DeleteInProgress
@@ -808,25 +799,25 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
                     |> Instruction.Types.DeletePartFilesMsg
                     |> User.Types.InstructionMsg
                     |> Cmd.ofMsg
-                seq[
+                [|
                     startDelProcessInstructionVideo
                     startDelProcessInstructionTxt
-                ])
+                |])
 
         let ifDeleteMsg =
             databaseOptions
-            |> Seq.collect (fun option ->
+            |> Array.collect (fun option ->
                 match option with
                 | PartsToDeleteInstruction delOptions ->
                     match delOptions with
                     | DatabaseDeleteOptions.DeleteInstruction instr ->
                         instr.Data
                         |> deletePartMsgs
-                        |> Seq.append databaseMsgsCombined
+                        |> Array.append databaseMsgsCombined
                     | DatabaseDeleteOptions.DeleteParts instr ->
                         instr.Data
                         |> deletePartMsgs
-                        |> Seq.append databaseMsgsCombined
+                        |> Array.append databaseMsgsCombined
                 | _ ->
                     databaseMsgsCombined)
         ifDeleteMsg
@@ -839,7 +830,7 @@ let saveNewData newInstrDataOpt
     | Some medias ->
         let matchMaking str =
             medias
-            |> Seq.exists (fun media ->
+            |> Array.exists (fun media ->
                 match media with
                 | NewAdd.Types.Video vid ->
                     vid.name = str
@@ -854,7 +845,7 @@ let saveNewData newInstrDataOpt
                 instr
 
         newInstr.Data
-        |> Seq.forall (fun part ->
+        |> Array.forall (fun part ->
             matchMaking part.InstructionTxt &&
             matchMaking part.InstructionVideo)
         |> function
@@ -867,11 +858,11 @@ let saveNewData newInstrDataOpt
                         User.Types.NewAddMsg
                     )
                 medias
-                |> Seq.map (fun media ->
+                |> Array.map (fun media ->
                     match media with
                     | NewAdd.Types.MediaChoiceFormData.Video file -> file
                     | NewAdd.Types.MediaChoiceFormData.InstructionTxt file -> file)
-                |> Seq.map (fun file ->
+                |> Array.map (fun file ->
                     (file,dbIds,positions,options)
                     |> funcChaining
                     |> Cmd.ofMsg)

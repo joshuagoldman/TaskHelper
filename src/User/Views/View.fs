@@ -35,7 +35,7 @@ let chooseSideMenuHref name =
 let clearIfSearchButton dispatch name =
     let clearNewAddInfoMsg =
         Html.none
-        |> fun y -> seq[y]
+        |> fun y -> [|y|]
         |> (NewAdd.Types.NewAddInfoMsg >>
             User.Types.NewAddMsg)
 

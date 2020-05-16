@@ -36,7 +36,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             PartStatus.StatusExisting(name)
         let newModInfo =
             instruction.Data
-            |> Seq.map (fun part ->
+            |> Array.map (fun part ->
                 let names =
                     {
                         CurrName = part.Title
@@ -46,10 +46,10 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                     DelOrReg = delOrReg
                     Names = names
                     Status =
-                        seq[
+                        [|
                             getStatus part.InstructionTxt
                             getStatus part.InstructionVideo
-                        ]
+                        |]
                         
                 })
         { model with CurrInstruction = Ok (instruction,id) ;
@@ -93,7 +93,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                 match model.CurrPositions with
                 | Some modInfo ->
                     modInfo
-                    |> Seq.map (fun info ->
+                    |> Array.map (fun info ->
                         let delOrReg =
                             match info.DelOrReg with
                             | Some button ->
@@ -191,7 +191,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             let msgsIfYesClicked =
                 (instr,positions)
                 |> User.Types.DeleteInstructionMsg
-                |> fun x -> seq[x]
+                |> fun x -> [|x|]
 
             let popupMsgs =
                 Html.div[
@@ -200,7 +200,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
                         Fable.React.Helpers.str "Are you sure you wish to remove instruction?"
                     ]
                 ]
-                |> fun x -> seq[x]
+                |> fun x -> [|x|]
                 
             let msg =
                 ( popupMsgs,positions,msgsIfYesClicked)

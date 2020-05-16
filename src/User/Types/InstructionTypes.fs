@@ -17,7 +17,7 @@ type PartStatus =
     | UploadOrDeleteFinishedWithFailure of string * ReactElement
 
 type DatabaseChangeResult =
-    | DatabaseChangeSucceeded of ReactElement * Data.Position * seq<DatabaseSavingOptions>
+    | DatabaseChangeSucceeded of ReactElement * Data.Position * array<DatabaseSavingOptions>
     | DatabaseChangeFailed of ReactElement * Data.Position
 
 type DatabaseChangeProcess<'a,'b> =
@@ -40,7 +40,7 @@ type NamePair = {
 type modificationInfo = {
     DelOrReg : option<DeleteInfo>
     Names : NamePair
-    Status : seq<PartStatus>
+    Status : array<PartStatus>
 }
 
 type Msg =
@@ -59,7 +59,7 @@ type Msg =
     | NewPage of Global.Page * int Option
     | HoverPartMsg of Data.partData * Types.MouseEvent * IStyleAttribute
     | SaveData of Result<Data.InstructionData * string,string> *
-                  option<seq<modificationInfo>> *
+                  option<array<modificationInfo>> *
                   Position
     | DeletePartFilesMsg of DeleteProcess<string * Data.Position,string * Data.Position * ReactElement> 
     | ChangeFileStatus of PartStatus  * Position
@@ -67,7 +67,7 @@ type Msg =
     | CheckIfSaveFinished of DBIds * Position * DatabaseNewFilesOptions
     | CheckIfDeleteFinished of Position
     | CreateDeletePopup of Position
-    | DatabaseChangeMsg of DatabaseChangeProcess<seq<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,DatabaseChangeResult> 
+    | DatabaseChangeMsg of DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,DatabaseChangeResult> 
 
 type InstructionMode  =
 | Regular
@@ -78,7 +78,7 @@ type Model =
         InstructionErrorMessage : AppearanceAttributes
         CurrInstruction : Result<Data.InstructionData * string,string>
         CurrPart : Part.Types.Model
-        CurrPositions : Option<seq<modificationInfo>>
+        CurrPositions : Option<array<modificationInfo>>
         CurrTempInstruction : Option<InstructionData>
         PartNameModificationInput : AppearanceAttributes
         PositionsInput : AppearanceAttributes

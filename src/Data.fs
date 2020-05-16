@@ -31,7 +31,7 @@ type partData =
 
 type InstructionData =
     {
-        Data : seq<partData>
+        Data : array<partData>
         Title : string
     }
 
@@ -51,7 +51,7 @@ type DatabaseSavingOptions =
 type UserData =
     {
         Id : int
-        Instructions : seq<InstructionData>
+        Instructions : array<InstructionData>
     }
 
 let PartDecoder : Decoder<partData> = 
@@ -162,10 +162,9 @@ let errorInstruction =
         {
             Title = ""
             Data =
-                seq
-                    [
-                        errorPart 
-                    ]
+                [|
+                    errorPart 
+                |]
         }
 
 

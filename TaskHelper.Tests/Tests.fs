@@ -22,13 +22,13 @@ open Fable.React.Props
 type Testcase =
     {
         input : option<DeleteInfo> * NamePair
-        ExpectedResult : Data.InstructionData * option<seq<modificationInfo>>
+        ExpectedResult : Data.InstructionData * option<array<modificationInfo>>
     }
 
 type SavingChoiceArgs = {
     Instruction : Data.InstructionData
-    ModInfo : seq<modificationInfo> Option
-    Instructions : seq<Data.InstructionData>
+    ModInfo : array<modificationInfo> Option
+    Instructions : array<Data.InstructionData>
     Result : User.Types.newSaveResult -> bool
 }
 
@@ -58,28 +58,28 @@ let getModInfo ( currNameOpt  : option<string>)
                 CurrName = currName
                 NewName = None
             }
-        Status = seq[StatusExisting(currName)]
+        Status = [|StatusExisting(currName)|]
     }
 
 let getTestModInfo   names
-                   ( newDelOrReg : seq<DeleteInfo option> ) =
-    Seq.zip names newDelOrReg
-    |> Seq.map (fun (num,newDelOrReg) ->
+                   ( newDelOrReg : array<DeleteInfo option> ) =
+    Array.zip names newDelOrReg
+    |> Array.map (fun (num,newDelOrReg) ->
         (num |> string |> fun x -> "part" + x) ,
           newDelOrReg)
-    |> Seq.map (fun (title,newDelOrReg) ->
+    |> Array.map (fun (title,newDelOrReg) ->
         let currName = Some(title)
         getModInfo   currName
                      newDelOrReg
     )
             
-let getInstructionSet ( nums : seq<int> ) =
+let getInstructionSet ( nums : array<int> ) =
     {
         Data.InstructionData.Title = "Instruction"
         Data.InstructionData.Data =
             nums
-            |> Seq.map (fun num -> num |> string)
-            |> Seq.map (fun title ->
+            |> Array.map (fun num -> num |> string)
+            |> Array.map (fun title ->
                 getPart
                     (
                         ("part" + title) |> Some )
@@ -90,8 +90,8 @@ let getInstructionSet ( nums : seq<int> ) =
 
 
 type InstructionObtainingStyle =
-    | Simple of seq<int>
-    | NotSimple of seq<int * option<string>>
+    | Simple of array<int>
+    | NotSimple of array<int * option<string>>
 
 let getInstructionSetNotSimple ( style : InstructionObtainingStyle ) =
         match style with
@@ -103,8 +103,8 @@ let getInstructionSetNotSimple ( style : InstructionObtainingStyle ) =
                 Data.InstructionData.Data =
                     
                     sequence
-                    |> Seq.map (fun (num ,str)-> (num |> string,str))
-                    |> Seq.map (fun (title,fileName) ->
+                    |> Array.map (fun (num ,str)-> (num |> string,str))
+                    |> Array.map (fun (title,fileName) ->
                         let getNewFileName name =
                             if fileName.IsSome
                             then (name + fileName.Value) |> Some
@@ -118,23 +118,23 @@ let getInstructionSetNotSimple ( style : InstructionObtainingStyle ) =
             }
 
 let repeatOfSame obj amount =
-    [1..amount]
-    |> Seq.map (fun _ -> obj)
+    [|1..amount|]
+    |> Array.map (fun _ -> obj)
 
 [<Fact>]
 let ``TestModificationsLogic`` () =
         
     let testCaseDelOrRegChanged =
-        seq[
+        [|
             "Delete" |> (Delete >> Some)
             "Delete" |> (Delete >> Some)
             "Delete" |> (Delete >> Some)
             "Delete" |> (Delete >> Some)
             "Regret" |> (Regret >> Some)
-        ]
+        |]
 
     let caseOneNewModInfo =
-        seq[
+        [|
              ( "part1",
                Some "part2",
                None)
@@ -146,79 +146,79 @@ let ``TestModificationsLogic`` () =
              ( "part2",
                None,
                Some(Delete("Delete")))
-        ]
+        |]
 
     let caseOneInstructionsinput =
-        seq[
+        [|
             getInstructionSet(
-                seq[1;2;3;4;5]
+                [|1;2;3;4;5|]
             )
             getInstructionSet(
-              seq[2;1;3;4;5]  
+              [|2;1;3;4;5|]  
             )
             getInstructionSet(
-              seq[5;1;3;4;2]
+              [|5;1;3;4;2|]
             )
-        ]
+        |]
 
     let caseOneInstructionsResult =
-        seq[
+        [|
             getInstructionSet(
-              seq[2;1;3;4;5]  
+              [|2;1;3;4;5|]  
             )
             getInstructionSet(
-              seq[5;1;3;4;2]  
+              [|5;1;3;4;2|]  
             )
             getInstructionSet(
-              seq[5;1;3;4;2]  
+              [|5;1;3;4;2|]  
             ) 
-        ]
+        |]
 
     let caseOneModinfoInputs =
         let subCase1 =
-            getTestModInfo (seq[1;2;3;4;5])
+            getTestModInfo ([|1;2;3;4;5|])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
         let subCase2 =
-            getTestModInfo (seq[2;1;3;4;5])
+            getTestModInfo ([|2;1;3;4;5|])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
         let subCase3 =
-            getTestModInfo (seq[5;1;3;4;2])
+            getTestModInfo ([|5;1;3;4;2|])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
-        seq[
+        [|
              subCase1
              subCase2
              subCase3
-        ]
+        |]
 
     let caseOneModInfoResult =
         let subCase1 =
-            getTestModInfo (seq[2;1;3;4;5])
+            getTestModInfo ([|2;1;3;4;5|])
                             (repeatOfSame ("Delete" |> (Delete >> Some)) 5)
         let subCase2 =
-            getTestModInfo (seq[5;1;3;4;2])          
+            getTestModInfo ([|5;1;3;4;2|])          
                             (repeatOfSame ("Delete" |> (Delete >> Some)) 5)
         let subCase3 =
-            getTestModInfo (seq[5;1;3;4;2])
+            getTestModInfo ([|5;1;3;4;2|])
                             testCaseDelOrRegChanged
-        seq[
+        [|
             subCase1
             subCase2
             subCase3
-        ]
+        |]
     let testCases =
-        [0..caseOneNewModInfo |> Seq.length |> fun x -> x - 1]
-        |> Seq.map (fun pos ->
+        [|0..caseOneNewModInfo |> Array.length |> fun x -> x - 1|]
+        |> Array.map (fun pos ->
             {|
-            NewInput = caseOneNewModInfo |> Seq.item pos
-            InstructionInput = caseOneInstructionsinput |> Seq.item pos
-            InstructionResult = caseOneInstructionsResult |> Seq.item pos
-            currModInfoInput = caseOneModinfoInputs |> Seq.item pos
-            CurrModInfoResult = caseOneModInfoResult |> Seq.item pos
+            NewInput = caseOneNewModInfo |> Array.item pos
+            InstructionInput = caseOneInstructionsinput |> Array.item pos
+            InstructionResult = caseOneInstructionsResult |> Array.item pos
+            currModInfoInput = caseOneModinfoInputs |> Array.item pos
+            CurrModInfoResult = caseOneModInfoResult |> Array.item pos
 
              |})
 
     testCases
-    |> Seq.iter (fun case ->
+    |> Array.iter (fun case ->
         let (currName,newName,dOrR) =
             case.NewInput
             |> fun (currName,newName,dOrR) ->
@@ -231,16 +231,16 @@ let ``TestModificationsLogic`` () =
                                                    currName
                                                    newName
 
-        [0..instructionResultActual.Data |> Seq.length |> fun x -> x - 1]
-        |> Seq.iter (fun pos ->
-            let getTitle ( sequence : seq<Data.partData> ) position =
+        [|0..instructionResultActual.Data |> Array.length |> fun x -> x - 1|]
+        |> Array.iter (fun pos ->
+            let getTitle ( sequence : array<Data.partData> ) position =
                 sequence
-                |> Seq.item position
+                |> Array.item position
                 |> fun x -> x.Title
 
-            let extractModInfoData ( modInfo : seq<modificationInfo> ) = 
+            let extractModInfoData ( modInfo : array<modificationInfo> ) = 
                 modInfo
-                |> Seq.map (fun infoVal ->
+                |> Array.map (fun infoVal ->
                         let delOrRegStr =
                             match infoVal.DelOrReg with
                             | Some delOrRegVal ->
@@ -260,8 +260,8 @@ let ``TestModificationsLogic`` () =
                 let infos = extractModInfoData modInfo
                 let infosCompare = extractModInfoData newModinfo
 
-                Seq.zip infos infosCompare
-                |> Seq.forall (fun (info,infoComp) ->
+                Array.zip infos infosCompare
+                |> Array.forall (fun (info,infoComp) ->
                     let (a1,b1,c1) = info |> fun (x,y,z) -> x,y,z
                     let (a2,b2,c2) = infoComp |> fun (x,y,z) -> x,y,z
 
@@ -282,153 +282,153 @@ let ``TestModificationsLogic`` () =
 [<Fact>]
 let ``TestSavingChoices`` () =
     let existingInstructions =
-        seq[
-            seq[1;2;3;4;5]
+        [|
+            [|1;2;3;4;5|]
             |> getInstructionSet
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[1;2;3;4;5]
+            [|1;2;3;4;5|]
             |> getInstructionSet
             |> fun instr ->
                 { instr with Title = "Instruction2"}
-        ]
+        |]
 
     let modInfoCases =
-        seq[
-            getTestModInfo (seq[1;2;3;4;5])
+        [|
+            getTestModInfo ([|1;2;3;4;5|])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
             |> Some
 
-            getTestModInfo (seq[1;2;3;4;5])
+            getTestModInfo ([|1;2;3;4;5|])
                            (
-                                seq[
+                                [|
                                     ("Delete" |> Delete |> Some)
                                     ("Delete" |> Delete |> Some)
                                     ("Delete" |> Delete |> Some)
                                     ("Delete" |> Delete |> Some)
                                     ("Regret" |> Regret |> Some)
-                                ]
+                                |]
                            ) |> Some
 
-            getTestModInfo (seq[1;2;3;4;5])
+            getTestModInfo ([|1;2;3;4;5|])
                            (
-                                seq[
+                                [|
                                     ("Regret" |> Regret |> Some)
                                     ("Regret" |> Regret |> Some)
                                     ("Regret" |> Regret |> Some)
                                     ("Regret" |> Regret |> Some)
                                     ("Regret" |> Regret |> Some)
-                                ]
+                                |]
                            ) |> Some
 
-            getTestModInfo (seq[1;2;2;4;5;6])
+            getTestModInfo ([|1;2;2;4;5;6|])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
             |> Some
 
-            getTestModInfo (seq[1;2;3;4;5;6])
+            getTestModInfo ([|1;2;3;4;5;6|])
                            (repeatOfSame ("Delete" |> Delete |> Some) 6)
             |> Some
 
-            getTestModInfo (seq[1;0;3;4;5])
+            getTestModInfo ([|1;0;3;4;5|])
                            (repeatOfSame ("Delete" |> Delete |> Some) 5)
             |> Some
 
-            getTestModInfo (seq[1;0;3;4;5;6])
+            getTestModInfo ([|1;0;3;4;5;6|])
                            (repeatOfSame ("Delete" |> Delete |> Some) 6)
             |> Some
 
-            getTestModInfo (seq[1;0;3;4;5;6])
+            getTestModInfo ([|1;0;3;4;5;6|])
                            (
-                                seq[
-                                ("Regret" |> Regret |> Some)
-                                ("Delete" |> Delete |> Some)
-                                ("Delete" |> Delete |> Some)
-                                ("Delete" |> Delete |> Some)
-                                ("Delete" |> Delete |> Some)
-                                ("Delete" |> Delete |> Some)
-                                ]
+                                [|
+                                    ("Regret" |> Regret |> Some)
+                                    ("Delete" |> Delete |> Some)
+                                    ("Delete" |> Delete |> Some)
+                                    ("Delete" |> Delete |> Some)
+                                    ("Delete" |> Delete |> Some)
+                                    ("Delete" |> Delete |> Some)
+                                |]
                            ) |> Some
-            getTestModInfo (seq[1;2;3;4;5;6])
+            getTestModInfo ([|1;2;3;4;5;6|])
                         (
-                             seq[
-                             ("Regret" |> Regret |> Some)
-                             ("Delete" |> Delete |> Some)
-                             ("Delete" |> Delete |> Some)
-                             ("Delete" |> Delete |> Some)
-                             ("Regret" |> Regret |> Some)
-                             ("Delete" |> Delete |> Some)
-                             ]
+                             [|
+                                 ("Regret" |> Regret |> Some)
+                                 ("Delete" |> Delete |> Some)
+                                 ("Delete" |> Delete |> Some)
+                                 ("Delete" |> Delete |> Some)
+                                 ("Regret" |> Regret |> Some)
+                                 ("Delete" |> Delete |> Some)
+                             |]
                         ) |> Some
-            getTestModInfo (seq[1;2;6;4;5])
+            getTestModInfo ([|1;2;6;4;5|])
                         (
-                             seq[
-                             ("Delete" |> Delete |> Some)
-                             ("Delete" |> Delete |> Some)
-                             ("Delete" |> Delete |> Some)
-                             ("Delete" |> Delete |> Some)
-                             ("Regret" |> Regret |> Some)
-                             ]
+                             [|
+                                 ("Delete" |> Delete |> Some)
+                                 ("Delete" |> Delete |> Some)
+                                 ("Delete" |> Delete |> Some)
+                                 ("Delete" |> Delete |> Some)
+                                 ("Regret" |> Regret |> Some)
+                             |]
                         ) |> Some
-        ]
+        |]
 
     let instructionCases =
-        seq[
-            seq[1;2;3;4;5]
+        [|
+            [|1;2;3;4;5|]
             |> getInstructionSet
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[(1,None);(2,None);(3,None);(4,None);(5,Some("5"))]
+            [|(1,None);(2,None);(3,None);(4,None);(5,Some("5"))|]
             |> NotSimple
             |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
-            seq[1;2;3;4;5]
+            [|1;2;3;4;5|]
             |> getInstructionSet
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[1;2;2;4;5]
+            [|1;2;2;4;5|]
             |> getInstructionSet
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[1;2;3;4;5;6]
+            [|1;2;3;4;5;6|]
             |> getInstructionSet
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[(1,None);(0,Some("2"));(3,None);(4,None);(5,None)]
+            [|(1,None);(0,Some("2"));(3,None);(4,None);(5,None)|]
             |> NotSimple
             |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
-            seq[(1,None);(0,Some("2"));(3,None);(4,None);(5,None);(6,None)]
+            [|(1,None);(0,Some("2"));(3,None);(4,None);(5,None);(6,None)|]
             |> NotSimple
             |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
-            seq[(1,None);(0,Some("2"));(3,None);(4,None);(5,None);(6,None)]
+            [|(1,None);(0,Some("2"));(3,None);(4,None);(5,None);(6,None)|]
             |> NotSimple
             |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction2"}
 
-            seq[1;2;3;4;5;6]
+            [|1;2;3;4;5;6|]
             |> getInstructionSet
             |> fun instr ->
                 { instr with Title = "Instruction1"}
 
-            seq[(1,None);(2,None);(6,Some("3"));(4,None);(5,None)]
+            [|(1,None);(2,None);(6,Some("3"));(4,None);(5,None)|]
             |> NotSimple
             |> getInstructionSetNotSimple
             |> fun instr ->
                 { instr with Title = "Instruction1"}
-        ]
+        |]
     let first arg =
         match arg with
         | User.Types.newSaveResult.ThatInstructionAlreadyExists _ -> true
@@ -474,7 +474,7 @@ let ``TestSavingChoices`` () =
         | _ -> false
 
     let resultCases =
-        seq[
+        [|
             first
             second
             third
@@ -485,20 +485,20 @@ let ``TestSavingChoices`` () =
             eighth
             ninth
             tenth
-        ]
+        |]
 
     let cases =
-        Seq.zip modInfoCases [0..modInfoCases |> Seq.length |> fun x -> x - 1]
-        |> Seq.map (fun (modInfo,pos) ->
+        Array.zip modInfoCases [|0..modInfoCases |> Array.length |> fun x -> x - 1|]
+        |> Array.map (fun (modInfo,pos) ->
             {
-                Instruction = instructionCases |> Seq.item pos
+                Instruction = instructionCases |> Array.item pos
                 ModInfo = modInfo
                 Instructions = existingInstructions
-                Result = resultCases |> Seq.item pos
+                Result = resultCases |> Array.item pos
             })
 
     cases
-    |> Seq.iter (fun case ->
+    |> Array.iter (fun case ->
         let resultActual =
             User.Logic.savingChoicesTestable
                         case.Instruction
