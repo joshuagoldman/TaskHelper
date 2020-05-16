@@ -296,7 +296,10 @@ let instructionToSqlSaveNew userId
               String.Format(
                 "INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
                 VALUES ( {0}, '{1}', '{2}', '{3}');",
-                seq[instructionId ; part.InstructionVideo ; part.InstructionTxt ; part.Title]
+                instructionId,
+                part.InstructionVideo,
+                part.InstructionTxt,
+                part.Title
               ))
         |> String.concat ""
 
@@ -368,9 +371,9 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
             |> partDelete ids.UserId ids.InstructionId
 
         instructionDelete + partsCommand
-    | DeleteParts parts ->
+    | DeleteParts instr ->
         let partsCommand =
-            parts
+            instr.Data
             |> partDelete ids.UserId ids.InstructionId
         partsCommand
 
@@ -1464,7 +1467,8 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     |> DatabaseNewFilesOptions.SameInstructionOption
                                                     |> DatabaseSavingOptions.NewFilesInstruction
 
-                                                    partsToDelete.Value|>
+                                                    
+                                                    { newInstruction with Data = partsToDelete.Value } |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1494,7 +1498,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     |> DatabaseNewFilesOptions.SameInstructionOption
                                                     |> DatabaseSavingOptions.NewFilesInstruction
 
-                                                    partsToDelete.Value |>
+                                                    { newInstruction with Data = partsToDelete.Value } |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1508,7 +1512,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     { newInstruction with Data = partsWithNewNames.Value }
                                                     |> DatabaseSavingOptions.NewNameInstruction
 
-                                                    partsToDelete.Value |>
+                                                    { newInstruction with Data = partsToDelete.Value } |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 ]
@@ -1537,7 +1541,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                     | _ ->
                                         let info =
                                             seq[
-                                                partsToDelete.Value |>
+                                                { newInstruction with Data = partsToDelete.Value } |>
                                                 (DatabaseDeleteOptions.DeleteParts >>
                                                  DatabaseSavingOptions.PartsToDeleteInstruction)
                                             ]

@@ -756,15 +756,41 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
             |> User.Logic.delayedMessage 3000
             |> Cmd.fromAsync
 
+        let updateInstructionInApplication =
+            databaseOptions
+            |> Seq.map (fun opt ->
+                match opt with
+                | DatabaseSavingOptions.NewFilesInstruction newFileOpt ->
+                    match newFileOpt with
+                    | DatabaseNewFilesOptions.NewInstructionOption instruction ->
+                        instruction
+                    | DatabaseNewFilesOptions.SameInstructionOption instruction ->
+                        instruction
+                | DatabaseSavingOptions.NewNameInstruction instruction ->
+                    instruction
+                | DatabaseSavingOptions.PartsToDeleteInstruction deleteopt ->
+                    match deleteopt with
+                    | DatabaseDeleteOptions.DeleteInstruction instruction ->
+                        instruction
+                    | DatabaseDeleteOptions.DeleteParts instruction ->
+                        instruction)
+            |> Seq.map (fun instr ->
+                instr
+                |> User.Types.NewUserDataToAddMsg
+                |> Cmd.ofMsg)
+
         let databaseChangePopupMsg =
             msg
             |> funcChaining positions
 
         let databaseMsgsCombined =
-            seq[
-                databaseChangePopupMsg
-                funcChainingDelayedPopupKill
-                ]
+            updateInstructionInApplication
+            |> Seq.append(
+                seq[
+                    databaseChangePopupMsg
+                    funcChainingDelayedPopupKill
+                    ]
+            )
 
         let deletePartMsgs parts =
             parts
@@ -797,8 +823,8 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<seq<Data.Database
                         instr.Data
                         |> deletePartMsgs
                         |> Seq.append databaseMsgsCombined
-                    | DatabaseDeleteOptions.DeleteParts parts ->
-                        parts
+                    | DatabaseDeleteOptions.DeleteParts instr ->
+                        instr.Data
                         |> deletePartMsgs
                         |> Seq.append databaseMsgsCombined
                 | _ ->

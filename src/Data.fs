@@ -41,7 +41,7 @@ type DatabaseNewFilesOptions =
 
 type DatabaseDeleteOptions =
     | DeleteInstruction of InstructionData 
-    | DeleteParts of seq<partData> 
+    | DeleteParts of InstructionData 
 
 type DatabaseSavingOptions = 
     | NewFilesInstruction of DatabaseNewFilesOptions
