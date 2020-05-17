@@ -52,7 +52,7 @@ type Msg =
     | NewModificationInfo of DeleteInfo Option *
                              string *
                              string Option
-    | ImplementNewNames
+    | ImplementNewNames of Position
     | UpdateNewName of string * string
     | NewFileAddMsg of ReactElement
     | ResetInstruction of string

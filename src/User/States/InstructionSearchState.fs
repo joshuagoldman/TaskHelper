@@ -20,4 +20,6 @@ let update msg model : Model * Cmd<Msg> =
     | ClearSearchResult -> { model with ResultFromSearch = [||] ;
                                         SearchBar =
                                             { model.SearchBar with Text = "" } }, []
+    | GetNewInstruction instrInfoOpt ->
+        { model with ResultFromSearch = instrInfoOpt }, []
             

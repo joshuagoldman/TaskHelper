@@ -79,6 +79,7 @@ type Msg =
     | CmdMsging of Elmish.Cmd<Msg>
     | MsgNone
     | GetIdsForNewInstrUpload of array<NewAdd.Types.MediaChoiceFormData> * InstructionData option
+    | GetIdsForNewFileName of array<Types.File>
 
 type Model =
     {

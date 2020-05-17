@@ -61,11 +61,9 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         { model with InstructionErrorMessage =
                         { model.InstructionErrorMessage with Text = str} }, []
     | ModifyInstructionMsg visibility ->
-        console.log(visibility)
         { model with PartNameModificationInput =
                         { model.PartNameModificationInput with Visible = visibility } }, []
     | DeleteButtonEnablenMsg isDisabled ->
-        console.log(isDisabled)
         { model with DeleteButton =
                         { model.DeleteButton with Disable = isDisabled } }, []
     | NewModificationInfo (delOrReg,currName,newName) ->
@@ -84,38 +82,20 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             | _ -> model,[]
         | _ -> model,[]
 
-    | ImplementNewNames ->
+    | ImplementNewNames positions ->
         match model.CurrInstruction with
         | Ok (instruction,id)->
             let result =
-                Logic.implementNewNamesTestable instruction model.CurrPositions
-            let kattenJansson =
-                match model.CurrPositions with
-                | Some modInfo ->
-                    modInfo
-                    |> Array.map (fun info ->
-                        let delOrReg =
-                            match info.DelOrReg with
-                            | Some button ->
-                                match button with
-                                | Delete str -> str
-                                | Regret str -> str
-                            | _ -> ""
-                        info.Names.CurrName +
-                        "\n" +
-                        (if info.Names.NewName.IsSome then info.Names.NewName.Value else "") +
-                        "\n" +
-                        delOrReg +
-                        "\n\n")
-                    |> String.concat ""
-                | _ -> "2"
+                Logic.implementNewNamesTestable instruction model.CurrPositions positions
             result
             |> function
                 | res when res.IsSome ->
-                    let (newInstruction,newModinfo) =
-                        res.Value |> fun (a,b) -> (a,b)
-                    {model with CurrInstruction = Ok (newInstruction,id);
-                                CurrPositions = Some newModinfo },[]
+                    match res.Value with
+                    | Ok (newInstruction,newModInfo) ->
+                        {model with CurrInstruction = Ok (newInstruction,id);
+                                    CurrPositions = Some newModInfo },[]
+                    | Error msg ->
+                        model,Cmd.ofMsg(msg)
                 | _ -> model, []
         | _ -> model, []
 
@@ -185,22 +165,33 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
             | _ -> model,[]
 
     | CreateDeletePopup positions ->
-        let a = ""
         match model.CurrInstruction with
         | Ok (instr,_) ->
             let msgsIfYesClicked =
-                (instr,positions)
-                |> User.Types.DeleteInstructionMsg
-                |> fun x -> [|x|]
+
+                let deleteMsg =
+                    (instr,positions)
+                    |> User.Types.DeleteInstructionMsg
+
+                let newPossibleInstructionMsg =
+                    User.Types.UpdateUserInstructionsType.DeleteInstruction instr
+                    |> User.Types.Msg.NewUserDataInstructionToPossiblyAdd
+
+                [|
+                    newPossibleInstructionMsg
+                    deleteMsg
+                |]
 
             let popupMsgs =
-                Html.div[
-                    prop.className "column"
-                    prop.children[
-                        Fable.React.Helpers.str "Are you sure you wish to remove instruction?"
+                [|
+                    Html.div[
+                        prop.className "column"
+                        prop.children[
+                            Fable.React.Helpers.str "Are you sure you wish to remove instruction?"
+                        ]
                     ]
-                ]
-                |> fun x -> [|x|]
+                    User.Logic.spinner
+                |]
                 
             let msg =
                 ( popupMsgs,positions,msgsIfYesClicked)

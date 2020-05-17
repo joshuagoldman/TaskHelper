@@ -159,17 +159,63 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                 match newUserData with
                 | Deferred.Resolved(Ok usrData) ->
 
-                    let instructionMsgCommand =
+                    let msgCommand =
                         usrData.Instructions
                         |> Array.indexed
                         |> Array.head
                         |> fun (instrId,instr) ->
-                            (instr,instrId |> string)
-                            |> Instruction.Types.NewInstruction2Show
-                            |> InstructionMsg
-                            |> Cmd.ofMsg
 
-                    { model with UserData = newUserData}, instructionMsgCommand
+                            let escapeModifyModeCommandMsg =
+                                style.visibility.hidden |>
+                                Instruction.Types.ModifyInstructionMsg
+                                |> User.Types.InstructionMsg
+                                |> Cmd.ofMsg
+                                |> fun msg1 ->
+                                        [|
+                                            msg1
+                                            (false |>
+                                             Instruction.Types.DeleteButtonEnablenMsg)
+                                             |> User.Types.InstructionMsg
+                                             |> Cmd.ofMsg
+                                        |]
+                                |> Cmd.batch
+
+                            let instructionSearchCommand =
+                                let parthRes =
+                                    instr.Data
+                                    |> Array.map (fun part ->
+                                        (part,Cmd.none,instr,Cmd.none)
+                                        |> InstructionSearch.Types.Part
+                                        |> Ok)
+
+                                let instrRes =
+                                    (instr,instrId |> string,Cmd.none) |> InstructionSearch.Types.Instruction
+                                    |> Ok
+                                    |> fun x -> [|x|]
+
+                                let searchRes =
+                                    parthRes
+                                    |> Array.append instrRes
+
+                                searchRes
+                                |> InstructionSearch.Types.GetNewInstruction
+                                |> User.Types.InstructionSearchMsg
+                                |> Cmd.ofMsg
+
+                            let instructionMsgCommand =
+                                (instr,instrId |> string)
+                                |> Instruction.Types.NewInstruction2Show
+                                |> InstructionMsg
+                                |> Cmd.ofMsg
+
+                            [|
+                                instructionSearchCommand
+                                instructionMsgCommand
+                                escapeModifyModeCommandMsg
+                            |]
+                            |> Cmd.batch
+
+                    { model with UserData = newUserData}, msgCommand
                 | _ -> model,[]
             | _ -> model, []
         | Data.Deferred.Resolved(Error err) ->
@@ -348,4 +394,5 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             | _ -> model,[]
                         
         | _ -> model,[]
+
         

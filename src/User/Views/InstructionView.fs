@@ -328,9 +328,7 @@ let instructionTitleView title =
                         prop.children[
                             Html.input[
                                 prop.className "input is-info"
-                                //prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
                                 prop.type'.text
-                                //prop.value ( Logic.newnameValue model part )
                                 prop.placeholder title
                             ]
                         ]
@@ -390,7 +388,7 @@ let modificationElements model dispatch =
                         ]
                     Html.div[
                         prop.className "column"
-                        prop.onClick (fun _ -> Logic.modifyNames model dispatch)
+                        prop.onClick (fun ev -> Logic.modifyNames model dispatch ev)
                         prop.children[
                             modificationButtons model dispatch "Modify Names" false
                         ]

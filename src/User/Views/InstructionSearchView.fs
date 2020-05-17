@@ -108,17 +108,17 @@ let getSearchResults ( model : User.Types.Model ) dispatch =
     let status = loadData model.UserData
     match status with
     | Ok result ->
-        Seq.zip result.Instructions [0..result.Instructions |> Seq.length |> fun x -> x - 1]
-        |> Seq.map (fun (instr,id) -> Instruction (instr,id |> string,[]))
-        |> Seq.append (result.Instructions
-                       |> Seq.collect (fun instr -> instr.Data
-                                                    |> Seq.map (fun part -> Part(part, [], instr, []) )))
-        |> Seq.filter (fun info -> searchInfo info (model.InstructionSearch.SearchBar.Text.ToLower()))
+        Array.zip result.Instructions [|0..result.Instructions |> Seq.length |> fun x -> x - 1|]
+        |> Array.map (fun (instr,id) -> Instruction (instr,id |> string,[]))
+        |> Array.append (result.Instructions
+                       |> Array.collect (fun instr -> instr.Data
+                                                    |> Array.map (fun part -> Part(part, [], instr, []) )))
+        |> Array.filter (fun info -> searchInfo info (model.InstructionSearch.SearchBar.Text.ToLower()))
         |> function
-           | res when res |> Seq.length <> 0 ->
+           | res when res |> Array.length <> 0 ->
                 res
-                |> Seq.map (fun result -> searchResult model dispatch result)
-                |> Seq.toList
+                |> Array.map (fun result -> searchResult model dispatch result)
+                |> Array.toList
            | _ -> SearchResultErrorComponent model ("No search results found")
 
     | Error err ->

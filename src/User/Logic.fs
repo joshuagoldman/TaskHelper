@@ -56,6 +56,14 @@ let delayedMessage time ( msg : 'msg ) =
         return(msg)
     }
 
+let fullPath name ids =
+     String.Format(
+         "User_{0}/Instruction_{1}/{2}",
+         ids.UserId,
+         ids.InstructionId,
+         name
+     )
+
 let errorPopupMsg positions str =
     let popUpDiv =
         Global.divWithStyle
@@ -290,14 +298,6 @@ let instructionToSqlSaveNew userId
                             ( instructionId : string )
                             ( databaseNewFilesOptions : DatabaseNewFilesOptions ) =
 
-    let fullPath name =
-        String.Format(
-            "User_{0}/Instruction_{1}/{2}",
-            userId,
-            instructionId,
-            name
-        )
-
     let getPartInsert parts =
         parts
         |> Array.map (fun part ->
@@ -306,8 +306,8 @@ let instructionToSqlSaveNew userId
                 VALUES ( {0}, {1}, '{2}', '{3}','{4}');",
                 userId,
                 instructionId,
-                fullPath part.InstructionVideo,
-                fullPath part.InstructionTxt,
+                part.InstructionVideo,
+                part.InstructionTxt,
                 part.Title
               ))
         |> String.concat ""
@@ -434,7 +434,7 @@ let sqlCommandToDB databaseOptions ids positions = async{
                 style.maxWidth 400
                    ] 
             prop.children[
-                str response.responseText
+                str msg
             ]
         ]
 
@@ -571,7 +571,7 @@ let saveAsync ( file : Types.File )
     | 200 ->
         let newStatus =
             (
-                file.name,
+                fullPath,
                 Html.div[
                     prop.className "column is-11"
                     prop.style[
@@ -605,7 +605,7 @@ let saveAsync ( file : Types.File )
              ( response.statusCode |> string ) + response.responseText)
         let newStatus =
             (
-                file.name,
+                fullPath,
                 Html.div[
                     prop.className "column is-11"
                     prop.style[
@@ -640,9 +640,10 @@ let saveUserData
                                         array<DatabaseSavingOptions> * DBIds * Position>) =
     match status with 
     | SavingHasNostStartedYet(file,dbIds,positions,options) ->
-        file.name
+        fullPath file.name dbIds
         |> Instruction.Types.Uploading
         |> funcChainingIsUploading positions
+        |> Cmd.ofMsg
         |> fun x ->
             let funcChainingSavingInProgress info =
                 info |>
@@ -655,8 +656,8 @@ let saveUserData
                 x
                 (file,dbIds,positions,options)
                 |> funcChainingSavingInProgress
+                |> Cmd.ofMsg
             |]
-            |> Array.map ( fun msg -> msg |> Cmd.ofMsg )
 
     | SavingInProgress(file,dbIds,positions,options) ->
         let savingMsg =  
@@ -672,7 +673,8 @@ let saveUserData
             |> Instruction.Types.DatabaseChangeBegun
             |> Instruction.Types.Msg.DatabaseChangeMsg
             |> User.Types.InstructionMsg
-            |> Cmd.ofMsg
+            |> delayedMessage 3000
+            |> Cmd.fromAsync
             |> fun x -> [|x|]
 
         dbMsg
@@ -1644,29 +1646,17 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                                   data.Instructions
 
         let newStatus statusMsg =
-            let msgDiv =
+            [|
                 Html.div[
-                    prop.className "columns is-1"
+                    prop.className "column"
                     prop.style[
-                        style.margin 5
+                        style.color.red
                     ]
                     prop.children[
-                        str statusMsg
+                        Fable.React.Helpers.str statusMsg
                     ]
                 ]
-            Html.div[
-                prop.className "columns is-centered"
-                prop.style[
-                    style.color.red
-                    style.fontWeight.bold
-                    style.fontSize 12
-                    style.maxWidth 400
-                       ]
-                prop.children[
-                    msgDiv
-                ]
-            ]
-            |> fun x -> [|x|]
+            |]
 
         let funcChainingOptions positions popupMsg msgs =
             

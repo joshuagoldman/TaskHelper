@@ -217,7 +217,8 @@ let newPartSelected ( ev : Types.Event ) partName dispatch =
 
 let partNameToChange dispatch
                      ( part : Data.partData )
-                       newPartName =
+                      newPartName =
+
         if newPartName |> String.length < 30
         then true
         else false
@@ -237,15 +238,15 @@ let updateNewNameTestable currPositions ( currName : string ) newName=
                     |> fun newModInfo ->
                         { modInfo with Names = newModInfo }
                 | _  -> modInfo)
-    let ddd =
-        newModInfo4Debugging result
-
     result
 
-let modifyNames model dispatch =
+let modifyNames model dispatch ev =
     match model.CurrPositions with
      | Some _ ->
-        (Instruction.Types.ImplementNewNames |> dispatch)
+        ev
+        |> ( User.Logic.getPositions >>
+             Instruction.Types.ImplementNewNames >>
+             dispatch)
      | _ -> ()
 
 let enableModificationTestable ( modInfoSeq : array<modificationInfo> Option )
@@ -269,19 +270,73 @@ let enableModificationTestable ( modInfoSeq : array<modificationInfo> Option )
                 | _ -> false
         | _ -> false
             
-let newNameBecomesCurrent ( modinfo : array<modificationInfo> ) =
-    modinfo
-    |> Array.map (fun info ->
-        ()
-        |> function
-            | _ when info.Names.NewName.IsSome ->
-                { info.Names with NewName = None ; CurrName = info.Names.NewName.Value }
-                |> fun newNames ->
-                    { info with Names = newNames}
-            | _ -> info)
+let newNameBecomesCurrent ( modinfos : array<modificationInfo> )
+                            positions =
+    let divWOSpinner msg =
+        [|
+            Html.div[
+                prop.className "column"
+                prop.children[
+                    Fable.React.Helpers.str msg
+                ]
+            ]
+        |]
+
+    let funcChainingButton info =
+        info |>
+        (
+            PopUpSettings.DefaultWithButton >>
+            Some >>
+            User.Types.PopUpMsg
+        )
+    let notUniqueArr =
+        modinfos
+        |> Array.choose (fun modInfo -> modInfo.Names.NewName)
+        |> Array.choose (fun newName ->
+            let notUnique =
+                modinfos
+                |> Array.tryPick (fun modInfo ->
+                    if modInfo.Names.CurrName.Replace(" ","") = newName.Replace(" ","")
+                    then Some modInfo
+                    else None)
+            notUnique)
+
+    ()
+    |> function
+        | _ when notUniqueArr |> Array.length <> 0 ->
+            let notUniqueString =
+                notUniqueArr
+                |> Array.map (fun modInfo ->
+                    modInfo.Names.CurrName)
+                |> String.concat ", "
+
+            let msg =
+                String.Format(
+                    "Part name(s) {0} already exist. Parts must be named such that they are distinct by their name",
+                    notUniqueString
+                )
+            let errorMsg =
+                (divWOSpinner msg,positions)
+                |> funcChainingButton 
+
+            Error errorMsg
+        | _ ->
+            let newModInfos =
+                modinfos
+                |> Array.map (fun modInfo ->
+                    ()
+                    |> function
+                        | _ when modInfo.Names.NewName.IsSome ->
+                            { modInfo.Names with NewName = None ; CurrName = modInfo.Names.NewName.Value }
+                            |> fun newNames ->
+                                { modInfo with Names = newNames}
+                        | _ -> modInfo)
+
+            Ok newModInfos
 
 let implementNewNamesTestable ( instruction : Data.InstructionData )
-                                modInfoOpt =
+                                modInfoOpt
+                                positions =
         match modInfoOpt with
         | Some modInfo ->
             let result =
@@ -297,8 +352,14 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
                         | _ -> part)
                 |> fun parts ->
                     let newInstruction = {instruction with Data = parts}
-                    let newModinfo = newNameBecomesCurrent modInfo
-                    (newInstruction,newModinfo)
+                    let newModinfoRes = newNameBecomesCurrent modInfo positions
+
+                    match newModinfoRes with
+                    | Ok newModinfo ->
+                        Ok (newInstruction,newModinfo)
+                    | Error msg ->
+                        Error msg
+                    
             Some result
         | _ -> None
 
@@ -720,7 +781,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
         let funcChainingDelayedPopupKill =
             None 
             |> User.Types.PopUpMsg
-            |> User.Logic.delayedMessage 3000
+            |> User.Logic.delayedMessage 3000 
             |> Cmd.fromAsync
 
         let databaseChangePopupMsg =
