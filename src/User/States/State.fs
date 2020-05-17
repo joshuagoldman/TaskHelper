@@ -352,6 +352,23 @@ let update msg model : Model * Cmd<User.Types.Msg> =
     | GetIdsForNewInstrUpload(medias,instructionOpt) ->
         match model.UserData with
         | Deferred.Resolved(Ok usrData) ->
+            let newInstructionOption =
+                usrData.Instructions
+                |> Array.indexed
+                |> Array.last
+                |> fun (indx,_) ->
+                    let dbIds =
+                        {
+                            UserId = model.Id |> string
+                            InstructionId = indx + 1 |> string
+                        }
+
+                    let commandMsg =
+                        Logic.createInstructionFromFile medias None dbIds
+                        |> Array.map (fun msg -> msg |> Cmd.ofMsg)
+                        |> Cmd.batch
+
+                    model, commandMsg
             match instructionOpt with
             | Some instruction ->
                 usrData.Instructions
@@ -375,23 +392,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
                         model, commandMsg
                     | _ ->
-                        usrData.Instructions
-                        |> Array.indexed
-                        |> Array.last
-                        |> fun (indx,_) ->
-                            let dbIds =
-                                {
-                                    UserId = model.Id |> string
-                                    InstructionId = indx + 1 |> string
-                                }
-
-                            let commandMsg =
-                                Logic.createInstructionFromFile medias None dbIds
-                                |> Array.map (fun msg -> msg |> Cmd.ofMsg)
-                                |> Cmd.batch
-
-                            model, commandMsg
-            | _ -> model,[]
+                        newInstructionOption
+            | _ -> newInstructionOption
                         
         | _ -> model,[]
 

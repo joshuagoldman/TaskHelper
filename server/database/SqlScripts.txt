@@ -17,7 +17,7 @@ INSERT INTO users ( id, user_name, password )
 VALUES ( 0, 'admin', 'admin');
 
 CREATE TABLE instructions (
-    id BIGSERIAL NOT NULL PRIMARY KEY,
+    id BIGSERIAL NOT NULL,
     instruction_id BIGSERIAL NOT NULL,
     title VARCHAR(50) NOT NULL
 );
@@ -36,9 +36,10 @@ CREATE TABLE parts (
     part_title VARCHAR(50)
 );
 
+INSERT INTO instructions ( id, instruction_id, title )
+VALUES ( 0, 0, 'Admin Example Instruction');
 INSERT INTO parts ( id,instruction_id, instruction_video, instruction_txt, part_title)
 VALUES ( 0,0, 'User_0/Instruction_0/Video1.mp4', 'User_0/Instruction_0/Text1.html', 'Chelek Echad');
-
 INSERT INTO parts ( id,instruction_id, instruction_video, instruction_txt, part_title)
 VALUES ( 0,0, 'User_0/Instruction_0/Video2.mp4', 'User_0/Instruction_0/Text2.html', 'Chelek Shtaim');
 
