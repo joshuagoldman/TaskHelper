@@ -21,9 +21,9 @@ type Msg =
     | NewFilesChosenMsg of array<MediaChoiceFormData> * string
     | NewInstructionsListMsg of array<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>
-    | SaveNewData of DatabaseNewFilesOptions * DBIds * Position
+    | NewDataToInstruction of DatabaseNewFilesOptions * DBIds * Position
     | CreateNewDataMsg of
-        SaveDataProgress<(Types.File * DBIds * Position * DatabaseNewFilesOptions),array<DatabaseSavingOptions> * DBIds * Position>
+        SaveDataProgress<((Types.File * string) * DBIds * Position * DatabaseNewFilesOptions),array<DatabaseSavingOptions> * DBIds * Position>
 
 type SearchResult =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg>

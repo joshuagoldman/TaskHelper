@@ -861,8 +861,8 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
                     databaseMsgsCombined)
         ifDeleteMsg
 
-let saveNewData newInstrDataOpt
-              ( options : DatabaseNewFilesOptions )
+let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
+                ( options : DatabaseNewFilesOptions )
                 dbIds
                 positions =
 
@@ -874,56 +874,50 @@ let saveNewData newInstrDataOpt
             name
         )
 
-    match newInstrDataOpt with
-    | Some medias ->
-        let matchMaking str =
+    let matchMaking str =
+        medias
+        |> Array.map (fun (_,newName) -> fullPath newName)
+        |> Array.exists (fun nameComp ->
+                nameComp = str)
+
+    let newInstr =
+        match options with
+        | DatabaseNewFilesOptions.NewInstructionOption instr ->
+            instr
+        | DatabaseNewFilesOptions.SameInstructionOption instr ->
+            instr
+
+    newInstr.Data
+    |> Array.forall (fun part ->
+        matchMaking part.InstructionTxt &&
+        matchMaking part.InstructionVideo)
+    |> function
+        | res when res = true ->
+            let funcChaining info =
+                info |>
+                (
+                    SavingHasNostStartedYet >>
+                    NewAdd.Types.CreateNewDataMsg >>
+                    User.Types.NewAddMsg
+                )
             medias
-            |> Array.exists (fun media ->
+            |> Array.map (fun (media,newName) ->
                 match media with
-                | NewAdd.Types.Video vid ->
-                    fullPath vid.name = str
-                | NewAdd.Types.InstructionTxt instr ->
-                    fullPath instr.name = str)
-
-        let newInstr =
-            match options with
-            | DatabaseNewFilesOptions.NewInstructionOption instr ->
-                instr
-            | DatabaseNewFilesOptions.SameInstructionOption instr ->
-                instr
-
-        newInstr.Data
-        |> Array.forall (fun part ->
-            matchMaking part.InstructionTxt &&
-            matchMaking part.InstructionVideo)
-        |> function
-            | res when res = true ->
-                let funcChaining info =
-                    info |>
-                    (
-                        SavingHasNostStartedYet >>
-                        NewAdd.Types.CreateNewDataMsg >>
-                        User.Types.NewAddMsg
-                    )
-                medias
-                |> Array.map (fun media ->
-                    match media with
-                    | NewAdd.Types.MediaChoiceFormData.Video file -> file
-                    | NewAdd.Types.MediaChoiceFormData.InstructionTxt file -> file)
-                |> Array.map (fun file ->
-                    (file,dbIds,positions,options)
-                    |> funcChaining
-                    |> Cmd.ofMsg)
-                |> Cmd.batch
-                |> fun msg ->
-                    msg
-            | _ ->
-                "Not all necesarry media exist!"
-                |> User.Logic.errorPopupMsg positions
-                |> Cmd.ofMsg
-                |> fun msg ->
-                    msg
-    | None -> []
+                | NewAdd.Types.MediaChoiceFormData.Video file -> (file,newName)
+                | NewAdd.Types.MediaChoiceFormData.InstructionTxt file -> (file,newName))
+            |> Array.map (fun media ->
+                (media,dbIds,positions,options)
+                |> funcChaining
+                |> Cmd.ofMsg)
+            |> Cmd.batch
+            |> fun msg ->
+                msg
+        | _ ->
+            "Not all necesarry media exist!"
+            |> User.Logic.errorPopupMsg positions
+            |> Cmd.ofMsg
+            |> fun msg ->
+                msg
 
 
 let updateUserInstructions possibInstrOpt currentInstructions id =

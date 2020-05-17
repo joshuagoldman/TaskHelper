@@ -145,7 +145,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with LoginSpinner =
                         { model.LoginSpinner with Visible = visibility } }, []
 
-    | NewUserDataInstructionToPossiblyAdd updateType ->
+    | PossibleNewUserDataMsg updateType ->
         { model with PossibleNewInstruction = NewPossibleInstructionOptions.SaveOrDeleteAttempt(updateType)}, []
 
     | NewUserDataToAddMsg ->
@@ -352,6 +352,9 @@ let update msg model : Model * Cmd<User.Types.Msg> =
     | GetIdsForNewInstrUpload(medias,instructionOpt) ->
         match model.UserData with
         | Deferred.Resolved(Ok usrData) ->
+
+            let fileWPossibleNewName =
+                Logic.changeFileNameIfNotUnique usrData.Instructions medias
             let newInstructionOption =
                 usrData.Instructions
                 |> Array.indexed
@@ -364,7 +367,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         }
 
                     let commandMsg =
-                        Logic.createInstructionFromFile medias None dbIds
+                        Logic.createInstructionFromFile fileWPossibleNewName None dbIds
                         |> Array.map (fun msg -> msg |> Cmd.ofMsg)
                         |> Cmd.batch
 
@@ -386,7 +389,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                             }
 
                         let commandMsg =
-                            Logic.createInstructionFromFile medias (Some(instruction)) dbIds
+                            Logic.createInstructionFromFile fileWPossibleNewName (Some(instruction)) dbIds
                             |> Array.map (fun msg -> msg |> Cmd.ofMsg)
                             |> Cmd.batch
 
@@ -395,6 +398,18 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         newInstructionOption
             | _ -> newInstructionOption
                         
+        | _ -> model,[]
+    | SaveNewData (dbNewFileOptions,dbIds,positions,medias) ->
+        match model.UserData with
+        | Resolved(Ok usrData) ->
+            let mediaWPossibleNewNames =
+                User.Logic.changeFileNameIfNotUnique usrData.Instructions medias
+            let msg =
+                Instruction.Logic.saveNewData mediaWPossibleNewNames
+                                              dbNewFileOptions
+                                              dbIds
+                                              positions
+            model,msg
         | _ -> model,[]
 
         

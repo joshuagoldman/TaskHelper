@@ -175,7 +175,7 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
 
                 let newPossibleInstructionMsg =
                     User.Types.UpdateUserInstructionsType.DeleteInstruction instr
-                    |> User.Types.Msg.NewUserDataInstructionToPossiblyAdd
+                    |> User.Types.Msg.PossibleNewUserDataMsg
 
                 [|
                     newPossibleInstructionMsg

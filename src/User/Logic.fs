@@ -462,7 +462,54 @@ let sqlCommandToDB databaseOptions ids positions = async{
         return newStatus
 }
 
-let createInstructionFromFile ( medias : array<NewAdd.Types.MediaChoiceFormData>)
+let changeFileNameIfNotUnique instructions medias =
+
+    let getFileName ( name : string ) =
+        name.Substring(name.LastIndexOf("/") + 1 )
+
+    let allCurrentFileNames =
+        instructions
+        |> Array.collect (fun instruction ->
+            instruction.Data
+            |> Array.collect (fun part ->
+                [|
+                    part.InstructionTxt |> getFileName
+                    part.InstructionVideo |> getFileName
+                |]))
+        |> String.concat "$"
+        |> fun str -> "$" + str + "$"
+
+    medias
+    |> Array.map (fun media ->
+        match media with
+        | NewAdd.Types.Video vid ->
+            (vid,Video vid)
+        | NewAdd.Types.InstructionTxt instrtxt ->
+            (instrtxt,InstructionTxt instrtxt))
+    |> Array.map (fun (file,mediaType) ->
+        let fileNameCutFormat =
+            file.name.Substring(0,file.name.LastIndexOf(".")).Replace("/","")
+
+        let pattern = fileNameCutFormat + ".*?(?=\$)"
+
+        let matchingFileNames = JsInterop.Regex.Matches pattern allCurrentFileNames
+
+        match matchingFileNames with
+        | Some matchingNames ->
+            let indx =
+                matchingNames
+                |> Array.indexed
+                |> Array.map (fun (indx,_) -> indx)
+                |> Array.last
+                |> fun indx -> indx + 1 |> string
+
+            let fileNameNew = file.name.Replace(".", "_" + indx + ".")
+
+            (mediaType,fileNameNew)
+
+        | _ -> (mediaType,file.name))
+
+let createInstructionFromFile ( medias : (MediaChoiceFormData * string)[])
                               ( instruction2Add : InstructionData option )
                               ( ids : DBIds ) =
 
@@ -478,19 +525,19 @@ let createInstructionFromFile ( medias : array<NewAdd.Types.MediaChoiceFormData>
     let mutable instructionSequence = [||]
 
     medias
-    |> Array.iter (fun mediaContent ->
+    |> Array.iter (fun (mediaContent,newName) ->
                         match mediaContent with
                         | NewAdd.Types.Video vid ->
-                            videosSequence <- Array.append videosSequence [|vid|]
+                            videosSequence <- Array.append videosSequence [|(vid,newName)|]
                         | NewAdd.Types.InstructionTxt instrctn ->
-                            instructionSequence <- (Array.append instructionSequence [|instrctn|]))
+                            instructionSequence <- (Array.append instructionSequence [|(instrctn,newName)|]))
 
     Array.zip3 videosSequence instructionSequence [|0..videosSequence |> Array.length |> fun x -> x - 1|]
-    |> Array.map (fun (video,txt,pos) ->
+    |> Array.map (fun ((_,newNameVid),(_,newNameInstrcn),pos) ->
                 {
                     Title = "Please_provide_Title" + (pos |> string)
-                    InstructionVideo = fullPath video.name
-                    InstructionTxt =  fullPath txt.name
+                    InstructionVideo = fullPath newNameVid
+                    InstructionTxt =  fullPath newNameInstrcn
                 })
     |> fun parts ->
             {
@@ -535,7 +582,7 @@ let createInstructionFromFile ( medias : array<NewAdd.Types.MediaChoiceFormData>
                 )
         msgs
 
-let saveAsync ( file : Types.File )
+let saveAsync ( (file,newName) : (Types.File * string) )
               ( options : DatabaseNewFilesOptions )
                 positions
                ( ids : DBIds ) = async{
@@ -545,7 +592,7 @@ let saveAsync ( file : Types.File )
             "User_{0}/Instruction_{1}/{2}",
             ids.UserId,
             ids.InstructionId,
-            file.name
+            newName
         )
 
     let fData =
@@ -636,11 +683,11 @@ let saveAsync ( file : Types.File )
 }
 
 let saveUserData
-        ( status : SaveDataProgress<(Types.File * DBIds * Position * DatabaseNewFilesOptions),
+        ( status : SaveDataProgress<((Types.File * string) * DBIds * Position * DatabaseNewFilesOptions),
                                         array<DatabaseSavingOptions> * DBIds * Position>) =
     match status with 
-    | SavingHasNostStartedYet(file,dbIds,positions,options) ->
-        fullPath file.name dbIds
+    | SavingHasNostStartedYet((file,newName),dbIds,positions,options) ->
+        fullPath newName dbIds
         |> Instruction.Types.Uploading
         |> funcChainingIsUploading positions
         |> Cmd.ofMsg
@@ -654,15 +701,15 @@ let saveUserData
                 )
             [|
                 x
-                (file,dbIds,positions,options)
+                ((file,newName),dbIds,positions,options)
                 |> funcChainingSavingInProgress
                 |> Cmd.ofMsg
             |]
 
-    | SavingInProgress(file,dbIds,positions,options) ->
+    | SavingInProgress(media,dbIds,positions,options) ->
         let savingMsg =  
             dbIds
-            |> saveAsync file options positions
+            |> saveAsync media options positions
             |> Cmd.fromAsync
 
         [|savingMsg|]
@@ -1688,7 +1735,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 dbIds,
                 positions
             )
-            |> (NewAdd.Types.SaveNewData >>
+            |> (NewAdd.Types.Msg.NewDataToInstruction >>
                 User.Types.NewAddMsg)
 
         let getDatabaseMsg instrId savingOptions  =
@@ -1862,7 +1909,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             | _ when possibleNewInstruction.IsSome ->
                 [|
                     possibleNewInstruction.Value
-                    |> User.Types.Msg.NewUserDataInstructionToPossiblyAdd
+                    |> User.Types.Msg.PossibleNewUserDataMsg
                     |> Cmd.ofMsg
 
                     msg

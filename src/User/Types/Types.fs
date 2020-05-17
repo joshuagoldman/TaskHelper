@@ -64,7 +64,7 @@ type Msg =
     | NewUserId of int
     | LoadInstructions of UserData
     | LoginSpinnerMsg of IStyleAttribute
-    | NewUserDataInstructionToPossiblyAdd of UpdateUserInstructionsType
+    | PossibleNewUserDataMsg of UpdateUserInstructionsType
     | NewUserDataToAddMsg
     | ChangePage of NewUserPage
     | NewAddNewCurrentInstruction of Option<string>
@@ -80,6 +80,7 @@ type Msg =
     | MsgNone
     | GetIdsForNewInstrUpload of array<NewAdd.Types.MediaChoiceFormData> * InstructionData option
     | GetIdsForNewFileName of array<Types.File>
+    | SaveNewData of DatabaseNewFilesOptions * DBIds * Position * NewAdd.Types.MediaChoiceFormData []
 
 type Model =
     {
