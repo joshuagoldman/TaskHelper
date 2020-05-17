@@ -78,6 +78,7 @@ type Msg =
     | DeleteInstructionMsg of Data.InstructionData * Position
     | CmdMsging of Elmish.Cmd<Msg>
     | MsgNone
+    | GetIdsForNewInstrUpload of array<NewAdd.Types.MediaChoiceFormData> * InstructionData option
 
 type Model =
     {

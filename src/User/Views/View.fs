@@ -239,7 +239,7 @@ let popup ( model : User.Types.Model) dispatch =
             popup.Style 
             prop.children(
                 (seq[buttons])
-                |> Seq.append popup.Messages
+                |> Seq.append (popup.Messages |> Array.toSeq)
             )
         ]
     | None -> Html.none

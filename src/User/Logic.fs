@@ -463,10 +463,17 @@ let sqlCommandToDB databaseOptions ids positions = async{
 }
 
 let createInstructionFromFile ( medias : array<NewAdd.Types.MediaChoiceFormData>)
-                              ( instruction2Add : option<Data.InstructionData> * string ) =
-    let (insOpt,id) =
-        instruction2Add
-        |> fun (insOpt,id) -> (insOpt,id)
+                              ( instruction2Add : InstructionData option )
+                              ( ids : DBIds ) =
+
+    let fullPath name =
+        String.Format(
+            "User_{0}/Instruction_{1}/{2}",
+            ids.UserId,
+            ids.InstructionId,
+            name
+        )
+
     let mutable videosSequence = [||]
     let mutable instructionSequence = [||]
 
@@ -482,8 +489,8 @@ let createInstructionFromFile ( medias : array<NewAdd.Types.MediaChoiceFormData>
     |> Array.map (fun (video,txt,pos) ->
                 {
                     Title = "Please_provide_Title" + (pos |> string)
-                    InstructionVideo = video.name
-                    InstructionTxt =  txt.name
+                    InstructionVideo = fullPath video.name
+                    InstructionTxt =  fullPath txt.name
                 })
     |> fun parts ->
             {
@@ -491,16 +498,16 @@ let createInstructionFromFile ( medias : array<NewAdd.Types.MediaChoiceFormData>
                 Data = parts
             }
     |> function
-        | res when insOpt.IsSome ->
+        | res when instruction2Add.IsSome ->
             let newParts =
-                insOpt.Value.Data
+                instruction2Add.Value.Data
                 |> Array.append res.Data
 
             {
-                Title = insOpt.Value.Title
+                Title = instruction2Add.Value.Title
                 Data = newParts
-            },id
-        | res -> res,id
+            },ids.InstructionId
+        | res -> res,ids.InstructionId
     |> Instruction.Types.NewInstruction2Show
     |> User.Types.InstructionMsg
     |> fun x ->
@@ -1082,10 +1089,15 @@ let decideIfUploadValid ( medias : array<NewAdd.Types.MediaChoiceFormData>)
                         match model.CurrentInstruction with
                         | Some instrOptWId ->
                             let instructionCreationMsg =
-                                instrOptWId
-                                |> createInstructionFromFile medias
-                            [|x|]
-                            |> Array.append instructionCreationMsg
+                                let instropt,_ =
+                                    instrOptWId
+
+                                (medias,instropt)
+                                |> GetIdsForNewInstrUpload 
+                            [|
+                                instructionCreationMsg
+                                x
+                            |]
                             |> Array.iter (fun msg -> (msg |> dispatch))
                         | _ -> ()
         | res ->

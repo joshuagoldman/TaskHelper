@@ -12,6 +12,7 @@ open Elmish
 open User.Types
 open Fable.SimpleHttp
 open Data
+open System
 
 
 let modifyOrNot model dispatch =
@@ -803,6 +804,15 @@ let saveNewData newInstrDataOpt
               ( options : DatabaseNewFilesOptions )
                 dbIds
                 positions =
+
+    let fullPath name =
+        String.Format(
+            "User_{0}/Instruction_{1}/{2}",
+            dbIds.UserId,
+            dbIds.InstructionId,
+            name
+        )
+
     match newInstrDataOpt with
     | Some medias ->
         let matchMaking str =
@@ -810,9 +820,9 @@ let saveNewData newInstrDataOpt
             |> Array.exists (fun media ->
                 match media with
                 | NewAdd.Types.Video vid ->
-                    vid.name = str
+                    fullPath vid.name = str
                 | NewAdd.Types.InstructionTxt instr ->
-                    instr.name = str)
+                    fullPath instr.name = str)
 
         let newInstr =
             match options with
@@ -921,7 +931,7 @@ let updateUserInstructions possibInstrOpt currentInstructions id =
                         currentInstructions
                         |> Array.map (fun instructionCompare ->
                             let hasSameTitle =
-                                instructionCompare.Title.Replace(" ","") <> instruction.Title.Replace(" ","")
+                                instructionCompare.Title.Replace(" ","") = instruction.Title.Replace(" ","")
 
                             ()
                             |> function

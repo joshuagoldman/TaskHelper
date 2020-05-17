@@ -156,7 +156,21 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
             match result with
             | Some newUserData ->
-                { model with UserData = newUserData}, []
+                match newUserData with
+                | Deferred.Resolved(Ok usrData) ->
+
+                    let instructionMsgCommand =
+                        usrData.Instructions
+                        |> Array.indexed
+                        |> Array.head
+                        |> fun (instrId,instr) ->
+                            (instr,instrId |> string)
+                            |> Instruction.Types.NewInstruction2Show
+                            |> InstructionMsg
+                            |> Cmd.ofMsg
+
+                    { model with UserData = newUserData}, instructionMsgCommand
+                | _ -> model,[]
             | _ -> model, []
         | Data.Deferred.Resolved(Error err) ->
             [|
@@ -287,5 +301,51 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
                     model, startDeletionMsg
                 | _ -> model,[]
+        | _ -> model,[]
+
+    | GetIdsForNewInstrUpload(medias,instructionOpt) ->
+        match model.UserData with
+        | Deferred.Resolved(Ok usrData) ->
+            match instructionOpt with
+            | Some instruction ->
+                usrData.Instructions
+                |> Array.indexed
+                |> Array.tryFind (fun (_,instrComp) ->
+                    instrComp.Title.Replace(" ","") = instruction.Title.Replace(" ",""))
+                |> function
+                    | res when res.IsSome ->
+                        let (indx,_) = res.Value
+
+                        let dbIds =
+                            {
+                                UserId = model.Id |> string
+                                InstructionId = indx |> string
+                            }
+
+                        let commandMsg =
+                            Logic.createInstructionFromFile medias (Some(instruction)) dbIds
+                            |> Array.map (fun msg -> msg |> Cmd.ofMsg)
+                            |> Cmd.batch
+
+                        model, commandMsg
+                    | _ ->
+                        usrData.Instructions
+                        |> Array.indexed
+                        |> Array.last
+                        |> fun (indx,_) ->
+                            let dbIds =
+                                {
+                                    UserId = model.Id |> string
+                                    InstructionId = indx + 1 |> string
+                                }
+
+                            let commandMsg =
+                                Logic.createInstructionFromFile medias None dbIds
+                                |> Array.map (fun msg -> msg |> Cmd.ofMsg)
+                                |> Cmd.batch
+
+                            model, commandMsg
+            | _ -> model,[]
+                        
         | _ -> model,[]
         
