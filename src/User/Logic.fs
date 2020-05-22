@@ -22,6 +22,8 @@ open Browser
 open Feliz
 open NewAdd.Types
 
+let (^&)x = (x)
+
 let getPositions ev =
     let positions =
         {
@@ -189,17 +191,18 @@ let jsonDecodingInstructions jsonString =
         result
         |> Array.item 0
         |> fun usrdata ->
-            LoadedInstructions (Finished (Ok (usrdata)))
+            LoadedInstructions (AsyncOperationEvent.Finished (Ok (usrdata)))
     | Error result ->
-        LoadedInstructions (Finished (Error result))
+        LoadedInstructions (AsyncOperationEvent.Finished (Error result))
 
-let jsonDecodingUser jsonString =
+let jsonDecodingUser jsonString dispatch =
     let decodingObj = LoginInfoArrayDecoder jsonString
 
     match decodingObj with
     | Ok result ->
         result
-        |> Array.item 0
+        |> fun loginInfo ->
+            (loginInfo |> (Array.item 0),dispatch)
         |> (Ok >> Finished >> LoadedUsers)
     | Error result ->
         LoadedUsers (Finished (Error ("possibly wrong username or password:\n" + result)))
@@ -216,7 +219,7 @@ let loadInstructionItems ( id : int ) = async {
             return ( jsonDecodingInstructions response.responseText )
             
         | _ ->
-            return LoadedInstructions (Finished (Error ("Could not get api, status code: " +
+            return LoadedInstructions (AsyncOperationEvent.Finished (Error ("Could not get api, status code: " +
                                                         (response.statusCode |> string))))  
     }
 
@@ -584,8 +587,8 @@ let createInstructionFromFile ( medias : (MediaChoiceFormData * string)[])
 
 let saveAsync ( (file,newName) : (Types.File * string) )
               ( options : DatabaseNewFilesOptions )
-                positions
-               ( ids : DBIds ) = async{
+              ( utils : Data.Utilities<User.Types.Msg> )
+              ( ids : DBIds ) = async{
 
     let fullPath =
         String.Format(
@@ -595,11 +598,14 @@ let saveAsync ( (file,newName) : (Types.File * string) )
             newName
         )
 
+    let positions =
+        utils.Ev |> getPositions
+
     let fData =
         FormData.Create()
 
     let checkSavingMsg =
-        (ids,positions,options)
+        (ids,utils,options)
         |> Instruction.Types.CheckIfSaveFinished
         |> User.Types.InstructionMsg
 
@@ -608,88 +614,108 @@ let saveAsync ( (file,newName) : (Types.File * string) )
 
 
     do! Async.Sleep 3000
-    let! response =
-        Http.request ("http://localhost:3001/upload" )
-        |> Http.method POST
-        |> Http.content (BodyContent.Form fData)
-        |> Http.send
 
-    match response.statusCode with
-    | 200 ->
-        let newStatus =
-            (
-                fullPath,
-                Html.div[
-                    prop.className "column is-11"
-                    prop.style[
-                        style.color.red
-                        style.fontWeight.bold
-                        style.fontSize 12
-                        style.maxWidth 400
-                        style.margin 5
-                       ]
-                    prop.children[
-                        str response.responseText
+    let request = XMLHttpRequest.Create()
+
+    request.
+
+    request.``open``("POST","http://localhost:3001/upload",true)
+
+    let uploadFinished ( response : XMLHttpRequest ) = 
+        match response.status with
+        | 200 ->
+            let newStatus =
+                (
+                    fullPath,
+                    Html.div[
+                        prop.className "column is-11"
+                        prop.style[
+                            style.color.red
+                            style.fontWeight.bold
+                            style.fontSize 12
+                            style.maxWidth 400
+                            style.margin 5
+                           ]
+                        prop.children[
+                            str response.responseText
+                        ]
                     ]
-                ]
-            )
-            |> Instruction.Types.UploadOrDeleteFinishedSuccesfully
-        return (
-                newStatus
-                |> funcChainingIsUploading positions
-                |> fun x ->
-                    [|
-                        x
-                        checkSavingMsg
-                    |]
-                    |> Array.map (fun msg -> msg |> Cmd.ofMsg)
-                    |> Cmd.batch
-                    |> User.Types.CmdMsging
-        )
-    | _ ->
-        let msg =
-            ("file \"" + file.name + "\" failed with status code: " +
-             ( response.statusCode |> string ) + response.responseText)
-        let newStatus =
-            (
-                fullPath,
-                Html.div[
-                    prop.className "column is-11"
-                    prop.style[
-                        style.color.red
-                        style.fontWeight.bold
-                        style.fontSize 12
-                        style.maxWidth 400
-                        style.margin 5
-                       ]
-                    prop.children[
-                        str msg
+                )
+                |> Instruction.Types.UploadOrDeleteFinishedSuccesfully
+
+            newStatus
+            |> funcChainingIsUploading utils
+            |> fun x ->
+                [|
+                    x
+                    checkSavingMsg
+                |]
+                |> Array.map (fun msg -> msg |> Cmd.ofMsg)
+                |> Cmd.batch
+                |> User.Types.CmdMsging
+        | _ ->
+            let msg =
+                ("file \"" + file.name + "\" failed with status code: " +
+                 ( response.status |> string ) + response.responseText)
+            let newStatus =
+                (
+                    fullPath,
+                    Html.div[
+                        prop.className "column is-11"
+                        prop.style[
+                            style.color.red
+                            style.fontWeight.bold
+                            style.fontSize 12
+                            style.maxWidth 400
+                            style.margin 5
+                           ]
+                        prop.children[
+                            str msg
+                        ]
                     ]
-                ]
-            )
-            |> Instruction.Types.PartStatus.UploadOrDeleteFinishedWithFailure
-        return (
-                newStatus
-                |> funcChainingIsUploading positions
-                |> fun x ->
-                    [|
-                        x
-                        checkSavingMsg
-                    |]
-                    |> Array.map (fun msg -> msg |> Cmd.ofMsg)
-                    |> Cmd.batch
-                    |> User.Types.CmdMsging
-        )
+                )
+                |> Instruction.Types.PartStatus.UploadOrDeleteFinishedWithFailure
+            
+            newStatus
+            |> funcChainingIsUploading utils
+            |> fun x ->
+                [|
+                    x
+                    checkSavingMsg
+                |]
+                |> Array.map (fun msg -> msg |> Cmd.ofMsg)
+                |> Cmd.batch
+                |> User.Types.CmdMsging
+
+
+
+    request.addEventListener("onprogress", fun e ->
+        let progressEv = e?onprogress : ProgressEvent
+
+        let progress = progressEv.loaded
+        let total = progressEv.total
+
+        let loadedPercent = progress / total * 100.0
+
+        
+
+
+        ()
+        |> function
+            | _ when request.status <> 0 ->
+                uploadFinished request
+            | _ -> uploadFinished request
+                )
 }
 
 let saveUserData
-        ( status : SaveDataProgress<((Types.File * string) * DBIds * Position * DatabaseNewFilesOptions),
-                                        array<DatabaseSavingOptions> * DBIds * Position>) =
+        ( status : SaveDataProgress<((Types.File * string) * DBIds * Utilities<User.Types.Msg> * DatabaseNewFilesOptions),
+                                        array<DatabaseSavingOptions> * DBIds * Utilities<'a>>) =
     match status with 
-    | SavingHasNostStartedYet((file,newName),dbIds,positions,options) ->
-        fullPath newName dbIds
-        |> Instruction.Types.Uploading
-        |> funcChainingIsUploading positions
+    | SavingHasNostStartedYet((file,newName),dbIds,utils,options) ->
+        (fullPath newName dbIds,Instruction.Types.Uploaded.NoneUploaded)
+        |> Instruction.Types.Uploading 
+        |> funcChainingIsUploading utils
         |> Cmd.ofMsg
         |> fun x ->
             let funcChainingSavingInProgress info =
@@ -701,15 +727,16 @@ let saveUserData
                 )
             [|
                 x
-                ((file,newName),dbIds,positions,options)
+                ((file,newName),dbIds,utils,options)
                 |> funcChainingSavingInProgress
                 |> Cmd.ofMsg
             |]
 
-    | SavingInProgress(media,dbIds,positions,options) ->
+    | SavingInProgress(media,dbIds,utils,options) ->
+        
         let savingMsg =  
             dbIds
-            |> saveAsync media options positions
+            |> saveAsync media options utils
             |> Cmd.fromAsync
 
         [|savingMsg|]
@@ -726,7 +753,7 @@ let saveUserData
 
         dbMsg
 
-let loadUserItems user password = async {
+let loadUserItems user password dispatch = async {
     do! Async.Sleep 3000
     let! response = 
         Http.request ("http://localhost:3001/api/users/" + user + "/" + password)
@@ -742,8 +769,8 @@ let loadUserItems user password = async {
                 |>function
                     | _ when response.responseText = "[]" ->
                         LoadedUsers (Finished (Error ("Wrong user name or password ")))
-                    | _ -> 
-                        jsonDecodingUser (response.responseText)
+                    | _ ->
+                        jsonDecodingUser (response.responseText) dispatch
         
            | _ ->
                 LoadedUsers (Finished (Error ("Could not get api, status code: " +
@@ -759,7 +786,8 @@ let getLoginInfo model =
     (getValues model.UserFromLogin.Username, getValues model.UserFromLogin.Password)
 
 let getUserValidationMsg ( username : string Option )
-                         ( password : string Option ) =
+                         ( password : string Option )
+                         ( dispatch : User.Types.Msg -> unit ) =
     ()
     |> function
         | _ when username.IsNone ->
@@ -770,14 +798,14 @@ let getUserValidationMsg ( username : string Option )
             |> Cmd.ofMsg
         
         | _ ->
-             loadUserItems username.Value password.Value
+             loadUserItems username.Value password.Value dispatch
              |> Cmd.fromAsync
 
 let getUserDataUpdate ( userData : Data.Deferred<Result<Data.UserData, string>> ) =
     match userData with
-    | Data.HasNostStartedYet -> [|"" |> User.Types.LoginMessages|] 
-    | Data.InProgress -> [|"Loading User Data" |> User.Types.LoginMessages|] 
-    | Data.Resolved response ->
+    | Data.Deferred.HasNostStartedYet -> [|"" |> User.Types.LoginMessages|] 
+    | Data.Deferred.InProgress -> [|"Loading User Data" |> User.Types.LoginMessages|] 
+    | Data.Deferred.Resolved response ->
         match response with
         | Ok result ->
             let successMessage =
@@ -806,30 +834,39 @@ let existOrNot compareVal result =
      | Invalid ->
          None
 
-let loginAttempt ( model : User.Types.Model ) ( status : Data.Deferred<Result<LoginInfo, string>> ) =
+let loginAttempt ( status : Data.DeferredWithDispatch<Msg -> unit,Result<LoginInfo * (Msg -> unit), string>> ) =
     match status with
-    | HasNostStartedYet ->
+    | DeferredWithDispatch.HasNostStartedYet dispatch ->
         [|
             style.visibility.visible |> User.Types.LoginSpinnerMsg
-            User.Types.LoadedUsers Started
+            dispatch |>
+            (
+                Started >>
+                User.Types.LoadedUsers 
+            )
         |]
         
         
-    | InProgress ->
+    | DeferredWithDispatch.InProgress dispatch ->
         [|"loading user" |> User.Types.LoginMessages|]
         
-    | Resolved response ->
+    | DeferredWithDispatch.Resolved response ->
         let spinnerMessage =
             style.visibility.hidden |> LoginSpinnerMsg
 
         match response with
-        | Ok loginInfo ->
+        | Ok (loginInfo,dispatch) ->
             [|
                     loginInfo.Id |> NewUserId
                     loginInfo.Id |> (Part.Types.NewUserIdMsg >>
                                      Instruction.Types.PartMsg >>
                                      User.Types.InstructionMsg)
-                    User.Types.LoadedInstructions Started
+                    dispatch |>
+                    (
+                        DispatchDefined >>
+                        User.Types.Msg.GetUserDispatchMsg
+                    )
+                    User.Types.LoadedInstructions AsyncOperationEvent.Started
             |]       
         | Error err -> [|err|> User.Types.LoginMessages ; spinnerMessage|]
         
@@ -1071,20 +1108,15 @@ let decideIfUploadableByTypeCount ( medias : array<NewAdd.Types.MediaChoiceFormD
             |]
             |> Some
 
-let provideNewAddPopUpWait ( ev : Types.Event )
+let provideNewAddPopUpWait ( utils : Data.Utilities<'a> )
                              wait
                              msgs =
-    let positions =
-        {
-            X = ( ev?pageX : float )
-            Y = ( ev?pageY : float )
-        }
     let newPage =
         ( Global.UserPage.Instruction,wait)
         |> Delay
 
     let funcChaining newPage msgs =
-        (msgs,newPage,positions) |>
+        (msgs,newPage,utils) |>
         (
             User.Types.PopUpSettings.DefaultNewPage >>
             Some >>
@@ -1093,15 +1125,10 @@ let provideNewAddPopUpWait ( ev : Types.Event )
     msgs
     |> funcChaining newPage
 
-let provideNewAddPopUp ( ev : Types.Event )
+let provideNewAddPopUp ( utils : Data.Utilities<'a> )
                          msgs =
-    let positions =
-        {
-            X = ( ev?pageX : float )
-            Y = ( ev?pageY : float )
-        }
     let funcChaining msgs =
-        (msgs,positions) |>
+        (msgs,utils) |>
         (
             User.Types.PopUpSettings.DefaultWithButton >>
             Some >>
@@ -1115,6 +1142,11 @@ let decideIfUploadValid ( medias : array<NewAdd.Types.MediaChoiceFormData>)
                         ( model : NewAdd.Types.Model )
                           dispatch =
 
+    let utils =
+        {
+            Ev = ev
+            MsgDispatch = dispatch
+        }
     [|decideIfUploadableByTypeCount medias|]
     |> Array.append [|decideIfRightFormat medias|]
     |> Array.filter (fun msgs ->
@@ -1133,7 +1165,7 @@ let decideIfUploadValid ( medias : array<NewAdd.Types.MediaChoiceFormData>)
                         style.fontSize 15
                     ])
             |]
-            |> provideNewAddPopUpWait ev 2000
+            |> provideNewAddPopUpWait utils 2000
             |> fun x ->
                         match model.CurrentInstruction with
                         | Some instrOptWId ->
@@ -1150,14 +1182,25 @@ let decideIfUploadValid ( medias : array<NewAdd.Types.MediaChoiceFormData>)
                             |> Array.iter (fun msg -> (msg |> dispatch))
                         | _ -> ()
         | res ->
+            let utils =
+                {
+                    Ev = ev
+                    MsgDispatch = dispatch
+                }
             res
             |> Array.collect (fun msgs -> msgs.Value)
-            |> provideNewAddPopUp ev
+            |> provideNewAddPopUp utils
             |> dispatch
 
 let isUploadable ( model : NewAdd.Types.Model )
                  ( ev : Types.MouseEvent )
                    dispatch =
+
+    let utils =
+        {
+            Ev = ev
+            MsgDispatch = dispatch
+        }
     match model.NewInstructionData with
     | Some res ->
         res
@@ -1175,7 +1218,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                 |]
                 |> fun x ->
                     x
-                    |> provideNewAddPopUp ev
+                    |> provideNewAddPopUp utils
                     |> dispatch
             | _ when res |> Array.length = 0 ->
                 [|
@@ -1190,7 +1233,7 @@ let isUploadable ( model : NewAdd.Types.Model )
                 |]
                 |> fun x ->
                     x
-                    |> provideNewAddPopUp ev
+                    |> provideNewAddPopUp utils
                     |> dispatch
             | _  ->
                 decideIfUploadValid res ev model dispatch
@@ -1207,7 +1250,7 @@ let isUploadable ( model : NewAdd.Types.Model )
         |]
         |> fun x ->
             x
-            |> provideNewAddPopUp ev
+            |> provideNewAddPopUp utils
             |> dispatch
 
 let fileHandle ( ev : Types.Event)
@@ -1240,7 +1283,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
             style.opacity 0.90
         ]
     match popupSettings with
-    | PopUpSettings.DefaultWithOptions (divs,positions,msgs) ->
+    | PopUpSettings.DefaultWithOptions (divs,utils,msgs) ->
         let buttonSettings =
             [|
                 Feliz.style.margin 30
@@ -1252,7 +1295,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         let popupNoMsg =
             (
                 {
-                    Style = positions |> defaultStyle
+                    Style = utils.Ev |> ( getPositions >> defaultStyle )
                     ButtonSettings = buttonSettings |> Some
                     ClickMessages = msgs |> Some
                     Messages = divs
@@ -1262,9 +1305,8 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
             |> Some
 
         popupNoMsg
-    | DefaultWithButton (str,positions) ->
-        
-        let style = defaultStyle positions
+    | DefaultWithButton (str,utils) ->
+        let style = utils.Ev |> ( getPositions >> defaultStyle )
 
         let buttonSettings =
             [|
@@ -1289,9 +1331,9 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
 
         popupNoMsgs
 
-    | Default (str,positions) ->
+    | Default (str,utils) ->
         
-        let style = defaultStyle positions
+        let style = utils.Ev |> ( getPositions >> defaultStyle )
 
         let popupNoMsgs =
             (
@@ -1307,7 +1349,9 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
 
         popupNoMsgs
 
-    | OptionalWithMsg (divs,positions,styles) ->
+    | OptionalWithMsg (divs,utils,styles) ->
+        let positions =
+            getPositions utils.Ev
         let style =
             [
                 style.zIndex 1
@@ -1336,8 +1380,8 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
 
         popupNoMsg
 
-    | DefaultNewPage (divs,newPage,positions) ->
-        let style = defaultStyle positions
+    | DefaultNewPage (divs,newPage,utils) ->
+        let style = utils |> ( getPositions >> defaultStyle )
         let popupNoMsg =
             {
                 Style = style
@@ -1684,7 +1728,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
         (msg,None)
 
 
-let savingChoices userDataOpt positions instruction instructionInfo =
+let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction instructionInfo =
     match userDataOpt with
     | Resolved( Ok data) ->
         let (result,possibleNewInstruction) =
@@ -1715,9 +1759,9 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                 Cmd.ofMsg
             )
 
-        let funcChaining positions popupMsg =
+        let funcChaining utils popupMsg =
             
-            (popupMsg |> newStatus,positions) |>
+            (popupMsg |> newStatus,utils) |>
             (
                 PopUpSettings.DefaultWithButton >>
                 Some >>
@@ -1733,7 +1777,7 @@ let savingChoices userDataOpt positions instruction instructionInfo =
             (
                 newInstr,
                 dbIds,
-                positions
+                utils
             )
             |> (NewAdd.Types.Msg.NewDataToInstruction >>
                 User.Types.NewAddMsg)
@@ -1749,12 +1793,12 @@ let savingChoices userDataOpt positions instruction instructionInfo =
 
             let popupMsg =
                 loadingMsg
-                |> funcChaining positions
+                |> funcChaining utils
                 |> Cmd.ofMsg
 
             
             let dbMsg =
-                (savingOptions,dbIds,positions)
+                (savingOptions,dbIds,utils)
                 |> Instruction.Types.DatabaseChangeBegun
                 |> Instruction.Types.Msg.DatabaseChangeMsg
                 |> User.Types.InstructionMsg
@@ -1844,65 +1888,65 @@ let savingChoices userDataOpt positions instruction instructionInfo =
                     |> fun x -> [|x|]
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions positions popupMsg
+                |> funcChainingOptions utils popupMsg
             | SaveExistingNewTitles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save an existing instruction with new titles?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions positions popupMsg
+                |> funcChainingOptions utils popupMsg
             | SaveExisitngNewFIles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions positions popupMsg
+                |> funcChainingOptions utils popupMsg
                 
             | SaveExistingNewFilesAndTItles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions positions popupMsg
+                |> funcChainingOptions utils popupMsg
             | SaveExistingNewFilesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions positions popupMsg
+                |> funcChainingOptions utils popupMsg
             | SaveExistingNewTItlesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new part titles?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions positions popupMsg
+                |> funcChainingOptions utils popupMsg
             | SaveExistingNewFilesAndTItlesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions positions popupMsg
+                |> funcChainingOptions utils popupMsg
             | SaveExistingPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save the changes?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions positions popupMsg
+                |> funcChainingOptions utils popupMsg
             | InstructionIsDelete errorMsg ->
                 errorMsg
-                |> funcChaining positions
+                |> funcChaining utils
                 |> Cmd.ofMsg
             | NoUserData errorMsg ->
                 errorMsg
-                |> funcChaining positions
+                |> funcChaining utils
                 |> Cmd.ofMsg
             | ThatInstructionAlreadyExists errorMsg ->
                 errorMsg
-                |> funcChaining positions
+                |> funcChaining utils
                 |> Cmd.ofMsg
             | InstructionHasNotDistinctTitles errorMsg ->
                 errorMsg
-                |> funcChaining positions
+                |> funcChaining utils
                 |> Cmd.ofMsg
         ()
         |> function

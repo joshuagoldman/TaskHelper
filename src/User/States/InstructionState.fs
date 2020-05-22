@@ -9,7 +9,7 @@ open Feliz
 open Fable.Core
 open Browser
 
-let init () : Model * Cmd<Msg> =
+let init () : Model<'a> * Cmd<Msg<User.Types.Msg>> =
 
     {
       InstructionErrorMessage = defaultAppearanceAttributes
@@ -22,11 +22,12 @@ let init () : Model * Cmd<Msg> =
       PositionsInput = defaultAppearanceAttributes
       DeleteButton =
         { defaultAppearanceAttributes with Disable = true }
+      UserTypeDispatch = NoDispatchDefined
       FileAddMsg = defaultAppearanceAttributes
     }, []
 
 
-let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
+let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.Msg>  =
     match msg with
     | NewInstruction2Show (instruction,id) ->
         let delOrReg  =
@@ -117,10 +118,10 @@ let update msg model : Instruction.Types.Model * Cmd<User.Types.Msg>  =
         let msg =
             Elmish.Navigation.Navigation.newUrl(Global.toHash(page))
         model, msg
-    | HoverPartMsg (part,ev,visible) ->
+    | HoverPartMsg (part,utils,visible) ->
         let usrMsg =
             visible
-            |> Logic.createHoverMessageCommponents part ev
+            |> Logic.createHoverMessageCommponents part utils
             |> Logic.hoverMessageFuncChaining
 
         model, usrMsg

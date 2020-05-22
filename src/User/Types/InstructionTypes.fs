@@ -8,17 +8,20 @@ open Feliz
 open Fable.React
 open Browser
 
+type Uploaded =
+      | Percentage of float
+      | NoneUploaded
 
 type PartStatus =
     | Delete of string
-    | Uploading of string
+    | Uploading of string * Uploaded
     | StatusExisting of string
     | UploadOrDeleteFinishedSuccesfully of string * ReactElement
     | UploadOrDeleteFinishedWithFailure of string * ReactElement
 
-type DatabaseChangeResult =
-    | DatabaseChangeSucceeded of ReactElement * Data.Position * array<DatabaseSavingOptions>
-    | DatabaseChangeFailed of ReactElement * Data.Position
+type DatabaseChangeResult<'a> =
+    | DatabaseChangeSucceeded of ReactElement * Data.Utilities<'a> * array<DatabaseSavingOptions>
+    | DatabaseChangeFailed of ReactElement * Data.Utilities<'a>
 
 type DatabaseChangeProcess<'a,'b> =
     | DatabaseChangeBegun of 'a
@@ -43,7 +46,7 @@ type modificationInfo = {
     Status : array<PartStatus>
 }
 
-type Msg =
+type Msg<'a> =
     | NewInstruction2Show of Data.InstructionData * string
     | PartMsg of Part.Types.Msg
     | ErrorMsg of string
@@ -52,28 +55,28 @@ type Msg =
     | NewModificationInfo of DeleteInfo Option *
                              string *
                              string Option
-    | ImplementNewNames of Position
+    | ImplementNewNames of Utilities<'a>
     | UpdateNewName of string * string
     | NewFileAddMsg of ReactElement
     | ResetInstruction of string
     | NewPage of Global.Page * int Option
-    | HoverPartMsg of Data.partData * Types.MouseEvent * IStyleAttribute
+    | HoverPartMsg of Data.partData * Data.Utilities<'a> * IStyleAttribute
     | SaveData of Result<Data.InstructionData * string,string> *
                   option<array<modificationInfo>> *
-                  Position
-    | DeletePartFilesMsg of DeleteProcess<string * Data.Position,string * Data.Position * ReactElement> 
-    | ChangeFileStatus of PartStatus  * Position
-    | SaveInstructionToDataBase of Position
-    | CheckIfSaveFinished of DBIds * Position * DatabaseNewFilesOptions
-    | CheckIfDeleteFinished of Position
-    | CreateDeletePopup of Position
-    | DatabaseChangeMsg of DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,DatabaseChangeResult> 
+                  Utilities<'a>
+    | DeletePartFilesMsg of DeleteProcess<string * Data.Utilities<'a>,string * Data.Utilities<'a> * ReactElement> 
+    | ChangeFileStatus of PartStatus  * Utilities<'a>
+    | SaveInstructionToDataBase of Utilities<'a>
+    | CheckIfSaveFinished of DBIds * Utilities<'a> * DatabaseNewFilesOptions
+    | CheckIfDeleteFinished of Utilities<'a>
+    | CreateDeletePopup of Utilities<'a>
+    | DatabaseChangeMsg of DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Data.Utilities<'a>,DatabaseChangeResult<'a>>
 
 type InstructionMode  =
 | Regular
 | Modification
 
-type Model =
+type Model<'a> =
     {
         InstructionErrorMessage : AppearanceAttributes
         CurrInstruction : Result<Data.InstructionData * string,string>
@@ -84,4 +87,5 @@ type Model =
         PositionsInput : AppearanceAttributes
         DeleteButton : AppearanceAttributes
         FileAddMsg : AppearanceAttributes
+        UserTypeDispatch : UsrTypeDispatchOptions<'a>
     }

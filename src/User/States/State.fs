@@ -35,13 +35,14 @@ let init() : Model * Cmd<Msg> =
             }
         CurrentPage = InstructionSearch
         InstructionSearch = InstructionSearch.State.init() |> fun (a,_) -> a
-        UserData = Data.HasNostStartedYet
+        UserData = Data.Deferred.HasNostStartedYet
         NewAdd = NewAdd.State.init() |> fun(a,_) -> a
         PossibleNewInstruction = NoSaveOrDeleteAttempt
         Instruction = Instruction.State.init() |> fun (a,b) -> a
         LoginSpinner =
             { Controls.defaultAppearanceAttributes with Visible = style.visibility.hidden }
         PopUp = None
+        Dispatch = NoDispatchDefined
     }, []
 
 let matchValidity validityObject =
@@ -51,18 +52,27 @@ let matchValidity validityObject =
 
 let update msg model : Model * Cmd<User.Types.Msg> =
     match msg with
+    | GetUserDispatchMsg dispatchOpt ->
+        match dispatchOpt with
+        | DispatchDefined dispatch ->
+            let instrMsg =
+                { model.Instruction with UserTypeDispatch = dispatch |> DispatchDefined }
+
+            { model with Dispatch = dispatch |> DispatchDefined ;
+                         Instruction = instrMsg},[]
+        | _ -> model,[]
     | MsgNone ->
         model,Cmd.none
     | CmdMsging cmdMsg ->
         model,cmdMsg
-    | LoadedInstructions Started ->
+    | LoadedInstructions AsyncOperationEvent.Started ->
         console.log("LoadedInstructions Started")
         { model with UserData = InProgress }, Cmd.batch
                                                     (Logic.getUserDataUpdate InProgress
                                                     |> Array.map (fun msg -> Cmd.ofMsg msg)
                                                     |> Array.append [|Cmd.fromAsync (Logic.loadInstructionItems model.Id)|])
                                                     
-    | LoadedInstructions (Finished (Error error)) ->
+    | LoadedInstructions (AsyncOperationEvent.Finished (Error error)) ->
         { model with UserData = Resolved ( Error error)}, Cmd.batch
                                                                 (Logic.getUserDataUpdate
                                                                             (Resolved ( Error error))
@@ -72,7 +82,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                                     |> ( LoginSpinnerMsg >> Cmd.ofMsg)
                                                                     |> fun x -> [|x|]
                                                                    ))
-    | LoadedInstructions (Finished (Ok items)) ->
+    | LoadedInstructions (AsyncOperationEvent.Finished (Ok items)) ->
         { model with UserData = Resolved (Ok items) }, Cmd.batch
                                                             (Logic.getUserDataUpdate (Resolved ( Ok items))
                                                             |> Array.map (fun msg -> Cmd.ofMsg msg)
@@ -88,26 +98,26 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                                             )
                                                             |> Array.append (NewAdd.Logic.createNewInstructionSequence items)
                                                     )                                        
-    | LoadedUsers Started ->
+    | LoadedUsers(AsyncOperationEventWithDispatch.Started dispatch) ->
         let (username,password) =
             getLoginInfo model
 
         let userValidationMsg =
-            getUserValidationMsg username password
+            getUserValidationMsg username password dispatch
                     
         { model with User = InProgress } , Cmd.batch
-                                                    (Logic.loginAttempt model InProgress
+                                                    (Logic.loginAttempt ( dispatch |> DeferredWithDispatch.InProgress )
                                                     |> Array.map (fun msg -> Cmd.ofMsg msg )
                                                     |> Array.append [|userValidationMsg|])
                                                   
                                                         
     | LoadedUsers (Finished (Error error)) ->
         { model with User = Resolved ( Error error)}, Cmd.batch
-                                                                (Logic.loginAttempt model (Resolved ( Error error))
+                                                                (Logic.loginAttempt (DeferredWithDispatch.Resolved ( Error error))
                                                                 |> Array.map (fun msg -> Cmd.ofMsg msg ))
-    | LoadedUsers (Finished (Ok items)) ->
-        { model with User = Resolved ( Ok items)}, Cmd.batch
-                                                            (Logic.loginAttempt model (Resolved ( Ok items))
+    | LoadedUsers (Finished (Ok (items,dispach))) ->
+        { model with User = Deferred.Resolved ( Ok items)}, Cmd.batch
+                                                            (Logic.loginAttempt (DeferredWithDispatch.Resolved ( Ok (items,dispach)))
                                                             |> Array.map (fun msg -> Cmd.ofMsg msg ))
                                                                                     
     | InstructionMsg msg ->
@@ -115,7 +125,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         { model with Instruction = instruction}, instructionCmd
     | InstructionSearchMsg msg ->
         let (instructionSearch, instructionSearchCmd) = InstructionSearch.State.update msg model.InstructionSearch
-        { model with InstructionSearch = instructionSearch }, Cmd.map InstructionSearchMsg instructionSearchCmd
+        { model with InstructionSearch = instructionSearch }, instructionSearchCmd
     | NewAddMsg msg ->
         let (newAdd, newAddCmd) = NewAdd.State.update msg model.NewAdd
         { model with NewAdd = newAdd }, newAddCmd
@@ -306,11 +316,11 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
         | None ->
             standardResult
-    | CompareNewSaveWithCurrentInstructions (instruction,instructionInfo,positions) ->
+    | CompareNewSaveWithCurrentInstructions (instruction,instructionInfo,utils) ->
         let msg =
             Logic.savingChoices
                         model.UserData
-                        positions
+                        utils
                         instruction
                         instructionInfo
 

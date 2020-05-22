@@ -28,11 +28,11 @@ type PopUpControl<'a> =
     }
 
 type PopUpSettings<'a> =
-    | DefaultWithButton of array<ReactElement> * Position
-    | Default of array<ReactElement> * Position
-    | DefaultWithOptions of array<ReactElement> * Position * array<'a>
-    | OptionalWithMsg of array<ReactElement> * Position * array<IStyleAttribute>
-    | DefaultNewPage of array<ReactElement> * NewUserPage * Position
+    | DefaultWithButton of array<ReactElement> * Utilities<'a>
+    | Default of array<ReactElement> * Utilities<'a>
+    | DefaultWithOptions of array<ReactElement> * Utilities<'a> * array<'a>
+    | OptionalWithMsg of array<ReactElement> * Utilities<'a> * array<IStyleAttribute>
+    | DefaultNewPage of array<ReactElement> * NewUserPage * Utilities<'a>
 
 // Many discriminated unions in order to facilitate unit testing
 type newSaveResult =
@@ -52,11 +52,11 @@ type newSaveResult =
 type Msg =
     | LoginAttemptMsg of string * string
     | LoadedInstructions of AsyncOperationEvent<Result<UserData, string>>
-    | LoadedUsers of AsyncOperationEvent<Result<LoginInfo, string>>
+    | LoadedUsers of AsyncOperationEventWithDispatch<Msg -> unit,Result<LoginInfo * (Msg -> unit), string>>
     | UserDataMsg of string 
-    | InstructionMsg of Instruction.Types.Msg
-    | InstructionSearchMsg of InstructionSearch.Types.Msg
-    | NewAddMsg of NewAdd.Types.Msg
+    | InstructionMsg of Instruction.Types.Msg<Msg>
+    | InstructionSearchMsg of InstructionSearch.Types.Msg<Msg>
+    | NewAddMsg of NewAdd.Types.Msg<Msg>
     | LoginMessages of string
     | UserNameInputChangedMsg of string
     | PasswordInputChangedMsg of string
@@ -73,14 +73,15 @@ type Msg =
     | PopUpMsg of PopUpSettings<Msg> Option
     | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
                                                Option<array<Instruction.Types.modificationInfo>> *
-                                               Position
+                                               Utilities<Msg>
     | SaveInstructionToDataBase of Data.InstructionData * string
-    | DeleteInstructionMsg of Data.InstructionData * Position
+    | DeleteInstructionMsg of Data.InstructionData * Utilities<Msg>
     | CmdMsging of Elmish.Cmd<Msg>
     | MsgNone
     | GetIdsForNewInstrUpload of array<NewAdd.Types.MediaChoiceFormData> * InstructionData option
     | GetIdsForNewFileName of array<Types.File>
-    | SaveNewData of DatabaseNewFilesOptions * DBIds * Position * NewAdd.Types.MediaChoiceFormData []
+    | SaveNewData of DatabaseNewFilesOptions * DBIds * Utilities<Msg> * NewAdd.Types.MediaChoiceFormData []
+    | GetUserDispatchMsg of UsrTypeDispatchOptions<Msg>
 
 type Model =
     {
@@ -89,11 +90,12 @@ type Model =
       LoginMessage : string
       Id : int
       CurrentPage: Global.UserPage
-      InstructionSearch: InstructionSearch.Types.Model
+      InstructionSearch: InstructionSearch.Types.Model<Msg>
       NewAdd : NewAdd.Types.Model
       UserData : Data.Deferred<Result<UserData, string>>
       PossibleNewInstruction: NewPossibleInstructionOptions
-      Instruction: Instruction.Types.Model
+      Instruction: Instruction.Types.Model<Msg>
       LoginSpinner : AppearanceAttributes
       PopUp : PopUpControl<Msg> Option
+      Dispatch : UsrTypeDispatchOptions<Msg>
     }

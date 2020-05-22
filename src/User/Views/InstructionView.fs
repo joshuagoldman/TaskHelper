@@ -87,7 +87,7 @@ let buttonActions name =
     | _ ->
         ""
 
-let modificationButtons ( model : Instruction.Types.Model )
+let modificationButtons ( model : Instruction.Types.Model<User.Types.Msg> )
                           dispatch
                           name
                           disable =
@@ -134,11 +134,27 @@ let modElements ( part : Data.partData ) model dispatch =
                                     prop.className "input is-info"
                                     prop.onTextChange (fun str -> Logic.partNameToChange dispatch part str )
                                     prop.onMouseEnter(fun ev ->
-                                        (part,ev,style.visibility.visible) 
-                                        |> (Instruction.Types.HoverPartMsg >> dispatch))
+                                        match model.UserTypeDispatch with
+                                        | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
+                                            let utils =
+                                                {
+                                                    Data.Ev = ev
+                                                    Data.MsgDispatch = usrTypeDispatch
+                                                }
+                                            (part,utils,style.visibility.visible) 
+                                            |> (Instruction.Types.HoverPartMsg >> dispatch)
+                                        | _ -> ())
                                     prop.onMouseLeave(fun ev ->
-                                        (part,ev,style.visibility.hidden) 
-                                        |> (Instruction.Types.HoverPartMsg >> dispatch))
+                                        match model.UserTypeDispatch with
+                                        | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
+                                            let utils =
+                                                {
+                                                    Data.Ev = ev
+                                                    Data.MsgDispatch = usrTypeDispatch
+                                                }
+                                            (part,utils,style.visibility.hidden) 
+                                            |> (Instruction.Types.HoverPartMsg >> dispatch)
+                                        | _ -> ())
                                     prop.type'.text
                                     prop.value ( Logic.newnameValue model part )
                                     prop.placeholder part.Title
@@ -275,7 +291,7 @@ let delOrRegbutton model part dispatch =
 
 let allPartsView ( part : Data.partData )
                  ( instruction : Data.InstructionData )
-                 ( model : Instruction.Types.Model )
+                 ( model : Instruction.Types.Model<User.Types.Msg> )
                    dispatch=
     model.PartNameModificationInput.Visible
     |>function 
@@ -388,7 +404,16 @@ let modificationElements model dispatch =
                         ]
                     Html.div[
                         prop.className "column"
-                        prop.onClick (fun ev -> Logic.modifyNames model dispatch ev)
+                        prop.onClick (fun ev ->
+                            match model.UserTypeDispatch with
+                            | Data.DispatchDefined usrTypeDispatch ->
+                                let utils =
+                                    {
+                                        Data.Ev = ev
+                                        Data.MsgDispatch = usrTypeDispatch
+                                    }
+                                Logic.modifyNames model dispatch utils
+                            | _ -> ())
                         prop.children[
                             modificationButtons model dispatch "Modify Names" false
                         ]
@@ -426,8 +451,16 @@ let root model dispatch =
                   Html.div[
                       prop.className "column is-3"
                       prop.onClick (fun ev ->
-                          User.Logic.getPositions ev
-                          |>  ( Instruction.Types.SaveInstructionToDataBase >> dispatch))
+                        match model.UserTypeDispatch with
+                        | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
+                            let utils =
+                                {
+                                    Data.Ev = ev
+                                    Data.MsgDispatch = usrTypeDispatch
+                                }
+                            utils
+                            |>  ( Instruction.Types.SaveInstructionToDataBase >> dispatch)
+                        | _ -> ())
                       prop.children[
                           modificationButtons model dispatch "Save" model.DeleteButton.Disable
                       ]
@@ -435,8 +468,16 @@ let root model dispatch =
                   Html.div[
                       prop.className "column"
                       prop.onClick (fun ev ->
-                          User.Logic.getPositions ev
-                          |>  ( Instruction.Types.Msg.CreateDeletePopup >> dispatch))
+                        match model.UserTypeDispatch with
+                        | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
+                            let utils =
+                                {
+                                    Data.Ev = ev
+                                    Data.MsgDispatch = usrTypeDispatch
+                                }
+                            utils
+                            |>  ( Instruction.Types.SaveInstructionToDataBase >> dispatch)
+                        | _ -> ())
                       prop.children[
                           modificationButtons model dispatch "Delete Instruction" model.DeleteButton.Disable
                       ]

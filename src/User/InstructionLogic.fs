@@ -14,6 +14,7 @@ open Fable.SimpleHttp
 open Data
 open System
 
+let (^&)x = (x)
 
 let modifyOrNot model dispatch =
     model.PartNameModificationInput.Visible
@@ -240,12 +241,11 @@ let updateNewNameTestable currPositions ( currName : string ) newName=
                 | _  -> modInfo)
     result
 
-let modifyNames model dispatch ev =
+let modifyNames model dispatch utils =
     match model.CurrPositions with
      | Some _ ->
-        ev
-        |> ( User.Logic.getPositions >>
-             Instruction.Types.ImplementNewNames >>
+        utils
+        |> ( Instruction.Types.ImplementNewNames >>
              dispatch)
      | _ -> ()
 
@@ -388,13 +388,8 @@ let hoverMessageFuncChaining args =
     )
 
 let createHoverMessageCommponents ( part : Data.partData )
-                                  ( ev : Types.MouseEvent )
+                                  ( utils : Utilities<'a> )
                                     visible =
-    let positions =
-        {
-            Data.Position.X = ( ev?pageX : float )
-            Data.Position.Y = ( ev?pageY : float )
-        }
 
     let style =
         prop.style[
@@ -419,11 +414,11 @@ let createHoverMessageCommponents ( part : Data.partData )
 
     [|
         visible
-        Feliz.style.left ( positions.X |> int )
-        Feliz.style.top ( positions.Y |> int )
+        Feliz.style.left ( (utils.Ev |> User.Logic.getPositions).X |> int )
+        Feliz.style.top ( (utils.Ev |> User.Logic.getPositions).Y |> int )
     |]
     |> fun styles ->
-        divs,positions,styles
+        divs,utils,styles
 
 let filenameWStatus (msg : array<ReactElement> ) =
     Html.div[
@@ -439,7 +434,7 @@ let filenameWStatus (msg : array<ReactElement> ) =
         )  
     ]
 
-let changeFileStatus ( model : Instruction.Types.Model )
+let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                      ( newStatus : PartStatus)
                      ( positions ) =
     let upDatNameIfMatch ( name : string )
@@ -457,7 +452,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
             modInfo.Status
             |> Array.map (fun currPartStatus ->
                 match currPartStatus with
-                | PartStatus.Uploading nameComp ->
+                | PartStatus.Uploading (nameComp,_) ->
                     upDatNameIfMatch name nameComp currPartStatus
                 | PartStatus.Delete nameComp ->
                     upDatNameIfMatch name nameComp currPartStatus
@@ -470,7 +465,20 @@ let changeFileStatus ( model : Instruction.Types.Model )
             |> fun newStatuses ->
                 { modInfo with Status = newStatuses })
 
-    let divWSpinner msg =
+    let divWSpinner msg ( uploaded : float option ) =
+        let progressBar =
+            match uploaded with
+            | Some uploadValue ->
+                Html.progress[
+                    prop.className "progress is-primary"
+                    prop.value uploadValue
+                    prop.max 100
+                    prop.children[
+                        str (uploaded |> string)
+                    ]
+                ]
+            | _ ->
+                Html.none
         [|
             Html.div[
                 prop.className "column"
@@ -479,6 +487,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 ]
             ]
             User.Logic.spinner
+            progressBar
         |]
 
     let funcChainingButton info =
@@ -497,6 +506,8 @@ let changeFileStatus ( model : Instruction.Types.Model )
             User.Types.PopUpMsg
         )
 
+    
+
     let newStatusReactElements ( modInfos : array<modificationInfo> ) =
         modInfos
         |> Array.collect (fun modInfo ->
@@ -507,13 +518,17 @@ let changeFileStatus ( model : Instruction.Types.Model )
                     Some ([|msgElement|])
                 | PartStatus.UploadOrDeleteFinishedWithFailure(_,msgElement) ->
                     Some ([|msgElement|])
-                | PartStatus.Uploading name ->
+                | PartStatus.Uploading (name,uploaded) ->
+                    let uploadedAsFloat =
+                        match uploaded with
+                        | Percentage percentage -> percentage
+                        | _ -> 0.0
                     let msgElement =
-                        divWSpinner ("Uploading file " + name)
+                        divWSpinner ("Uploading file " + name) ^&Some(uploadedAsFloat)
                     Some msgElement
                 | PartStatus.Delete name ->
                     let msgElement =
-                        divWSpinner ("Deleting file " + name)
+                        divWSpinner ("Deleting file " + name) None
                     Some msgElement
                 | PartStatus.StatusExisting _ ->
                     None)
@@ -531,7 +546,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
                 let newModInfos = getNewModInfos modInfos name
                 let newFileStatusMsgs = newStatusReactElements newModInfos
                 (newModInfos,newFileStatusMsgs)
-            | PartStatus.Uploading name ->
+            | PartStatus.Uploading (name,_) ->
                 let newModInfos =
                     getNewModInfos modInfos name
                 let newFileStatusMsgs = newStatusReactElements newModInfos
@@ -577,7 +592,7 @@ let changeFileStatus ( model : Instruction.Types.Model )
         { model with CurrPositions = Some newInfo }, msg
     | _ ->  model, []
 
-let deleteProcess ( status : DeleteProcess<string * Data.Position,string * Data.Position * ReactElement> ) =
+let deleteProcess ( status : DeleteProcess<string * Utilities<User.Types.Msg>,string * Utilities<User.Types.Msg> * ReactElement> ) =
     match status with
     | DeleteProcess.DeleteInProgress(mediaName,positions) ->
         let mediaToDeleteMsg =
@@ -641,7 +656,7 @@ let uploadOrDeleteFinished modInfosOpt options =
                                 PartStatus.StatusExisting name
                             | PartStatus.StatusExisting name ->
                                 PartStatus.StatusExisting name
-                            | PartStatus.Uploading name ->
+                            | PartStatus.Uploading (name,_) ->
                                 PartStatus.StatusExisting name
                             | PartStatus.Delete name ->
                                 PartStatus.StatusExisting name)
@@ -730,8 +745,8 @@ let uploadOrDeleteFinished modInfosOpt options =
             | _ -> None
     | _ -> None
 
-let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Data.Position,
-                                                               DatabaseChangeResult> ) =
+let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Utilities<User.Types.Msg>,
+                                                               DatabaseChangeResult<User.Types.Msg>> ) =
     match status with
     | DatabaseChangeBegun(dbSaveOpt,ids,positions) ->
         let databaseChangesMsg =
@@ -779,7 +794,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
             )
 
         let funcChainingDelayedPopupKill =
-            None 
+            None
             |> User.Types.PopUpMsg
             |> User.Logic.delayedMessage 3000 
             |> Cmd.fromAsync

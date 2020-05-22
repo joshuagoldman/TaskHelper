@@ -4,6 +4,7 @@ open Fable.ReactServer
 open Elmish
 open Thoth.Json
 open Fable.Core.JsInterop
+open Browser
 
 type Validity =
     | Valid of string
@@ -46,7 +47,11 @@ type DatabaseDeleteOptions =
 type DatabaseSavingOptions = 
     | NewFilesInstruction of DatabaseNewFilesOptions
     | NewNameInstruction of InstructionData
-    | PartsToDeleteInstruction of DatabaseDeleteOptions 
+    | PartsToDeleteInstruction of DatabaseDeleteOptions
+
+type UsrTypeDispatchOptions<'a> =
+    | DispatchDefined of ('a -> unit)
+    | NoDispatchDefined
 
 type UserData =
     {
@@ -116,6 +121,11 @@ module Async =
             return f x
         }
 
+type DeferredWithDispatch<'t,'u> =
+    | HasNostStartedYet of 't
+    | InProgress of 't
+    | Resolved of 'u
+
 type Deferred<'t> =
     | HasNostStartedYet
     | InProgress
@@ -132,8 +142,12 @@ type AsyncOperationSavingStatus<'t,'u> =
     | SavingFinished of 'u
 
 type AsyncOperationEvent<'t> =
-    | Started 
+    | Started
     | Finished of 't
+
+type AsyncOperationEventWithDispatch<'t,'u> =
+    | Started of 't
+    | Finished of 'u
 
 type eventWithDIspatch<'t> ={
     ev : Browser.Types.MouseEvent
@@ -145,7 +159,12 @@ type DBIds = {
     InstructionId : string
 }
 
-type Position = {
+type Utilities<'a> = {
+    MsgDispatch : 'a -> unit
+    Ev : Types.Event
+}
+
+type Positions = {
     X : float
     Y : float
 }

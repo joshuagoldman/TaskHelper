@@ -29,9 +29,9 @@ let loginToUserIfSuccess ( model : App.Types.Model ) =
             match model.User.UserData with
             | Resolved response ->
                 match response with
-                | Ok _ ->  User(UserPage.InstructionSearch) |> Finished |> LoginToUser
-                | Error _ -> Page.Login |> Finished |> LoginToUser
-            | _ -> Page.Login |> Finished |> LoginToUser
+                | Ok _ ->  User(UserPage.InstructionSearch) |> AsyncOperationEvent.Finished |> LoginToUser
+                | Error _ -> Page.Login |> AsyncOperationEvent.Finished |> LoginToUser
+            | _ -> Page.Login |> AsyncOperationEvent.Finished |> LoginToUser
 
         page
 

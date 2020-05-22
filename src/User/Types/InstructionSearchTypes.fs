@@ -6,18 +6,18 @@ open Elmish
 open Types
 open Data
 
-type SearchResult =
-    | Instruction of Data.InstructionData * string * Cmd<Instruction.Types.Msg>
-    | Part of Data.partData * Cmd<Part.Types.Msg> * Data.InstructionData * Cmd<Instruction.Types.Msg>
+type SearchResult<'a> =
+    | Instruction of Data.InstructionData * string * Cmd<Instruction.Types.Msg<'a>>
+    | Part of Data.partData * Cmd<Part.Types.Msg> * Data.InstructionData * Cmd<Instruction.Types.Msg<'a>>
 
-type Msg =
+type Msg<'a> =
     | TextHasChanged of string
     | ClearSearchResult
-    | GetNewInstruction of array<Result<SearchResult,string>>
+    | GetNewInstruction of array<Result<SearchResult<'a>,string>>
 
-type Model =
+type Model<'a> =
     {
        SearchBar : AppearanceAttributes
-       ResultFromSearch : array<Result<SearchResult,string>>
+       ResultFromSearch : array<Result<SearchResult<'a>,string>>
     }
 

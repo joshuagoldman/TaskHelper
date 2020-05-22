@@ -5,7 +5,6 @@ open Elmish
 open Elmish.Navigation
 open Elmish.UrlParser
 open Types
-open Global
 open Data
 open Browser
    
@@ -27,9 +26,16 @@ let loginButton ( model : App.Types.Model ) dispatch =
                     ]
 
                 prop.onClick (fun _ ->
-                            User.Logic.loginAttempt model.User HasNostStartedYet
-                            |> Seq.map (fun msg -> msg |> App.Types.UserMsg)
-                            |> Seq.iter (fun msg -> ( msg |> dispatch))
+                            let newDispatch =
+                                App.Types.UserMsg >> dispatch
+
+                            newDispatch |>
+                            (
+                                DeferredWithDispatch.HasNostStartedYet >>
+                                User.Logic.loginAttempt >>
+                                Seq.map (fun msg -> msg |> App.Types.UserMsg) >>
+                                Seq.iter (fun msg -> ( msg |> dispatch))
+                            )
                 )
 
                 prop.children[

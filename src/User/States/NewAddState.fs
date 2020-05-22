@@ -12,7 +12,7 @@ open Feliz
 open Fable.Core
 open Browser
 
-let init () : Model * Cmd<Msg> =
+let init () : Model * Cmd<Msg<'a>> =
     {
        NewInstructionData =  None
        NewAddMessages = [|str ""|]

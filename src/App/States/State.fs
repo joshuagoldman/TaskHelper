@@ -65,10 +65,10 @@ let update msg model : Model * Cmd<App.Types.Msg> =
     | LoginMsg msg ->
         let (login, loginCmd) = Login.State.update msg model.Login
         { model with Login = login }, Cmd.map LoginMsg loginCmd
-    | LoginToUser Started ->
+    | LoginToUser AsyncOperationEvent.Started->
                  model,  Cmd.ofMsg (Logic.loginToUserIfSuccess model)
                    
-    | LoginToUser (Finished page) ->
+    | LoginToUser (AsyncOperationEvent.Finished page) ->
             console.log("login finished to:")
             console.log(page)
             let (newModel, _) =
