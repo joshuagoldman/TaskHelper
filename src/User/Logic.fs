@@ -617,8 +617,6 @@ let saveAsync ( (file,newName) : (Types.File * string) )
 
     let request = XMLHttpRequest.Create()
 
-    request.
-
     request.``open``("POST","http://localhost:3001/upload",true)
 
     let uploadFinished ( response : XMLHttpRequest ) = 
@@ -697,15 +695,27 @@ let saveAsync ( (file,newName) : (Types.File * string) )
 
         let loadedPercent = progress / total * 100.0
 
+        (fullPath,loadedPercent |> Instruction.Types.Percentage)
+        |> Instruction.Types.Uploading 
+        |> fun x -> (x,utils)
+        |> Instruction.Types.Msg.ChangeFileStatus
+        |> User.Types.InstructionMsg
+        |> utils.MsgDispatch)
+
         
-
-
-        ()
-        |> function
-            | _ when request.status <> 0 ->
-                uploadFinished request
-            | _ -> uploadFinished request
-                )
+    return(
+        [|1..30|]
+        |> Array.pick (fun _ ->
+            ()
+            |> function
+                | _ when request.status <> 0 ->
+                    Some(uploadFinished request)
+                | _ ->
+                    Async.Sleep 3000
+                    |> fun _ -> None
+                    )  
+    )
+        
 }
 
 let saveUserData
