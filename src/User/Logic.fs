@@ -615,12 +615,8 @@ let saveAsync ( (file,newName) : (Types.File * string) )
 
     do! Async.Sleep 3000
 
-    let request = XMLHttpRequest.Create()
-
-    request.``open``("POST","http://localhost:3001/upload",true)
-
-    let uploadFinished ( response : XMLHttpRequest ) = 
-        match response.status with
+    let uploadFinished ( response : HttpResponse ) = 
+        match response.statusCode with
         | 200 ->
             let newStatus =
                 (
@@ -654,7 +650,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
         | _ ->
             let msg =
                 ("file \"" + file.name + "\" failed with status code: " +
-                 ( response.status |> string ) + response.responseText)
+                 ( response.statusCode |> string ) + response.responseText)
             let newStatus =
                 (
                     fullPath,
@@ -685,37 +681,33 @@ let saveAsync ( (file,newName) : (Types.File * string) )
                 |> Cmd.batch
                 |> User.Types.CmdMsging
 
+    let progress = JsInterop.Progress.progress fullPath
 
-
-    request.addEventListener("onprogress", fun e ->
-        let progressEv = e?onprogress : ProgressEvent
-
-        let progress = progressEv.loaded
-        let total = progressEv.total
-
-        let loadedPercent = progress / total * 100.0
-
-        (fullPath,loadedPercent |> Instruction.Types.Percentage)
-        |> Instruction.Types.Uploading 
-        |> fun x -> (x,utils)
-        |> Instruction.Types.Msg.ChangeFileStatus
-        |> User.Types.InstructionMsg
-        |> utils.MsgDispatch)
-
+    progress
+    |> JsInterop.Progress.on (fun prog ->
         
-    return(
-        [|1..30|]
-        |> Array.pick (fun _ ->
-            ()
-            |> function
-                | _ when request.status <> 0 ->
-                    Some(uploadFinished request)
-                | _ ->
-                    Async.Sleep 3000
-                    |> fun _ -> None
-                    )  
-    )
-        
+        let uploaded =
+            prog.percentage
+            |> Instruction.Types.Uploaded.Percentage
+            
+       
+        (fullPath,uploaded)
+        |> Instruction.Types.PartStatus.Uploading
+        |> fun x ->
+            (x ,utils) |>
+            (
+                Instruction.Types.ChangeFileStatus >>
+                User.Types.InstructionMsg >>
+                utils.MsgDispatch
+            )) "progress" 
+
+    let! response =
+        Http.request ("http://localhost:3001/upload" )
+        |> Http.method POST
+        |> Http.content (BodyContent.Form fData)
+        |> Http.send
+
+    return uploadFinished response
 }
 
 let saveUserData
@@ -1118,7 +1110,7 @@ let decideIfUploadableByTypeCount ( medias : array<NewAdd.Types.MediaChoiceFormD
             |]
             |> Some
 
-let provideNewAddPopUpWait ( utils : Data.Utilities<'a> )
+let provideNewAddPopUpWait ( utils : Data.Utilities<User.Types.Msg> )
                              wait
                              msgs =
     let newPage =
@@ -1135,7 +1127,7 @@ let provideNewAddPopUpWait ( utils : Data.Utilities<'a> )
     msgs
     |> funcChaining newPage
 
-let provideNewAddPopUp ( utils : Data.Utilities<'a> )
+let provideNewAddPopUp ( utils : Data.Utilities<User.Types.Msg> )
                          msgs =
     let funcChaining msgs =
         (msgs,utils) |>
@@ -1391,7 +1383,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         popupNoMsg
 
     | DefaultNewPage (divs,newPage,utils) ->
-        let style = utils |> ( getPositions >> defaultStyle )
+        let style = utils.Ev |> ( getPositions >> defaultStyle )
         let popupNoMsg =
             {
                 Style = style

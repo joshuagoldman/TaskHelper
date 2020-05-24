@@ -12,16 +12,18 @@ module Regex =
    
     /// <summary>Returns true if any matches exists, false if none exist, and None is an error occurs</summary>
     let IsMatch (pattern:string) (input : string) : bool Option = Fable.Core.JsInterop.import "IsMatch" "./JsInterop/Regex.js"
-
-type IXmlElement =
-    abstract j : string -> string
-
-type IXmlAttribute =
-    abstract j : string -> string 
-
-module Xml =
-    let f = ""
+  
+type IProgress =
+    abstract length : float
+    abstract percentage : float
+    abstract remaining : float
+    [<Emit("$2.on($1,$0)")>]
+    abstract on : (obj -> unit) -> string -> IProgress
 
 
+module Progress =
 
+    [<Emit("$2.on($1,$0)")>]
+    let on (handler:IProgress -> unit) (event:string) (progress:IProgress)  : unit = Fable.Core.JsInterop.import "on" "progress-stream"
 
+    let progress (fileName:string) : IProgress = Fable.Core.JsInterop.import "Progress" "./JsInterop/ProgressIO.js"

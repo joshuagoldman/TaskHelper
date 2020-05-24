@@ -436,7 +436,7 @@ let filenameWStatus (msg : array<ReactElement> ) =
 
 let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                      ( newStatus : PartStatus)
-                     ( positions ) =
+                     ( utils ) =
     let upDatNameIfMatch ( name : string )
                          ( nameComp : string )
                            currStatus =
@@ -581,11 +581,11 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
             ()
             |> function
                 | _ when allFileStatusesAreStale = true ->
-                    (msgElement,positions)
+                    (msgElement,utils)
                     |> funcChainingButton
                     |> Cmd.ofMsg
                 | _ ->
-                    (msgElement,positions)
+                    (msgElement,utils)
                     |> funcChainingNoButton
                     |> Cmd.ofMsg
 
@@ -594,18 +594,18 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
 
 let deleteProcess ( status : DeleteProcess<string * Utilities<User.Types.Msg>,string * Utilities<User.Types.Msg> * ReactElement> ) =
     match status with
-    | DeleteProcess.DeleteInProgress(mediaName,positions) ->
+    | DeleteProcess.DeleteInProgress(mediaName,utils) ->
         let mediaToDeleteMsg =
             mediaName
             |> PartStatus.Delete
             |> fun x ->
-                (x,positions)
+                (x,utils)
                 |> ChangeFileStatus 
                 |> User.Types.InstructionMsg
                 |> Cmd.ofMsg
 
         let nextDeleteProcessMsg =
-            positions
+            utils
             |> User.Logic.deleteAsync mediaName 
             |> Cmd.fromAsync
             
@@ -613,12 +613,12 @@ let deleteProcess ( status : DeleteProcess<string * Utilities<User.Types.Msg>,st
             mediaToDeleteMsg
             nextDeleteProcessMsg
         ]
-    | DeleteProcess.DeleteFinished(mediaName,positions,reactEL) ->
+    | DeleteProcess.DeleteFinished(mediaName,utils,reactEL) ->
         let mediaToDeleteMsg =
             (mediaName,reactEL)
             |> PartStatus.UploadOrDeleteFinishedSuccesfully 
             |> fun x ->
-                (x, positions)
+                (x, utils)
                 |> ChangeFileStatus 
                 |> User.Types.InstructionMsg
                 |> Cmd.ofMsg
@@ -748,7 +748,7 @@ let uploadOrDeleteFinished modInfosOpt options =
 let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Utilities<User.Types.Msg>,
                                                                DatabaseChangeResult<User.Types.Msg>> ) =
     match status with
-    | DatabaseChangeBegun(dbSaveOpt,ids,positions) ->
+    | DatabaseChangeBegun(dbSaveOpt,ids,utils) ->
         let databaseChangesMsg =
             "Performing database changes..."
 
@@ -771,21 +771,21 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
             )
 
         let popupMsg =
-            (divWSpinner,positions)
+            (divWSpinner,utils)
             |> buttonFuncChaining
             |> Cmd.ofMsg
 
         let dbChangeMsg =
-            positions
+            utils
             |> User.Logic.sqlCommandToDB dbSaveOpt ids
             |> Cmd.fromAsync
             |> fun x -> [|x|]
 
         dbChangeMsg
         |> Array.append ([|popupMsg|])
-    | DatabseChangeFinished(DatabaseChangeFailed(msg,positions)) ->
+    | DatabseChangeFinished(DatabaseChangeFailed(msg,utils)) ->
         let funcChaining positions msg =
-            ([|msg|],positions) |>
+            ([|msg|],utils) |>
             (
                 PopUpSettings.Default >>
                 Some >>
@@ -801,7 +801,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
 
         let databaseChangePopupMsg =
             msg
-            |> funcChaining positions
+            |> funcChaining utils
 
         let databaseMsgsCombined =
             [|databaseChangePopupMsg ; funcChainingDelayedPopupKill|]
@@ -879,7 +879,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
 let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
                 ( options : DatabaseNewFilesOptions )
                 dbIds
-                positions =
+                utils =
 
     let fullPath name =
         String.Format(
@@ -921,7 +921,7 @@ let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
                 | NewAdd.Types.MediaChoiceFormData.Video file -> (file,newName)
                 | NewAdd.Types.MediaChoiceFormData.InstructionTxt file -> (file,newName))
             |> Array.map (fun media ->
-                (media,dbIds,positions,options)
+                (media,dbIds,utils,options)
                 |> funcChaining
                 |> Cmd.ofMsg)
             |> Cmd.batch
@@ -929,7 +929,7 @@ let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
                 msg
         | _ ->
             "Not all necesarry media exist!"
-            |> User.Logic.errorPopupMsg positions
+            |> User.Logic.errorPopupMsg utils
             |> Cmd.ofMsg
             |> fun msg ->
                 msg

@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+var progress = require('progress-stream');
 var cors = require('cors');
 var fs = require('fs')
 const fileUpload = require('express-fileupload');
@@ -48,6 +49,7 @@ app.post("/upload", (req, res, next) => {
         Name : fileName,
         Path : pubPath
     }
+
     fs.writeFile(path, finalFile.file, (err) => {
         if(err)
          res.send(err);
@@ -55,7 +57,6 @@ app.post("/upload", (req, res, next) => {
         res.send(`Saved file '${fileInfo.Name}' on '${fileInfo.Path}'`);
     })
 });
-
 // --------------------------------------------------------------------------------------------------------------
 // DELETE FILES API
 // --------------------------------------------------------------------------------------------------------------

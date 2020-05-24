@@ -38,11 +38,11 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
         { model with InstructionList = Some sequence }, Cmd.none
     | NewCurrentInstructionMsg instrWId ->
         { model with CurrentInstruction = instrWId }, Cmd.none
-    | NewDataToInstruction(newInstr,dbIds,positions) ->
+    | NewDataToInstruction(newInstr,dbIds,utils) ->
         match model.NewInstructionData with
         | Some instrData ->
             let createInstructionMsg =
-                (newInstr,dbIds,positions,instrData)
+                (newInstr,dbIds,utils,instrData)
                 |> User.Types.SaveNewData
                 |> Cmd.ofMsg
             model,createInstructionMsg

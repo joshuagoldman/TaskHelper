@@ -126,19 +126,19 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
 
         model, usrMsg
 
-    | ChangeFileStatus(status,positions) ->
-        Instruction.Logic.changeFileStatus model status positions
-    | SaveInstructionToDataBase positions ->
+    | ChangeFileStatus(status,utils) ->
+        Instruction.Logic.changeFileStatus model status utils
+    | SaveInstructionToDataBase utils ->
         match model.CurrInstruction with
         | Ok (instruction,_) ->
             let usrMsg =
-                (instruction,model.CurrPositions,positions)
+                (instruction,model.CurrPositions,utils)
                 |> User.Types.CompareNewSaveWithCurrentInstructions
                 |> Cmd.ofMsg
             model,usrMsg
         | _ -> model,[]
 
-    | CheckIfSaveFinished(ids,positions,options)->
+    | CheckIfSaveFinished(ids,utils,options)->
         let info =
             options
             |> Instruction.Logic.uploadOrDeleteFinished model.CurrPositions
@@ -151,7 +151,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
                     |> function
                         | (uploadOrDeleteFinished,savingOpt) when savingOpt.IsSome ->
                             let msg =
-                                (savingOpt.Value,ids,positions) |>
+                                (savingOpt.Value,ids,utils) |>
                                 (
                                     SavingResolved >>
                                     NewAdd.Types.CreateNewDataMsg >>
