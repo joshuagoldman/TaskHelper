@@ -7,6 +7,7 @@ const fileUpload = require('express-fileupload');
 const Joi = require('joi');
 const PORT = process.env.PORT || 3001;
 var db = require('./database');
+var streamBuffers = require('stream-buffers');
 
 const app = express();
 app.use(cors())
@@ -50,13 +51,18 @@ app.post("/upload", (req, res, next) => {
         Path : pubPath
     }
 
-    fs.writeFile(path, finalFile.file, (err) => {
+    fs.writeFile(path,finalFile.file, function(err) {
         if(err)
-         res.send(err);
+        {
+            res.status(404).send(err.message)
+        }
         else
-        res.send(`Saved file '${fileInfo.Name}' on '${fileInfo.Path}'`);
+        {
+            res.send(`Saved file '${fileInfo.Name}' on '${fileInfo.Path}'`);
+        }
     })
 });
+
 // --------------------------------------------------------------------------------------------------------------
 // DELETE FILES API
 // --------------------------------------------------------------------------------------------------------------

@@ -598,9 +598,6 @@ let saveAsync ( (file,newName) : (Types.File * string) )
             newName
         )
 
-    let positions =
-        utils.Ev |> getPositions
-
     let fData =
         FormData.Create()
 
@@ -612,6 +609,25 @@ let saveAsync ( (file,newName) : (Types.File * string) )
     fData.append("filePath", fullPath)
     fData.append("file", file)
 
+    let res = JsInterop.FileProgress.getProg (file.size |> string)
+
+
+
+    let length = res.Value.remaining
+
+    let fileUploadRes = JsInterop.FileProgress.fileUpload
+                                "C:/Users/jogo/Downloads/postgresql-12.1-3-windows-x64.exe"
+                                "C:/Users/jogo/Documents/newFIle.exe"
+                                res.Value
+
+    match res with
+    | Some progress ->
+        progress
+        |> JsInterop.FileProgress.on(fun p ->
+            let percentage = p.percentage
+            let remaining = p.remaining
+            ()) 
+    | _ -> ()
 
     do! Async.Sleep 3000
 
@@ -680,27 +696,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
                 |> Array.map (fun msg -> msg |> Cmd.ofMsg)
                 |> Cmd.batch
                 |> User.Types.CmdMsging
-
-    let progress = JsInterop.Progress.progress fullPath
-
-    progress
-    |> JsInterop.Progress.on (fun prog ->
-        
-        let uploaded =
-            prog.percentage
-            |> Instruction.Types.Uploaded.Percentage
-            
-       
-        (fullPath,uploaded)
-        |> Instruction.Types.PartStatus.Uploading
-        |> fun x ->
-            (x ,utils) |>
-            (
-                Instruction.Types.ChangeFileStatus >>
-                User.Types.InstructionMsg >>
-                utils.MsgDispatch
-            )) "progress" 
-
+    
     let! response =
         Http.request ("http://localhost:3001/upload" )
         |> Http.method POST

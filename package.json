@@ -47,6 +47,7 @@
     "regexp": "^1.0.0",
     "remotedev": "^0.2.7",
     "smtp-server": "^3.6.0",
+    "stream-buffers": "^3.0.2",
     "sync-request": "^6.1.0",
     "window": "^4.2.7",
     "xmlbuilder": "^15.1.1"
@@ -60,7 +61,7 @@
     "copy-webpack-plugin": "^5.1.1",
     "core-js": "^2.6.3",
     "css-loader": "^2.1.1",
-    "fable-compiler": "^2.9.0",
+    "fable-compiler": "^2.10.1",
     "fable-loader": "^2.1.9",
     "fable-utils": "^1.0.6",
     "file-loader": "^3.0.1",
