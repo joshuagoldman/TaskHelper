@@ -476,7 +476,7 @@ let root model dispatch =
                                     Data.MsgDispatch = usrTypeDispatch
                                 }
                             utils
-                            |>  ( Instruction.Types.SaveInstructionToDataBase >> dispatch)
+                            |>  ( Instruction.Types.CreateDeletePopup >> dispatch)
                         | _ -> ())
                       prop.children[
                           modificationButtons model dispatch "Delete Instruction" model.DeleteButton.Disable

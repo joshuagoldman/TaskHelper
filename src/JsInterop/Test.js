@@ -1,6 +1,6 @@
 var progress = require('progress-stream') ;
+var buff = require('stream-buffers');
 var fs = require('fs');
-
 
 function on(fun, progObj){
     progObj.on("progress", function(progress) {
@@ -23,12 +23,26 @@ function getProg(size) {
 
 function uploadFile(path,output,str) {
     try {
-        fs.createReadStream(path)
+
+        var buffer = fs.readFileSync(path);
+        var myReadableStreamBuffer = new buff.ReadableStreamBuffer({
+            frequency: 1000,      // in milliseconds.
+            chunkSize: 10000000     // in bytes.
+        }); 
+        
+        myReadableStreamBuffer.put(buffer);
+        myReadableStreamBuffer
+        .on("error", (error) =>{
+            return error.message;
+        })
+        .on("close", () => {
+            console.log('success upload');
+            return "success";
+        })
         .pipe(str)
         .pipe(fs.createWriteStream(output));
-        console.log("success")
     } catch (error) {
-        error.message;
+        return error;
     }
 };
 

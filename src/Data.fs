@@ -5,6 +5,7 @@ open Elmish
 open Thoth.Json
 open Fable.Core.JsInterop
 open Browser
+open TaskHelperJsInterop
 
 type Validity =
     | Valid of string
@@ -185,5 +186,16 @@ let errorInstruction =
                     errorPart 
                 |]
         }
+
+type SocketEventFinished = {
+    Status : int
+    Msg : string
+    Path : string
+}
+
+type SocketEventMessage = {
+    Progress : IProgress
+    Path : string
+}
 
 

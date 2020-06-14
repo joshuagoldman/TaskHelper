@@ -4,19 +4,16 @@
     <UserSecretsId>7a4351b0-1e05-4747-a2a8-91bf391903d1</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <!-- Global to the app -->
-    <Compile Include="Data.fs" />
     <Compile Include="JsInterop.fs" />
+    <Compile Include="Data.fs" />
     <Compile Include="Controls.fs" />
     <Compile Include="Global.fs" />
     <Compile Include="Part\Types.fs" />
     <Compile Include="Part\State.fs" />
-    <!-- Info -->
     <Compile Include="Part\Logic.fs" />
     <Compile Include="Part\View.fs" />
     <Compile Include="User\Types\InstructionTypes.fs" />
     <Compile Include="User\Types\NewAddTypes.fs" />
-    <!-- Counter -->
     <Compile Include="User\Types\InstructionSearchTypes.fs" />
     <Compile Include="User\Types\Types.fs" />
     <Compile Include="User\Logic.fs" />
@@ -37,11 +34,7 @@
     <Compile Include="App\States\State.fs" />
     <Compile Include="App\Views\LoginView.fs" />
     <Compile Include="App\Views\View.fs" />
-    <!-- Home -->
-    <!-- Navbar -->
-    <!-- App -->
-  </ItemGroup>
-  <ItemGroup>
+    <PackageReference Include="Fable.Browser.WebSocket" Version="1.0.0" />
     <PackageReference Include="Fable.Core" Version="3.1.5" />
     <PackageReference Include="Fable.Elmish" Version="3.0.6" />
     <PackageReference Include="Fable.Elmish.Browser" Version="3.0.4" />
@@ -50,8 +43,8 @@
     <PackageReference Include="Fable.Elmish.React" Version="3.0.1" />
     <PackageReference Include="Fable.React" Version="6.2.0" />
     <PackageReference Include="Fable.SimpleHttp" Version="3.0.0" />
-    <PackageReference Include="Feliz" Version="0.80.0" />
-    <PackageReference Include="FSharp.Core" Version="4.7.1" />
+    <PackageReference Include="Feliz" Version="1.3.0" />
+    <PackageReference Include="FSharp.Core" Version="4.7.2" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.1" />
   </ItemGroup>
   <!--<Import Project="..\.paket\Paket.Restore.targets" />-->

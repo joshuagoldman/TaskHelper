@@ -21,6 +21,10 @@ open Elmish
 open Browser
 open Feliz
 open NewAdd.Types
+open System.Net
+open TaskHelperJsInterop
+open Microsoft.FSharp.Collections
+open Microsoft.FSharp.Collections
 
 let (^&)x = (x)
 
@@ -223,8 +227,8 @@ let loadInstructionItems ( id : int ) = async {
                                                         (response.statusCode |> string))))  
     }
 
-let funcChainingIsUploading positions status =
-    (status,positions) |>
+let funcChainingIsUploading utils status =
+    (status,utils) |>
     ( 
         Instruction.Types.ChangeFileStatus >>
         User.Types.InstructionMsg
@@ -495,7 +499,7 @@ let changeFileNameIfNotUnique instructions medias =
 
         let pattern = fileNameCutFormat + ".*?(?=\$)"
 
-        let matchingFileNames = JsInterop.Regex.Matches pattern allCurrentFileNames
+        let matchingFileNames = Regex.Matches pattern allCurrentFileNames
 
         match matchingFileNames with
         | Some matchingNames ->
@@ -609,30 +613,12 @@ let saveAsync ( (file,newName) : (Types.File * string) )
     fData.append("filePath", fullPath)
     fData.append("file", file)
 
-    let res = JsInterop.FileProgress.getProg (file.size |> string)
-
-
-
-    let length = res.Value.remaining
-
-    let fileUploadRes = JsInterop.FileProgress.fileUpload
-                                "C:/Users/jogo/Downloads/postgresql-12.1-3-windows-x64.exe"
-                                "C:/Users/jogo/Documents/newFIle.exe"
-                                res.Value
-
-    match res with
-    | Some progress ->
-        progress
-        |> JsInterop.FileProgress.on(fun p ->
-            let percentage = p.percentage
-            let remaining = p.remaining
-            ()) 
-    | _ -> ()
+    
 
     do! Async.Sleep 3000
 
-    let uploadFinished ( response : HttpResponse ) = 
-        match response.statusCode with
+    let uploadFinished ( response : {|Status : int ; Msg : string|} ) = 
+        match response.Status with
         | 200 ->
             let newStatus =
                 (
@@ -647,7 +633,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
                             style.margin 5
                            ]
                         prop.children[
-                            str response.responseText
+                            str response.Msg
                         ]
                     ]
                 )
@@ -666,7 +652,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
         | _ ->
             let msg =
                 ("file \"" + file.name + "\" failed with status code: " +
-                 ( response.statusCode |> string ) + response.responseText)
+                 ( response.Status |> string ) + response.Msg)
             let newStatus =
                 (
                     fullPath,
@@ -696,14 +682,40 @@ let saveAsync ( (file,newName) : (Types.File * string) )
                 |> Array.map (fun msg -> msg |> Cmd.ofMsg)
                 |> Cmd.batch
                 |> User.Types.CmdMsging
-    
-    let! response =
-        Http.request ("http://localhost:3001/upload" )
-        |> Http.method POST
-        |> Http.content (BodyContent.Form fData)
-        |> Http.send
 
-    return uploadFinished response
+    let request =
+        Async.FromContinuations <| fun (resolve, reject, _) ->
+            let socket = ProgressSocket.connect("http://localhost:3001")
+            
+            socket
+            |> ProgressSocket.addEventListener_message(fun scktMsg ->
+                let eventResult = (scktMsg :?> Data.SocketEventMessage)
+                if eventResult.Path = fullPath
+                then
+                    let newStatus =
+                        (fullPath,Instruction.Types.Uploaded.Percentage(downloaded))
+                        |> Instruction.Types.PartStatus.Uploading
+            
+                    newStatus
+                    |> funcChainingIsUploading utils
+                    |> utils.MsgDispatch) (("message_" + fullPath))
+
+            socket
+            |> ProgressSocket.addEventListener_message(fun scktMsg ->
+                let response = (scktMsg :?> Data.SocketEventFinished)
+                if response.Path = fullPath
+                then
+                    resolve(uploadFinished response) ) (("finished_" + fullPath))
+            |> fun  _ -> ()
+
+            let xhr = XMLHttpRequest.Create()
+            xhr.``open``(method = "POST", url = "http://localhost:3001/upload")
+
+            xhr.send(fData) |> fun  _ -> ()
+
+    let! msg = request
+
+    return msg
 }
 
 let saveUserData

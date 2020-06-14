@@ -1,4 +1,5 @@
 
+
 export function Match(pattern, input) {
     try {
         var result = input.match(pattern)[0];

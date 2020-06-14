@@ -52,22 +52,12 @@ var commonPlugins = [
         filename: 'index.html',
         template: resolve(CONFIG.indexHtmlTemplate)
     })
-];
+];     
 
 module.exports = {
-    webpack: (config, { isServer }) => {
-      // Fixes npm packages that depend on `fs` module
-      if (!isServer) {
-        config.node = {
-          fs: 'empty'
-        }
-      }
-  
-      return config
-    }
-};
-
-module.exports = {
+    node: {
+        fs: "empty"
+      },
     // In development, bundle styles together with the code so they can also
     // trigger hot reloads. In production, put them in a separate CSS file.
     entry: isProduction ? {

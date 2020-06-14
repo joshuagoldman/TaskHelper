@@ -8,6 +8,7 @@ const Joi = require('joi');
 const PORT = process.env.PORT || 3001;
 var db = require('./database');
 var streamBuffers = require('stream-buffers');
+var socket  = require('socket.io');
 
 const app = express();
 app.use(cors())
@@ -17,10 +18,21 @@ app.use(bodyParser.json());
 app.use(fileUpload());
 
 // --------------------------------------------------------------------------------------------------------------
+// LISTEN TO SERVER @ PORT 3001
+// --------------------------------------------------------------------------------------------------------------
+
+var server = app.listen(PORT, () => {
+    console.log( `Server listening on port ${PORT}...`);
+});
+
+app.use(express.static(__dirname + '/public'));
+
+var io = socket(server);
+
+// --------------------------------------------------------------------------------------------------------------
 // UPLOAD FILES API
 // --------------------------------------------------------------------------------------------------------------
 app.post("/upload", (req, res, next) => {
-    console.log(req.files.file);
     var finalFile = {
         contentType: req.files.file.mimetype,
         file:  new Buffer(req.files.file.data, 'base64')
@@ -46,21 +58,42 @@ app.post("/upload", (req, res, next) => {
         error.httpStatusCode = 400
         return next(error)
     }
-    let fileInfo = {
-        Name : fileName,
-        Path : pubPath
-    }
 
-    fs.writeFile(path,finalFile.file, function(err) {
-        if(err)
-        {
-            res.status(404).send(err.message)
-        }
-        else
-        {
-            res.send(`Saved file '${fileInfo.Name}' on '${fileInfo.Path}'`);
-        }
-    })
+    var buffer = new Buffer(finalFile.file,'base64');
+
+    var myReadableStreamBuffer = new streamBuffers.ReadableStreamBuffer({
+        frequency: 1000,      // in milliseconds.
+        chunkSize: 10000000     // in bytes.
+        }); 
+    
+    var wrStr = fs.createWriteStream(path) ;
+
+    var str = progress({
+        length: finalFile.file.length,
+        time: 10 /* ms */
+    });
+
+    io.sockets.on('connection', (sckt) => {
+        str.on('progress', function(pr) {
+            if(pr.remaining === 0){
+                sckt.emit(`finished_${req.body.filePath}`,{ Status: 200, Msg: `file ${fileName} saved!`, Path : req.body.filePath});
+                res.send("");
+            }
+            else{
+                sckt.emit(`message_${req.body.filePath}`,{ Progress : pr, Path : req.body.filePath });
+                console.log(`${pr.percentage} completed`);
+            }
+        });
+
+        myReadableStreamBuffer.put(buffer);
+        myReadableStreamBuffer
+        .on('error', (error) =>{
+            sckt.emit("finished",{ Status: 404, Msg: error.message, Path : req.body.filePath});
+            res.send("");
+        })
+        .pipe(str)
+        .pipe(wrStr);
+    });
 });
 
 // --------------------------------------------------------------------------------------------------------------
@@ -108,14 +141,6 @@ app.post('/', (req,res) => {
             res.send("Changes were sucessfully updated!")
         });
     }
-});
-
-// --------------------------------------------------------------------------------------------------------------
-// LISTEN TO SERVER @ PORT 3001
-// --------------------------------------------------------------------------------------------------------------
-
-app.listen(PORT, () => {
-    console.log( `Server listening on port ${PORT}...`);
 });
 
 // --------------------------------------------------------------------------------------------------------------
