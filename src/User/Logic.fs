@@ -617,7 +617,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
 
     do! Async.Sleep 3000
 
-    let uploadFinished ( response : {|Status : int ; Msg : string|} ) = 
+    let uploadFinished ( response : SocketEventFinished ) = 
         match response.Status with
         | 200 ->
             let newStatus =
@@ -693,7 +693,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
                 if eventResult.Path = fullPath
                 then
                     let newStatus =
-                        (fullPath,Instruction.Types.Uploaded.Percentage(downloaded))
+                        (fullPath,Instruction.Types.Uploaded.Percentage(eventResult.Progress.percentage |> float))
                         |> Instruction.Types.PartStatus.Uploading
             
                     newStatus

@@ -626,7 +626,7 @@ let deleteProcess ( status : DeleteProcess<string * Utilities<User.Types.Msg>,st
         |> fun x -> seq[x]
         
         
-let uploadOrDeleteFinished modInfosOpt options =
+let uploadOrDeleteFinished ( modInfosOpt : Instruction.Types.modificationInfo [] option) options =
     match modInfosOpt with
     | Some modInfos ->
         modInfos
