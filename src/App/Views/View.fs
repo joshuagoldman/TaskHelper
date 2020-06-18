@@ -2,15 +2,9 @@ module App.View
 
 open Feliz
 open Elmish
-open Elmish.Navigation
 open Elmish.UrlParser
 open App.Types
 open Global
-open Browser
-open Fable.SimpleHttp
-open Fable.SimpleHttp
-open Feliz.prop
-open Fable.Core
 
 
 //Fable.Core.JsInterop.importAll "../sass/main.sass"
@@ -122,5 +116,5 @@ Program.mkProgram init update root
 #if DEBUG
 |> Program.withDebugger
 #endif
-|> Program.withReactSynchronous "elmish-app"
+|> Program.withReactSynchronous "elmish-app" 
 |> Program.run

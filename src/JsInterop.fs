@@ -20,34 +20,34 @@ module Regex =
 
 type IProgress =
     abstract getProg : string -> IProgress option
-    abstract percentage : string
-    abstract remaining : string 
-
-module FileProgress =
-
-    let getProg (fileSize : string) : IProgress option = Fable.Core.JsInterop.import "getProg" "./JsInterop/Progress.js"
-
-    let on (handler : IProgress -> unit) (progObj : IProgress) : unit = Fable.Core.JsInterop.import "on" "./JsInterop/Progress.js"
-
-    let fileUpload (filePath : string) (newPath : string) (progObj : IProgress) : obj = Fable.Core.JsInterop.import "uploadFile" "./JsInterop/Progress.js"
-
-
-    [<Import("uploadFile", "./JsInterop/Progress.js")>] 
-    let fileUpload2 (filePath : string) (newPath : string) (progObj : IProgress) : obj = jsNative
+    abstract percentage : float
+    abstract remaining : string
 
 type [<AllowNullLiteral>] IWebsocket =
-    abstract addEventListener_message: listener: (IProgress -> unit) -> IWebsocket -> IWebsocket
+    abstract addEventListener_message: listener: (IProgress -> unit) -> socketObj: IWebsocket -> IWebsocket
+    abstract emit: eventName: string -> message: obj -> socketObj: IWebsocket -> IWebsocket
 
+type SocketResponse = {
+    Socket : IWebsocket option
+    ErrorMessage : string option
+}
 
 [<Erase>]
 module ProgressSocket =
 
-    [<Import("createSocket", "./JsInterop/Progress.js")>] 
-    let connect (url : string) : IWebsocket = jsNative
+    [<Import("createSocket", "./JsInterop/Socket.js")>] 
+    let connect (url : string) : SocketResponse = jsNative
 
-    [<Import("addEventListener", "./JsInterop/Progress.js")>] 
-    let addEventListener_message (handler: obj -> unit) (eventName: string) (socket: IWebsocket) : unit = jsNative
+    [<Import("addEventListener", "./JsInterop/Socket.js")>] 
+    let addEventListener_message (handler: obj -> unit) (eventName: string) (socket: IWebsocket) : IWebsocket = jsNative
 
+    [<Import("disconnect", "./JsInterop/Socket.js")>] 
+    let disconnect (socketObj: IWebsocket) : unit = jsNative
+
+    [<Import("emit", "./JsInterop/Socket.js")>] 
+    let emit (eventName: string) (message: obj) (socketObj: IWebsocket) : IWebsocket = jsNative 
+
+    
    
 
     

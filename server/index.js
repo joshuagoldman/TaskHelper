@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 3001;
 var db = require('./database');
 var streamBuffers = require('stream-buffers');
 var socket  = require('socket.io');
+timeout = require('connect-timeout');
+var clientSocket = require('socket.io-client');
 
 const app = express();
 app.use(cors())
@@ -16,6 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded(({extended:true})));
 app.use(bodyParser.json());
 app.use(fileUpload());
+app.use(timeout(15000));
 
 // --------------------------------------------------------------------------------------------------------------
 // LISTEN TO SERVER @ PORT 3001
@@ -28,6 +31,16 @@ var server = app.listen(PORT, () => {
 app.use(express.static(__dirname + '/public'));
 
 var io = socket(server);
+
+io.sockets.on(`connection`, (sckt) => {
+    sckt.on('message',(msgObj) =>{
+        sckt.broadcast.emit('message', msgObj);
+    })
+
+    sckt.on('finished',(msgObj) =>{
+        sckt.broadcast.emit('finished', msgObj);
+    })
+});
 
 // --------------------------------------------------------------------------------------------------------------
 // UPLOAD FILES API
@@ -52,12 +65,6 @@ app.post("/upload", (req, res, next) => {
         }
     }
 
-    let pubPath = `public/${req.body.filePath}`;
-    if (!finalFile.file) {
-        const error = new Error('Please upload a file')
-        error.httpStatusCode = 400
-        return next(error)
-    }
 
     var buffer = new Buffer(finalFile.file,'base64');
 
@@ -67,33 +74,35 @@ app.post("/upload", (req, res, next) => {
         }); 
     
     var wrStr = fs.createWriteStream(path) ;
-
     var str = progress({
         length: finalFile.file.length,
         time: 10 /* ms */
     });
 
-    io.sockets.on('connection', (sckt) => {
-        str.on('progress', function(pr) {
-            if(pr.remaining === 0){
-                sckt.emit(`finished_${req.body.filePath}`,{ Status: 200, Msg: `file ${fileName} saved!`, Path : req.body.filePath});
-                res.send("");
-            }
-            else{
-                sckt.emit(`message_${req.body.filePath}`,{ Progress : pr, Path : req.body.filePath });
-                console.log(`${pr.percentage} completed`);
-            }
-        });
+    var newClient = clientSocket.connect('http://localhost:3001');
 
-        myReadableStreamBuffer.put(buffer);
-        myReadableStreamBuffer
-        .on('error', (error) =>{
-            sckt.emit("finished",{ Status: 404, Msg: error.message, Path : req.body.filePath});
-            res.send("");
-        })
-        .pipe(str)
-        .pipe(wrStr);
+    str.on('progress', function(pr) {
+        console.log(`Upload started for file ${req.body.filePath}!`);
+        if(pr.remaining === 0){
+            newClient.emit(`finished`,{ Status: 200, Msg: `file ${req.body.filePath} saved!`, Path: req.body.filePath});
+            console.log(`finished uploading ${req.body.filePath}`);
+        }
+        else{
+            newClient.emit(`message`,{ Progress : pr, Path: req.body.filePath });
+            console.log(`${pr.percentage} completed`);
+        }
+        downloaded = pr.percentage;
     });
+
+    myReadableStreamBuffer.put(buffer);
+    myReadableStreamBuffer
+    .on('error', (error) =>{
+        newClient.emit(`finished`,{ Status: 404, Msg: error.message, Path : req.body.filePath});
+    })
+    .pipe(str)
+    .pipe(wrStr);
+
+    res.end();
 });
 
 // --------------------------------------------------------------------------------------------------------------

@@ -34,6 +34,8 @@
     "express": "^4.17.1",
     "express-fileupload": "^1.1.6",
     "express-generator": "^4.16.1",
+    "fable-splitter": "^2.2.0",
+    "feliz": "0.0.43",
     "file-system": "^2.2.2",
     "fs": "0.0.1-security",
     "fs-loader": "0.0.1",

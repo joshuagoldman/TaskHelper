@@ -35,7 +35,68 @@
     <Compile Include="App\States\State.fs" />
     <Compile Include="App\Views\LoginView.fs" />
     <Compile Include="App\Views\View.fs" />
+    <PackageReference Include="Fable.Core" Version="3.1.5" />
+    <PackageReference Include="Fable.Elmish" Version="3.0.6" />
+    <PackageReference Include="Fable.Elmish.Browser" Version="3.0.4" />
+    <PackageReference Include="Fable.Elmish.Debugger" Version="3.2.0" />
+    <PackageReference Include="Fable.Elmish.HMR" Version="4.0.1" />
+    <PackageReference Include="Fable.Elmish.React" Version="3.0.1" />
+    <PackageReference Include="Fable.React" Version="6.2.0" />
+    <PackageReference Include="Fable.SimpleHttp" Version="3.0.0" />
+    <PackageReference Include="Feliz" Version="1.3.0" />
     <PackageReference Include="FSharp.Core" Version="4.7.1" />
+    <PackageReference Include="Thoth.json" Version="4.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Browser.Blob">
+      <HintPath>..\packages\Fable.Browser.Blob.1.1.0\lib\netstandard2.0\Browser.Blob.dll</HintPath>
+    </Reference>
+    <Reference Include="Browser.Dom">
+      <HintPath>..\packages\Fable.Browser.Dom.1.2.0\lib\netstandard2.0\Browser.Dom.dll</HintPath>
+    </Reference>
+    <Reference Include="Browser.Event">
+      <HintPath>..\packages\Fable.Browser.Event.1.0.0\lib\netstandard2.0\Browser.Event.dll</HintPath>
+    </Reference>
+    <Reference Include="Browser.WebStorage">
+      <HintPath>..\packages\Fable.Browser.WebStorage.1.0.0\lib\netstandard2.0\Browser.WebStorage.dll</HintPath>
+    </Reference>
+    <Reference Include="Browser.XMLHttpRequest">
+      <HintPath>..\packages\Fable.Browser.XMLHttpRequest.1.1.0\lib\netstandard2.0\Browser.XMLHttpRequest.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.Core">
+      <HintPath>..\packages\Fable.Core.3.1.5\lib\netstandard2.0\Fable.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.Elmish">
+      <HintPath>..\packages\Fable.Elmish.3.0.6\lib\netstandard2.0\Fable.Elmish.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.Elmish.Browser">
+      <HintPath>..\packages\Fable.Elmish.Browser.3.0.4\lib\netstandard2.0\Fable.Elmish.Browser.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.Elmish.Debugger">
+      <HintPath>..\packages\Fable.Elmish.Debugger.3.2.0\lib\netstandard2.0\Fable.Elmish.Debugger.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.Elmish.HMR">
+      <HintPath>..\packages\Fable.Elmish.HMR.4.0.1\lib\netstandard2.0\Fable.Elmish.HMR.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.Elmish.React">
+      <HintPath>..\packages\Fable.Elmish.React.3.0.1\lib\netstandard2.0\Fable.Elmish.React.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.React">
+      <HintPath>..\packages\Fable.React.6.2.0\lib\netstandard2.0\Fable.React.dll</HintPath>
+    </Reference>
+    <Reference Include="Fable.SimpleHttp">
+      <HintPath>..\packages\Fable.SimpleHttp.3.0.0\lib\netstandard2.0\Fable.SimpleHttp.dll</HintPath>
+    </Reference>
+    <Reference Include="Feliz">
+      <HintPath>..\packages\Feliz.1.3.0\lib\netstandard2.0\Feliz.dll</HintPath>
+    </Reference>
+    <Reference Include="FSharp.Core">
+      <HintPath>..\packages\FSharp.Core.4.7.2\lib\netstandard2.0\FSharp.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="Thoth.Json">
+      <HintPath>..\packages\Thoth.Json.4.1.0\lib\netstandard2.0\Thoth.Json.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <!--<Import Project="..\.paket\Paket.Restore.targets" />-->
 </Project>

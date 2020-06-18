@@ -161,7 +161,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
 
                             { model with CurrPositions = Some uploadOrDeleteFinished},msg
                         | (uploadOrDeleteFinished,_) ->
-                            { model with CurrPositions = Some uploadOrDeleteFinished},[]
+                            { model with CurrPositions = Some uploadOrDeleteFinished},[] 
                 saveToDBIfSomeUploadSuccess
             | _ -> model,[]
 

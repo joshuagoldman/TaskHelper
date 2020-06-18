@@ -6,18 +6,9 @@ open Part
 open Part.State
 open Part.Types
 open Part.Logic
-open Thoth.Json
-open FSharp.Data
 open NewAdd.Types
 open Instruction.Types
 open Instruction
-open Feliz
-open Elmish
-open Browser
-open Fable.Core
-open Fable.Core.JsInterop
-open Fable.React
-open Fable.React.Props
 
 type Testcase =
     {

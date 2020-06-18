@@ -14,7 +14,6 @@ open NewAdd
 open Fable.React
 open Fable.React.Props
 open Feliz
-open Browser
 
 let menuItem label page currentPage =
     li

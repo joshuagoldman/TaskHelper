@@ -469,12 +469,17 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
         let progressBar =
             match uploaded with
             | Some uploadValue ->
-                Html.progress[
-                    prop.className "progress is-primary"
-                    prop.value uploadValue
-                    prop.max 100
+                Html.div[
+                    prop.className "column"
                     prop.children[
-                        str (uploaded |> string)
+                        Html.progress[
+                            prop.className "progress is-primary"
+                            prop.value uploadValue
+                            prop.max 100
+                            prop.children[
+                                str (uploaded |> string)
+                            ]
+                        ]
                     ]
                 ]
             | _ ->

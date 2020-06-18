@@ -86,7 +86,7 @@ let errorPopupMsg positions str =
 
 let spinner =
     Html.div[
-        prop.className "column is-2"
+        prop.className "column is-3"
         prop.children[
             Html.i[
                 prop.className "fa fa-cog fa-spin fa-2x"
@@ -613,11 +613,9 @@ let saveAsync ( (file,newName) : (Types.File * string) )
     fData.append("filePath", fullPath)
     fData.append("file", file)
 
-    
-
     do! Async.Sleep 3000
 
-    let uploadFinished ( response : SocketEventFinished ) = 
+    let uploadFinished ( response : Data.SocketEventFinished ) = 
         match response.Status with
         | 200 ->
             let newStatus =
@@ -683,39 +681,78 @@ let saveAsync ( (file,newName) : (Types.File * string) )
                 |> Cmd.batch
                 |> User.Types.CmdMsging
 
-    let request =
-        Async.FromContinuations <| fun (resolve, reject, _) ->
-            let socket = ProgressSocket.connect("http://localhost:3001")
-            
-            socket
-            |> ProgressSocket.addEventListener_message(fun scktMsg ->
-                let eventResult = (scktMsg :?> Data.SocketEventMessage)
-                if eventResult.Path = fullPath
-                then
-                    let newStatus =
-                        (fullPath,Instruction.Types.Uploaded.Percentage(eventResult.Progress.percentage |> float))
-                        |> Instruction.Types.PartStatus.Uploading
-            
-                    newStatus
-                    |> funcChainingIsUploading utils
-                    |> utils.MsgDispatch) (("message_" + fullPath))
+    let request = async{
+        let xhr = XMLHttpRequest.Create()
+        xhr.``open``(method = "POST", url = "http://localhost:3001/upload")
 
-            socket
-            |> ProgressSocket.addEventListener_message(fun scktMsg ->
-                let response = (scktMsg :?> Data.SocketEventFinished)
-                if response.Path = fullPath
-                then
-                    resolve(uploadFinished response) ) (("finished_" + fullPath))
-            |> fun  _ -> ()
+        xhr.send(fData) |> fun  _ -> ()
+    }
 
-            let xhr = XMLHttpRequest.Create()
-            xhr.``open``(method = "POST", url = "http://localhost:3001/upload")
+    let mutable time = 0
+    let mutable exitLoop = false
 
-            xhr.send(fData) |> fun  _ -> ()
+    let socketResponse = ProgressSocket.connect("http://localhost:3001")
+    
+    match socketResponse.ErrorMessage with
+    | None  ->
+        socketResponse.Socket.Value
+        |> ProgressSocket.addEventListener_message(fun scktMsg ->
+            let eventResult = (scktMsg :?> Data.SocketEventMessage)
+            if eventResult.Path = fullPath
+            then
+                let newStatus =
+                    (fullPath,Instruction.Types.Uploaded.Percentage(eventResult.Progress.percentage))
+                    |> Instruction.Types.PartStatus.Uploading
+                            
+                newStatus
+                |> funcChainingIsUploading utils
+                |> utils.MsgDispatch) "message"
+        |> ProgressSocket.addEventListener_message(fun scktMsg ->
+            let response = (scktMsg :?> Data.SocketEventFinished)
+            if response.Path = fullPath
+            then
+                socketResponse.Socket.Value 
+                |> ProgressSocket.disconnect
+                |> ignore
 
-    let! msg = request
+                exitLoop <- true
 
-    return msg
+                response
+                |> uploadFinished
+                |> utils.MsgDispatch
+            ) "finished"
+        |> ignore
+
+    | Some error ->
+        exitLoop <- true
+        let response =
+            {
+                Status = 404
+                Msg = error
+                Path = ""
+            }
+        response
+        |> uploadFinished
+        |> utils.MsgDispatch
+
+    do! request
+
+    while time < 15000 && exitLoop = false  do
+        do! Async.Sleep 10
+        time <- time + 10
+        if time > 15000
+        then
+            let response =
+                {
+                    Status = 404
+                    Msg = "Connectioni timed out"
+                    Path = ""
+                }
+            response
+            |> uploadFinished
+            |> utils.MsgDispatch
+
+    return User.Types.MsgNone
 }
 
 let saveUserData
@@ -743,13 +780,11 @@ let saveUserData
             |]
 
     | SavingInProgress(media,dbIds,utils,options) ->
-        
-        let savingMsg =  
-            dbIds
-            |> saveAsync media options utils
-            |> Cmd.fromAsync
-
-        [|savingMsg|]
+          
+        dbIds
+        |> saveAsync media options utils
+        |> Cmd.fromAsync
+        |> fun x -> [|x|]
 
     | SavingResolved(savingOptions,ids,positions) ->
         let dbMsg =
