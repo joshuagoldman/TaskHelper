@@ -558,7 +558,7 @@ let createInstructionFromFile ( medias : (MediaChoiceFormData * string)[])
             {
                 Title =
                     "Please_provide_Title"
-                    |> Data.InstructionTitleInfo.HasOldName
+                    |> InstructionTitleInfo.HasOldName
                 Data = parts
             }
     |> function

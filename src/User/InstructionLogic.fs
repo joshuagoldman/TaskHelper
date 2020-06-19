@@ -344,6 +344,46 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
             Some result
         | _ -> None
 
+let newInstructionName ( model: Model<'a> ) titleAlt =
+
+    match titleAlt with
+    | Data.InstructionTitleInfo.HasOldName title ->
+        match model.CurrInstruction with
+        | Ok (existinstruction,_) ->
+            match existinstruction.Title with
+            | Data.InstructionTitleInfo.HasOldName titleExist ->
+                if title.Replace(" ","") = titleExist.Replace(" ","")
+                then
+                    titleExist
+                else
+                    ""
+            | Data.InstructionTitleInfo.HasNewName titlesExist ->
+                if title.Replace(" ","") = titlesExist.OldName.Replace(" ","")
+                then
+                    titlesExist.NewName
+                else
+                    ""
+        | Error _ -> ""
+    | Data.InstructionTitleInfo.HasNewName titles ->
+        match model.CurrInstruction with
+        | Ok (existinstruction,_) ->
+            match existinstruction.Title with
+            | Data.InstructionTitleInfo.HasOldName titleExist ->
+                if titles.OldName.Replace(" ","") = titleExist.Replace(" ","")
+                then
+                    titleExist
+                else
+                    ""
+                    
+            | Data.InstructionTitleInfo.HasNewName titlesExist ->
+                if titles.OldName.Replace(" ","") = titlesExist.OldName.Replace(" ","")
+                then
+                    titlesExist.NewName
+                else
+                    ""
+        | Error err -> ""
+    
+
 let newnameValue model ( part : Data.partData ) =
     match model.CurrPositions with
     | Some modificationInfo ->
@@ -980,7 +1020,7 @@ let updateUserInstructions possibInstrOpt currentInstructions id =
                         {
                             Title = 
                                 titles.NewName
-                                |> Data.InstructionTitleInfo.HasOldName
+                                |> InstructionTitleInfo.HasOldName
 
                             Data = instruction.Data
 
