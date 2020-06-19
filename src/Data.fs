@@ -31,10 +31,21 @@ type partData =
         Title : string
     }
 
+
+type InstructionName = {
+    OldName : string
+    NewName : string
+}
+
+type InstructionTitleInfo =
+    | HasOldName of string
+    | HasNewName of InstructionName
+
+
 type InstructionData =
     {
         Data : array<partData>
-        Title : string
+        Title : InstructionTitleInfo
     }
 
 type DatabaseNewFilesOptions =
@@ -73,7 +84,9 @@ let PartArrayDecoder =
 let InstructionDecoder : Decoder<InstructionData> = 
     Decode.object (fun fields -> {
         Data = fields.Required.At ["parts"] PartArrayDecoder
-        Title = fields.Required.At ["title"] Decode.string
+        Title =
+            fields.Required.At ["title"] Decode.string
+            |> InstructionTitleInfo.HasOldName
     })
 
 let InstructionArrayDecoder =
@@ -180,7 +193,9 @@ let errorPart =
 let errorInstruction =
     
         {
-            Title = ""
+            Title =
+                ""
+                |> InstructionTitleInfo.HasOldName
             Data =
                 [|
                     errorPart 

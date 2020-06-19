@@ -267,7 +267,11 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                     | res when res.IsSome ->
                         data.Instructions
                         |> Array.tryFind (fun (instruction) ->
-                            instruction.Title.Trim() = titleOpt.Value.Trim())
+                            match instruction.Title with
+                            | Data.InstructionTitleInfo.HasOldName title ->
+                                title.Replace(" ","") <> titleOpt.Value
+                            | Data.InstructionTitleInfo.HasNewName titles ->
+                                titles.OldName.Replace(" ","") <> titleOpt.Value)
                         |> function
                             | res when res.IsSome ->
                                 res.Value
@@ -288,7 +292,11 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             | Resolved (Ok data) ->
                 Array.zip data.Instructions [|0..data.Instructions |> Array.length |> fun x -> x - 1|]
                 |> Array.tryFind (fun (instruction,pos) ->
-                    instruction.Title = str)
+                    match instruction.Title with
+                    | Data.InstructionTitleInfo.HasOldName title ->
+                        title = str
+                    | Data.InstructionTitleInfo.HasNewName titles ->
+                        titles.OldName = str)
                 |> function
                     | res when res.IsSome ->
                         let (instr,id) = res.Value |> fun  (a,b) -> (a,b |> string)
@@ -328,10 +336,25 @@ let update msg model : Model * Cmd<User.Types.Msg> =
     | DeleteInstructionMsg(delInstruction,positions) ->
         match model.UserData with
         | Resolved(Ok(usrData)) ->
-            usrData.Instructions
-            |> Array.indexed
-            |> Array.tryFind (fun (_,instr) ->
-                instr.Title.Replace(" ","") = delInstruction.Title.Replace(" ",""))
+            let foundExistingInstruction = 
+                usrData.Instructions
+                |> Array.indexed
+                |> Array.tryFind (fun (_,existingInstr) ->
+                    match existingInstr.Title with
+                    | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
+                        match delInstruction.Title with
+                        | Data.InstructionTitleInfo.HasOldName delTitle ->
+                            titleFromDataBase.Replace(" ","") = delTitle.Replace(" ","")
+                        | Data.InstructionTitleInfo.HasNewName titles ->
+                            titleFromDataBase.Replace(" ","") = titles.OldName.Replace(" ","")
+                    | Data.InstructionTitleInfo.HasNewName titles ->
+                        match delInstruction.Title with
+                        | Data.InstructionTitleInfo.HasOldName delTitle->
+                            titles.OldName.Replace(" ","") = delTitle.Replace(" ","")
+                        | Data.InstructionTitleInfo.HasNewName delTitles ->
+                            titles.OldName.Replace(" ","") = delTitles.OldName.Replace(" ",""))
+
+            foundExistingInstruction
             |> function
                 | delInstrWithPos when delInstrWithPos.IsSome ->
                     let (instrId,_) = delInstrWithPos.Value
@@ -386,8 +409,20 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             | Some instruction ->
                 usrData.Instructions
                 |> Array.indexed
-                |> Array.tryFind (fun (_,instrComp) ->
-                    instrComp.Title.Replace(" ","") = instruction.Title.Replace(" ",""))
+                |> Array.tryFind (fun (_,existingInstr) ->
+                    match existingInstr.Title with
+                    | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
+                        match instruction.Title with
+                        | Data.InstructionTitleInfo.HasOldName delTitle ->
+                            titleFromDataBase.Replace(" ","") = delTitle.Replace(" ","")
+                        | Data.InstructionTitleInfo.HasNewName titles ->
+                            titleFromDataBase.Replace(" ","") = titles.OldName.Replace(" ","")
+                    | Data.InstructionTitleInfo.HasNewName titles ->
+                        match instruction.Title with
+                        | Data.InstructionTitleInfo.HasOldName delTitle->
+                            titles.OldName.Replace(" ","") = delTitle.Replace(" ","")
+                        | Data.InstructionTitleInfo.HasNewName delTitles ->
+                            titles.OldName.Replace(" ","") = delTitles.OldName.Replace(" ",""))
                 |> function
                     | res when res.IsSome ->
                         let (indx,_) = res.Value

@@ -50,25 +50,6 @@ let go2PartFromInstruction part instruction dispatch =
             Part.Logic.go2PreviousOrNext instruction part.Title (Instruction.Types.PartMsg >>
                                                                  dispatch) ""
 
-let newModInfo4Debugging newModinfo =
-    newModinfo
-    |> Array.map (fun info ->
-        ()
-        |> function
-            | _ when info.DelOrReg.IsSome ->
-                match info.DelOrReg.Value with
-                | Delete str -> str
-                | Regret str -> str
-            | _ -> ""
-            |> fun deloReg ->
-                info.Names.CurrName +
-                "\n" +
-                deloReg +
-                "\n" +
-                (if info.Names.NewName.IsSome then info.Names.NewName.Value else "")  +
-                "\n\n")
-            |> String.concat ""
-
 let ajustAfterNewModinfo ( currInstruction : Data.InstructionData )
                          ( newModinfo : array<modificationInfo> ) :
                            ( Data.InstructionData * array<modificationInfo> ) =
@@ -939,22 +920,79 @@ let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
             |> fun msg ->
                 msg
 
+let isInstructionUnique instruction currentInstructions =
+    match instruction.Title with
+    | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
+        let isInstructionUnique =
+            currentInstructions
+            |> Array.forall (fun instructionComp ->
+                match instructionComp.Title with
+                | Data.InstructionTitleInfo.HasOldName title ->
+                    title.Replace(" ","") <> titleFromDataBase.Replace(" ","")
+                | Data.InstructionTitleInfo.HasNewName titles ->
+                    titles.OldName.Replace(" ","") <> titleFromDataBase.Replace(" ",""))
+
+        isInstructionUnique
+    | Data.InstructionTitleInfo.HasNewName titles ->
+        let isInstructionUnique =
+            currentInstructions
+            |> Array.forall (fun instructionComp ->
+                match instructionComp.Title with
+                | Data.InstructionTitleInfo.HasOldName title ->
+                    title.Replace(" ","") <> titles.OldName.Replace(" ","")
+                | Data.InstructionTitleInfo.HasNewName titles ->
+                    titles.OldName.Replace(" ","") <> titles.OldName.Replace(" ",""))
+
+        isInstructionUnique
 
 let updateUserInstructions possibInstrOpt currentInstructions id =
     match possibInstrOpt with
     | NewPossibleInstructionOptions.SaveOrDeleteAttempt updateType ->
         match updateType with
         | UpdateUserInstructionsType.AddNewInstruction instruction ->
-            let isInstructionUnique =
-                currentInstructions
-                |> Array.forall (fun instructionComp ->
-                    instructionComp.Title.Replace(" ","") <> instruction.Title.Replace(" ",""))
+            let (isInstrunctionUnique, newInstruction) =
+                match instruction.Title with
+                | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
+                    let isInstructionUnique =
+                        currentInstructions
+                        |> Array.forall (fun instructionComp ->
+                            match instructionComp.Title with
+                            | Data.InstructionTitleInfo.HasOldName title ->
+                                title.Replace(" ","") <> titleFromDataBase.Replace(" ","")
+                            | Data.InstructionTitleInfo.HasNewName titles ->
+                                let isUnique = titles.OldName.Replace(" ","") <> titleFromDataBase.Replace(" ","")
+                                isUnique
+                                )
+
+                    (isInstructionUnique,instruction)
+                | Data.InstructionTitleInfo.HasNewName titles ->
+                    let isInstructionUnique =
+                        currentInstructions
+                        |> Array.forall (fun instructionComp ->
+                            match instructionComp.Title with
+                            | Data.InstructionTitleInfo.HasOldName title ->
+                                title.Replace(" ","") <> titles.OldName.Replace(" ","")
+                            | Data.InstructionTitleInfo.HasNewName titlesComp ->
+                                let isUnique = titlesComp.OldName.Replace(" ","") <> titles.OldName.Replace(" ","")
+                                isUnique)
+
+                    let instructionMadeIntoNoNewName =
+                        {
+                            Title = 
+                                titles.NewName
+                                |> Data.InstructionTitleInfo.HasOldName
+
+                            Data = instruction.Data
+
+                        }
+
+                    (isInstructionUnique,instructionMadeIntoNoNewName)
 
             ()
             |> function
-                | _ when isInstructionUnique = true ->
+                | _ when isInstrunctionUnique = true ->
                     let newInstructions =
-                        [|instruction|]
+                        [|newInstruction|]
                         |> Array.append currentInstructions
 
                     {
@@ -971,16 +1009,38 @@ let updateUserInstructions possibInstrOpt currentInstructions id =
         | UpdateUserInstructionsType.DeleteInstruction instruction ->
                 let isInstructionUnique =
                     currentInstructions
-                    |> Array.forall (fun instructionComp ->
-                        instructionComp.Title.Replace(" ","") <> instruction.Title.Replace(" ",""))
+                    |> isInstructionUnique instruction
 
                 ()
                 |> function
                     | _ when isInstructionUnique = false ->
                         let newInstructions =
-                            currentInstructions
-                            |> Array.filter (fun instructionCompare ->
-                                    instructionCompare.Title.Replace(" ","") <> instruction.Title.Replace(" ","")) 
+                            match instruction.Title with
+                            | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
+                                let filteredInstructions =
+                                    currentInstructions
+                                    |> Array.filter (fun instructionComp ->
+                                        match instructionComp.Title with
+                                        | Data.InstructionTitleInfo.HasOldName title ->
+                                            title.Replace(" ","") <> titleFromDataBase.Replace(" ","")
+                                        | Data.InstructionTitleInfo.HasNewName titles ->
+                                            let isUnique = titles.OldName.Replace(" ","") <> titleFromDataBase.Replace(" ","")
+                                            isUnique
+                                            )
+
+                                filteredInstructions
+                            | Data.InstructionTitleInfo.HasNewName titles ->
+                                let filteredInstructions =
+                                    currentInstructions
+                                    |> Array.filter (fun instructionComp ->
+                                        match instructionComp.Title with
+                                        | Data.InstructionTitleInfo.HasOldName title ->
+                                            title.Replace(" ","") <> titles.OldName.Replace(" ","")
+                                        | Data.InstructionTitleInfo.HasNewName titlesComp ->
+                                            let isUnique = titlesComp.OldName.Replace(" ","") <> titles.OldName.Replace(" ","")
+                                            isUnique)
+
+                                filteredInstructions
 
                         {
                             Id = id
@@ -996,23 +1056,64 @@ let updateUserInstructions possibInstrOpt currentInstructions id =
         | UpdateUserInstructionsType.UpdateInstruction instruction ->
             let isInstructionUnique =
                 currentInstructions
-                |> Array.forall (fun instructionComp ->
-                    instructionComp.Title.Replace(" ","") <> instruction.Title.Replace(" ",""))
+                |> isInstructionUnique instruction
+
+            let newInstructions =
+                match instruction.Title with
+                | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
+                    let filteredInstructions =
+                        currentInstructions
+                        |> Array.map (fun instructionComp ->
+                            match instructionComp.Title with
+                            | Data.InstructionTitleInfo.HasOldName title ->
+                                let hasSameTitle =
+                                    title.Replace(" ","") = titleFromDataBase.Replace(" ","")
+
+                                ()
+                                |> function
+                                    | _ when hasSameTitle = true ->
+                                        instructionComp
+                                    | _ ->  instruction
+                            | Data.InstructionTitleInfo.HasNewName titles ->
+                                let hasSameTitle =
+                                    titles.OldName.Replace(" ","") = titleFromDataBase.Replace(" ","")
+
+                                ()
+                                |> function
+                                    | _ when hasSameTitle = true ->
+                                        instructionComp
+                                    | _ ->  instruction)
+
+                    filteredInstructions
+                | Data.InstructionTitleInfo.HasNewName titles ->
+                    let updatedInstructions =
+                        currentInstructions
+                        |> Array.map (fun instructionComp ->
+                            match instructionComp.Title with
+                            | Data.InstructionTitleInfo.HasOldName title ->
+                                let hasSameTitle =
+                                    titles.OldName.Replace(" ","") = title.Replace(" ","")
+
+                                ()
+                                |> function
+                                    | _ when hasSameTitle = true ->
+                                        instructionComp
+                                    | _ ->  instruction
+                            | Data.InstructionTitleInfo.HasNewName titlesComp ->
+                                let hasSameTitle =
+                                    titles.OldName.Replace(" ","") = titlesComp.OldName.Replace(" ","")
+
+                                ()
+                                |> function
+                                    | _ when hasSameTitle = true ->
+                                        instructionComp
+                                    | _ ->  instruction)
+
+                    updatedInstructions
 
             ()
             |> function
                 | _ when isInstructionUnique = false ->
-                    let newInstructions =
-                        currentInstructions
-                        |> Array.map (fun instructionCompare ->
-                            let hasSameTitle =
-                                instructionCompare.Title.Replace(" ","") = instruction.Title.Replace(" ","")
-
-                            ()
-                            |> function
-                                | _ when hasSameTitle = true ->
-                                    instruction
-                                | _ -> instructionCompare)
 
                     {
                         Id = id

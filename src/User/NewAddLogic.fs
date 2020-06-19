@@ -9,7 +9,13 @@ open User.Types
 
 let createNewInstructionSequence ( usrData : Data.UserData ) =
     usrData.Instructions
-    |> Array.map (fun instruction -> instruction.Title)
+    |> Array.map (fun instruction ->
+        match instruction.Title with
+        | Data.InstructionTitleInfo.HasOldName title ->
+            title
+        | Data.InstructionTitleInfo.HasNewName titles ->
+            titles.OldName
+        )
     |> ( NewAdd.Types.NewInstructionsListMsg >> User.Types.NewAddMsg)
     |> fun x -> [|x|]
     |> Array.map ( fun msg -> msg |> Cmd.ofMsg )

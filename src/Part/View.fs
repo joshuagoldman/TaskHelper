@@ -104,7 +104,12 @@ let navigationButton ( model : Part.Types.Model )
 
 let getInstruction ( model : Types.Model ) =
     match model.Instruction with
-    | Ok res -> res.Title
+    | Ok res ->
+        match res.Title with
+        | Data.InstructionTitleInfo.HasOldName title ->
+            title
+        | Data.InstructionTitleInfo.HasNewName titles ->
+            titles.OldName
     | Error err -> ""
 
 let root model dispatch =

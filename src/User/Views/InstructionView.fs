@@ -329,7 +329,13 @@ let allPartsView ( part : Data.partData )
                 ]
             ]
     
-let instructionTitleView title =
+let instructionTitleView titleAlt =
+    let title =
+        match titleAlt with
+        | Data.InstructionTitleInfo.HasOldName title ->
+            title
+        | Data.InstructionTitleInfo.HasNewName titles ->
+            titles.OldName
     Html.div[
         prop.className "column"
         prop.style[
@@ -423,9 +429,15 @@ let modificationElements model dispatch =
                         prop.onClick (fun _ ->
                             match model.CurrInstruction with
                             | Ok (instruction,_) ->
-                                instruction.Title
-                                |> ( ResetInstruction
-                                        >> dispatch )
+                                match instruction.Title with
+                                | Data.InstructionTitleInfo.HasOldName title ->
+                                    title
+                                    |> ( ResetInstruction
+                                    >> dispatch )
+                                | Data.InstructionTitleInfo.HasNewName names ->
+                                    names.OldName
+                                    |> ( ResetInstruction
+                                    >> dispatch )
                             | _ -> ())
                         prop.children[
                             modificationButtons model dispatch "Reset" false

@@ -117,7 +117,10 @@ let go2PartOrInstruction dispatch result =
 let WritePartOrInstruction result =
     match result with
     | InstructionSearch.Types.Part (partData, _, _, _) -> partData.Title
-    | InstructionSearch.Types.Instruction (instruction, _,_) -> instruction.Title
+    | InstructionSearch.Types.Instruction (instruction, _,_) ->
+        match instruction.Title with
+        | Data.InstructionTitleInfo.HasOldName title -> title
+        | Data.InstructionTitleInfo.HasNewName titles -> titles.OldName
 
 let choosePage page =
     match page with
@@ -128,7 +131,12 @@ let choosePage page =
 
 let searchInfo info (keyWord : string) =
     match info with
-    | InstructionSearch.Types.Instruction (instruction, _,_) -> instruction.Title.ToLower().Contains keyWord && keyWord <> ""
+    | InstructionSearch.Types.Instruction (instruction, _,_) ->
+        match instruction.Title with
+        | Data.InstructionTitleInfo.HasOldName title ->
+            title.ToLower().Contains keyWord && keyWord <> ""
+        | Data.InstructionTitleInfo.HasNewName titles ->
+            false
     | InstructionSearch.Types.Part (partData, _, _, _) -> partData.Title.ToLower().Contains keyWord && keyWord <> ""
 
 let loadInitData data =
@@ -548,7 +556,9 @@ let createInstructionFromFile ( medias : (MediaChoiceFormData * string)[])
                 })
     |> fun parts ->
             {
-                Title = "Please_provide_Title"
+                Title =
+                    "Please_provide_Title"
+                    |> Data.InstructionTitleInfo.HasOldName
                 Data = parts
             }
     |> function
@@ -1458,10 +1468,25 @@ let savingChoicesTestable   instruction
                             userDataInstructions =
 
     let compareWithExistingInstruction newInstruction =
-        userDataInstructions
-        |> Array.indexed
-        |> Array.tryFind (fun (_,existInstr) ->
-            existInstr.Title.Replace(" ", "") = newInstruction.Title.Replace(" ", ""))
+        let foundAlreadyExistingInstruction =
+            userDataInstructions
+            |> Array.indexed
+            |> Array.tryFind (fun (_,existInstr) ->
+                match existInstr.Title with
+                | Data.InstructionTitleInfo.HasOldName title ->
+                    match existInstr.Title with
+                    | Data.InstructionTitleInfo.HasOldName titleFromDastaBase ->
+                        title.Replace(" ", "") = titleFromDastaBase.Replace(" ", "")
+                    | Data.InstructionTitleInfo.HasNewName titles -> 
+                        title.Replace(" ", "") = titles.OldName.Replace(" ", "")
+                | Data.InstructionTitleInfo.HasNewName titles ->
+                    match existInstr.Title with
+                    | Data.InstructionTitleInfo.HasOldName titleFromDastaBase ->
+                        titles.OldName.Replace(" ", "") = titleFromDastaBase.Replace(" ", "")
+                    | Data.InstructionTitleInfo.HasNewName titles -> 
+                        titles.OldName.Replace(" ", "") = titles.OldName.Replace(" ", ""))
+
+        foundAlreadyExistingInstruction            
         |> function
             | res when res.IsSome ->
                 let (pos,existingInstr) =
