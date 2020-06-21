@@ -1479,7 +1479,7 @@ let savingChoicesTestable   instruction
                         let sameOldName = title.Replace(" ", "") = titleFromDataBase.Replace(" ", "")
                         if sameOldName
                         then
-                            {| SameOldName = sameOldName ; SameNewName = false ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameOldName = sameOldName ; NewName = false ; ExistInstruction = existInstr ; Position  = pos|}
                             |> Some
                         else None
                         
@@ -1488,7 +1488,7 @@ let savingChoicesTestable   instruction
 
                         if sameOldName
                         then
-                            {| SameOldName = sameOldName ; SameNewName = false ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameOldName = sameOldName ; NewName = false ; ExistInstruction = existInstr ; Position  = pos|}
                             |> Some
                         else None
                 | Data.InstructionTitleInfo.HasNewName titles ->
@@ -1499,7 +1499,7 @@ let savingChoicesTestable   instruction
 
                         if sameOldName
                         then
-                            {| SameOldName = sameOldName ; SameNewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameOldName = sameOldName ; NewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
                             |> Some
                         else None
 
@@ -1510,7 +1510,7 @@ let savingChoicesTestable   instruction
 
                         if sameOldName
                         then
-                            {| SameOldName = sameOldName ; SameNewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameOldName = sameOldName ; NewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
                             |> Some
                         else None)
 
@@ -1603,7 +1603,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                         sameInstructionVideo))
                             newAndOldInstructionAreOfSameLength &&
                             newAndOldInstructionHaveSameParts &&
-                            foundAlreadyExistingInstruction.Value.SameNewName
+                            foundAlreadyExistingInstruction.Value.NewName
                         ()
                         |> function
                             | _ when alreadyExistingInstruction = true ->
@@ -1659,7 +1659,11 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                     |> function
                                         | partsWNewTitles when partsWNewTitles |> Array.length <> 0 ->
                                             partsWNewTitles |> Some
-                                        | _ -> None
+                                        | _ ->
+                                            if foundAlreadyExistingInstruction.Value.NewName
+                                            then None
+                                            else newInstruction.Data |> Some
+                                            
 
                                 let partsToDelete =
                                     existingInstr.Data
