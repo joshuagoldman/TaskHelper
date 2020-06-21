@@ -351,6 +351,13 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
         match modInfoOpt with
         | Some modInfo ->
             let result =
+                let newInstructionTitle =
+                    match instruction.Title with
+                    | InstructionTitleInfo.HasOldName ->
+                        instruction.Title
+                    | InstructionTitleInfo.HasNewName titles ->
+                        titles.NewName
+                        |> InstructionTitleInfo.HasOldName
                 instruction.Data
                 |> Array.map (fun part ->
                     modInfo
@@ -362,7 +369,11 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
                             { part with Title = res.Value.Names.NewName.Value}
                         | _ -> part)
                 |> fun parts ->
-                    let newInstruction = {instruction with Data = parts}
+                    let newInstruction =
+                        {
+                            Data = parts
+                            Title = newInstructionTitle
+                        }
                     let newModinfoRes = newNameBecomesCurrent modInfo positions
 
                     match newModinfoRes with
