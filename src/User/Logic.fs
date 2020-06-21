@@ -1467,31 +1467,74 @@ let savingChoicesTestable   instruction
                           ( instructionInfo : array<Instruction.Types.modificationInfo> Option )
                             userDataInstructions =
 
-    let compareWithExistingInstruction newInstruction =
-        let foundAlreadyExistingInstruction =
+    let compareWithExistingInstruction newInstructionPerhapsNotOldName =
+        let getFoundAlreadyExistingInstruction newInstructionTitle =
             userDataInstructions
             |> Array.indexed
-            |> Array.tryFind (fun (_,existInstr) ->
-                match existInstr.Title with
+            |> Array.tryPick (fun (pos,existInstr) ->
+                match newInstructionTitle with
                 | Data.InstructionTitleInfo.HasOldName title ->
                     match existInstr.Title with
-                    | Data.InstructionTitleInfo.HasOldName titleFromDastaBase ->
-                        title.Replace(" ", "") = titleFromDastaBase.Replace(" ", "")
+                    | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
+                        let sameOldName = title.Replace(" ", "") = titleFromDataBase.Replace(" ", "")
+                        if sameOldName
+                        then
+                            {| SameOldName = sameOldName ; SameNewName = false ; ExistInstruction = existInstr ; Position  = pos|}
+                            |> Some
+                        else None
+                        
                     | Data.InstructionTitleInfo.HasNewName titles -> 
-                        title.Replace(" ", "") = titles.OldName.Replace(" ", "")
+                        let sameOldName = title.Replace(" ", "") = titles.OldName.Replace(" ", "")
+
+                        if sameOldName
+                        then
+                            {| SameOldName = sameOldName ; SameNewName = false ; ExistInstruction = existInstr ; Position  = pos|}
+                            |> Some
+                        else None
                 | Data.InstructionTitleInfo.HasNewName titles ->
                     match existInstr.Title with
-                    | Data.InstructionTitleInfo.HasOldName titleFromDastaBase ->
-                        titles.OldName.Replace(" ", "") = titleFromDastaBase.Replace(" ", "")
-                    | Data.InstructionTitleInfo.HasNewName titles -> 
-                        titles.OldName.Replace(" ", "") = titles.OldName.Replace(" ", ""))
+                    | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
+                        let sameOldName = titleFromDataBase.Replace(" ", "") = titles.OldName.Replace(" ", "") 
+                        let sameNewName = titleFromDataBase.Replace(" ", "") = titles.NewName.Replace(" ", "")
+
+                        if sameOldName
+                        then
+                            {| SameOldName = sameOldName ; SameNewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
+                            |> Some
+                        else None
+
+
+                    | Data.InstructionTitleInfo.HasNewName titlesExisting -> 
+                        let sameOldName = titlesExisting.OldName.Replace(" ", "") = titles.OldName.Replace(" ", "")
+                        let sameNewName = titlesExisting.OldName.Replace(" ", "") = titles.NewName.Replace(" ", "")
+
+                        if sameOldName
+                        then
+                            {| SameOldName = sameOldName ; SameNewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
+                            |> Some
+                        else None)
+
+        let foundAlreadyExistingInstruction =
+            newInstructionPerhapsNotOldName.Title
+            |> getFoundAlreadyExistingInstruction
+
+        let newInstruction =
+            match newInstructionPerhapsNotOldName.Title with
+            | Data.InstructionTitleInfo.HasOldName _ ->
+                newInstructionPerhapsNotOldName
+            | Data.InstructionTitleInfo.HasNewName titles ->
+                let newTitle =
+                    titles.NewName
+                    |> InstructionTitleInfo.HasOldName
+
+                { newInstructionPerhapsNotOldName with Title = newTitle}
+
 
         foundAlreadyExistingInstruction            
         |> function
             | res when res.IsSome ->
                 let (pos,existingInstr) =
-                    res.Value
-                    |> fun (x,y) -> (x,y)
+                    (res.Value.Position,res.Value.ExistInstruction)
                 let instrId =
                     pos |> string
 
@@ -1538,7 +1581,8 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                         let alreadyExistingInstruction =
                             let newAndOldInstructionAreOfSameLength =
                                 existingInstr.Data |> Array.length =
-                                    (newInstruction.Data |> Array.length)
+                                    (newInstruction.Data |> Array.length) 
+                                 
 
                             let newAndOldInstructionHaveSameParts =
                                 newInstruction.Data
@@ -1558,7 +1602,8 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                         sameInstructionText &&
                                         sameInstructionVideo))
                             newAndOldInstructionAreOfSameLength &&
-                            newAndOldInstructionHaveSameParts
+                            newAndOldInstructionHaveSameParts &&
+                            foundAlreadyExistingInstruction.Value.SameNewName
                         ()
                         |> function
                             | _ when alreadyExistingInstruction = true ->
@@ -1866,13 +1911,14 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                 |> funcChaining utils
                 |> Cmd.ofMsg
 
-            
             let dbMsg =
-                (savingOptions,dbIds,utils)
-                |> Instruction.Types.DatabaseChangeBegun
-                |> Instruction.Types.Msg.DatabaseChangeMsg
-                |> User.Types.InstructionMsg
-                |> Cmd.ofMsg
+                (savingOptions,dbIds,utils)|>
+                (
+                    Instruction.Types.DatabaseChangeBegun >>
+                    Instruction.Types.Msg.DatabaseChangeMsg >>
+                    User.Types.InstructionMsg >>
+                    Cmd.ofMsg
+                )
 
 
             [|

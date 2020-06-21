@@ -390,7 +390,7 @@ let getTitle titleAlt =
     | Data.InstructionTitleInfo.HasOldName title ->
         title
     | Data.InstructionTitleInfo.HasNewName titles ->
-        titles.OldName
+        titles.NewName
 
 let newInstructionName ( model: Model<'a> ) titleAlt =
 
@@ -399,7 +399,7 @@ let newInstructionName ( model: Model<'a> ) titleAlt =
         match model.CurrInstruction with
         | Ok (existinstruction,_) ->
             match existinstruction.Title with
-            | Data.InstructionTitleInfo.HasOldName titleExist ->
+            | Data.InstructionTitleInfo.HasOldName _ ->
                 ""
             | Data.InstructionTitleInfo.HasNewName titlesExist ->
                 titlesExist.NewName

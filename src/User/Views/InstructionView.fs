@@ -330,12 +330,6 @@ let allPartsView ( part : Data.partData )
             ]
     
 let instructionTitleView model dispatch titleAlt =
-    let title =
-        match titleAlt with
-        | Data.InstructionTitleInfo.HasOldName title ->
-            title
-        | Data.InstructionTitleInfo.HasNewName titles ->
-            titles.NewName
     Html.div[
         prop.className "column"
         prop.style[
