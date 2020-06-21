@@ -57,6 +57,7 @@ type Msg<'a> =
                              string Option
     | ImplementNewNames of Utilities<'a>
     | UpdateNewName of string * string
+    | UpdateNewInstructionName of InstructionTitleInfo
     | NewFileAddMsg of ReactElement
     | ResetInstruction of string
     | NewPage of Global.Page * int Option

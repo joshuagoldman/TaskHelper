@@ -329,7 +329,7 @@ let allPartsView ( part : Data.partData )
                 ]
             ]
     
-let instructionTitleView model titleAlt =
+let instructionTitleView model dispatch titleAlt =
     let title =
         match titleAlt with
         | Data.InstructionTitleInfo.HasOldName title ->
@@ -350,9 +350,10 @@ let instructionTitleView model titleAlt =
                         prop.children[
                             Html.input[
                                 prop.className "input is-info"
+                                prop.onTextChange (fun str -> Logic.instructionNameToChange dispatch titleAlt str )
                                 prop.type'.text
                                 prop.value ( Logic.newInstructionName model titleAlt )
-                                prop.placeholder title
+                                prop.placeholder ( titleAlt |> Logic.getTitle )
                             ]
                         ]
                     ]
@@ -378,7 +379,7 @@ let showAllInstructionParts model dispatch =
             |> Seq.toList
             |> List.map (fun part ->
                             allPartsView part instRes model dispatch)
-            |> List.append [ instructionTitleView model instRes.Title ]   
+            |> List.append [ instructionTitleView model dispatch instRes.Title ]   
         | Error err ->
             [
                 Html.div[

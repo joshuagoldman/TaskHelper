@@ -219,3 +219,16 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
 
         model,msgs
 
+    | UpdateNewInstructionName instrTitle ->
+        match model.CurrInstruction with
+        | Ok (instruction,id) ->
+            let newInstr =
+                (
+                    {instruction with Title = instrTitle},
+                    id
+                )
+                |> Ok
+
+            {model with CurrInstruction = newInstr}, []
+        | _ -> model,[]
+

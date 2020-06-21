@@ -197,6 +197,36 @@ let newPartSelected ( ev : Types.Event ) partName dispatch =
         )
     |> Array.iter (fun msg -> msg |> dispatch)
 
+let instructionNameToChange dispatch
+                            ( instructionTitle : Data.InstructionTitleInfo )
+                            newName =
+
+        let dispatchNewName oldName =
+            if newName |> String.length < 30
+            then true
+            else false
+            |> function
+                | res when res = true ->
+                    let newTitle =
+                        {
+                            OldName = oldName
+                            NewName = newName
+                        }
+
+                    newTitle|>
+                    (
+                        InstructionTitleInfo.HasNewName >>
+                        Instruction.Types.UpdateNewInstructionName >>
+                        dispatch
+                    )
+                | _ -> ()
+        match instructionTitle with
+        | Data.InstructionTitleInfo.HasOldName title -> 
+            dispatchNewName title
+            
+        | Data.InstructionTitleInfo.HasNewName titles ->
+            dispatchNewName titles.OldName
+
 let partNameToChange dispatch
                      ( part : Data.partData )
                       newPartName =
@@ -344,6 +374,13 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
             Some result
         | _ -> None
 
+let getTitle titleAlt =
+    match titleAlt with
+    | Data.InstructionTitleInfo.HasOldName title ->
+        title
+    | Data.InstructionTitleInfo.HasNewName titles ->
+        titles.OldName
+
 let newInstructionName ( model: Model<'a> ) titleAlt =
 
     match titleAlt with
@@ -352,17 +389,9 @@ let newInstructionName ( model: Model<'a> ) titleAlt =
         | Ok (existinstruction,_) ->
             match existinstruction.Title with
             | Data.InstructionTitleInfo.HasOldName titleExist ->
-                if title.Replace(" ","") = titleExist.Replace(" ","")
-                then
-                    titleExist
-                else
-                    ""
+                ""
             | Data.InstructionTitleInfo.HasNewName titlesExist ->
-                if title.Replace(" ","") = titlesExist.OldName.Replace(" ","")
-                then
-                    titlesExist.NewName
-                else
-                    ""
+                titlesExist.NewName
         | Error _ -> ""
     | Data.InstructionTitleInfo.HasNewName titles ->
         match model.CurrInstruction with
