@@ -201,7 +201,7 @@ let instructionNameToChange dispatch
                             ( instructionTitle : Data.InstructionTitleInfo )
                             newName =
 
-        let dispatchNewName oldName =
+        let dispatchNewName dbName oldName =
             if newName |> String.length < 30
             then true
             else false
@@ -211,6 +211,7 @@ let instructionNameToChange dispatch
                         {
                             OldName = oldName
                             NewName = newName
+                            DbName = dbName
                         }
 
                     newTitle|>
@@ -222,10 +223,10 @@ let instructionNameToChange dispatch
                 | _ -> ()
         match instructionTitle with
         | Data.InstructionTitleInfo.HasOldName title -> 
-            dispatchNewName title
+            dispatchNewName title title
             
         | Data.InstructionTitleInfo.HasNewName titles ->
-            dispatchNewName titles.OldName
+            dispatchNewName titles.DbName titles.OldName
 
 let partNameToChange dispatch
                      ( part : Data.partData )
@@ -348,16 +349,22 @@ let newNameBecomesCurrent ( modinfos : array<modificationInfo> )
 let implementNewNamesTestable ( instruction : Data.InstructionData )
                                 modInfoOpt
                                 positions =
+
+        let newTitle =
+            match instruction.Title with
+            | InstructionTitleInfo.HasOldName title ->
+                instruction.Title
+            | InstructionTitleInfo.HasNewName titles ->
+                {
+                    NewName = ""
+                    OldName = titles.NewName
+                    DbName = titles.DbName
+                }
+                |> InstructionTitleInfo.HasNewName
+
         match modInfoOpt with
         | Some modInfo ->
             let result =
-                let newInstructionTitle =
-                    match instruction.Title with
-                    | InstructionTitleInfo.HasOldName ->
-                        instruction.Title
-                    | InstructionTitleInfo.HasNewName titles ->
-                        titles.NewName
-                        |> InstructionTitleInfo.HasOldName
                 instruction.Data
                 |> Array.map (fun part ->
                     modInfo
@@ -371,8 +378,8 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
                 |> fun parts ->
                     let newInstruction =
                         {
+                            Title = newTitle
                             Data = parts
-                            Title = newInstructionTitle
                         }
                     let newModinfoRes = newNameBecomesCurrent modInfo positions
 
@@ -390,7 +397,7 @@ let getTitle titleAlt =
     | Data.InstructionTitleInfo.HasOldName title ->
         title
     | Data.InstructionTitleInfo.HasNewName titles ->
-        titles.NewName
+        titles.OldName
 
 let newInstructionName ( model: Model<'a> ) titleAlt =
 

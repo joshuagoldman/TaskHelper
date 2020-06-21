@@ -33,6 +33,7 @@ type partData =
 
 
 type InstructionName = {
+    DbName : string
     OldName : string
     NewName : string
 }

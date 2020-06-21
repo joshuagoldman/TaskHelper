@@ -431,7 +431,7 @@ let modificationElements model dispatch =
                                     |> ( ResetInstruction
                                     >> dispatch )
                                 | Data.InstructionTitleInfo.HasNewName names ->
-                                    names.OldName
+                                    names.DbName
                                     |> ( ResetInstruction
                                     >> dispatch )
                             | _ -> ())

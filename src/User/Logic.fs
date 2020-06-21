@@ -1476,41 +1476,41 @@ let savingChoicesTestable   instruction
                 | Data.InstructionTitleInfo.HasOldName title ->
                     match existInstr.Title with
                     | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
-                        let sameOldName = title.Replace(" ", "") = titleFromDataBase.Replace(" ", "")
-                        if sameOldName
+                        let sameDbdName = title.Replace(" ", "") = titleFromDataBase.Replace(" ", "")
+                        if sameDbdName
                         then
-                            {| SameOldName = sameOldName ; NewName = false ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameDbName = sameDbdName ; NewName = false ; ExistInstruction = existInstr ; Position  = pos|}
                             |> Some
                         else None
                         
                     | Data.InstructionTitleInfo.HasNewName titles -> 
-                        let sameOldName = title.Replace(" ", "") = titles.OldName.Replace(" ", "")
+                        let sameDbdName = title.Replace(" ", "") = titles.DbName.Replace(" ", "")
 
-                        if sameOldName
+                        if sameDbdName
                         then
-                            {| SameOldName = sameOldName ; NewName = false ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameDbName = sameDbdName ; NewName = false ; ExistInstruction = existInstr ; Position  = pos|}
                             |> Some
                         else None
                 | Data.InstructionTitleInfo.HasNewName titles ->
                     match existInstr.Title with
                     | Data.InstructionTitleInfo.HasOldName titleFromDataBase ->
-                        let sameOldName = titleFromDataBase.Replace(" ", "") = titles.OldName.Replace(" ", "") 
-                        let sameNewName = titleFromDataBase.Replace(" ", "") = titles.NewName.Replace(" ", "")
+                        let sameDbdName = titleFromDataBase.Replace(" ", "") = titles.DbName.Replace(" ", "") 
+                        let sameNewName = titleFromDataBase.Replace(" ", "") <> titles.OldName.Replace(" ", "")
 
-                        if sameOldName
+                        if sameDbdName
                         then
-                            {| SameOldName = sameOldName ; NewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameDbName = sameDbdName ; NewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
                             |> Some
                         else None
 
 
                     | Data.InstructionTitleInfo.HasNewName titlesExisting -> 
-                        let sameOldName = titlesExisting.OldName.Replace(" ", "") = titles.OldName.Replace(" ", "")
-                        let sameNewName = titlesExisting.OldName.Replace(" ", "") = titles.NewName.Replace(" ", "")
+                        let sameDbdName = titlesExisting.DbName.Replace(" ", "") = titles.DbName.Replace(" ", "")
+                        let sameNewName = titlesExisting.DbName.Replace(" ", "") <> titles.OldName.Replace(" ", "")
 
-                        if sameOldName
+                        if sameDbdName
                         then
-                            {| SameOldName = sameOldName ; NewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameDbName = sameDbdName ; NewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
                             |> Some
                         else None)
 
@@ -1603,7 +1603,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                         sameInstructionVideo))
                             newAndOldInstructionAreOfSameLength &&
                             newAndOldInstructionHaveSameParts &&
-                            foundAlreadyExistingInstruction.Value.NewName
+                            not(foundAlreadyExistingInstruction.Value.NewName)
                         ()
                         |> function
                             | _ when alreadyExistingInstruction = true ->
@@ -1661,8 +1661,8 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                             partsWNewTitles |> Some
                                         | _ ->
                                             if foundAlreadyExistingInstruction.Value.NewName
-                                            then None
-                                            else newInstruction.Data |> Some
+                                            then newInstruction.Data |> Some
+                                            else None
                                             
 
                                 let partsToDelete =
