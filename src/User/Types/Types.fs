@@ -74,7 +74,6 @@ type Msg =
     | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
                                                Option<array<Instruction.Types.modificationInfo>> *
                                                Utilities<Msg>
-    | SaveInstructionToDataBase of Data.InstructionData * string
     | DeleteInstructionMsg of Data.InstructionData * Utilities<Msg>
     | CmdMsging of Elmish.Cmd<Msg>
     | MsgNone

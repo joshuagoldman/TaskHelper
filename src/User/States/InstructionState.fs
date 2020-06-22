@@ -129,6 +129,8 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
     | ChangeFileStatus(status,utils) ->
         Instruction.Logic.changeFileStatus model status utils
     | SaveInstructionToDataBase utils ->
+        console.log(User.Types.CompareNewSaveWithCurrentInstructions)
+        console.log(utils)
         match model.CurrInstruction with
         | Ok (instruction,_) ->
             let usrMsg =
@@ -165,13 +167,13 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
                 saveToDBIfSomeUploadSuccess
             | _ -> model,[]
 
-    | CreateDeletePopup positions ->
+    | CreateDeletePopup utils ->
         match model.CurrInstruction with
         | Ok (instr,_) ->
             let msgsIfYesClicked =
 
                 let deleteMsg =
-                    (instr,positions)
+                    (instr,utils)
                     |> User.Types.DeleteInstructionMsg
 
                 let newPossibleInstructionMsg =
@@ -191,11 +193,10 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
                             Fable.React.Helpers.str "Are you sure you wish to remove instruction?"
                         ]
                     ]
-                    User.Logic.spinner
                 |]
                 
             let msg =
-                ( popupMsgs,positions,msgsIfYesClicked)
+                ( popupMsgs,utils,msgsIfYesClicked)
                 |> User.Types.PopUpSettings.DefaultWithOptions
                 |> Some
                 |> User.Types.Msg.PopUpMsg

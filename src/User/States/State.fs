@@ -183,7 +183,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                 |> fun msg1 ->
                                         [|
                                             msg1
-                                            (false |>
+                                            (true |>
                                              Instruction.Types.DeleteButtonEnablenMsg)
                                              |> User.Types.InstructionMsg
                                              |> Cmd.ofMsg

@@ -309,6 +309,13 @@ let deleteAsync ( fileName : string )
         )
 }
 
+let getInstrTitle instruction =
+    match instruction.Title with
+    | InstructionTitleInfo.HasOldName title ->
+        title
+    | InstructionTitleInfo.HasNewName titles ->
+        titles.OldName
+
 let instructionToSqlSaveNew userId
                             ( instructionId : string )
                             ( databaseNewFilesOptions : DatabaseNewFilesOptions ) =
@@ -335,7 +342,7 @@ let instructionToSqlSaveNew userId
                  VALUES ( {0}, {1}, '{2}');",
                  userId,
                  instructionId,
-                 instruction.Title)
+                 instruction |> getInstrTitle)
 
         let partInsert =
             getPartInsert instruction.Data
@@ -352,8 +359,8 @@ let instructionToSqlNewNames userId ( instructionId : string ) instruction =
 
     let instructionInsert =
         String.Format(
-            "UPDATE instructions SET title = '{0}' WHERE id = {1} AND instruction_id = {2}",
-            instruction.Title,
+            "UPDATE instructions SET title = '{0}' WHERE id = {1} AND instruction_id = {2};",
+            instruction |> getInstrTitle,
             userId,
             instructionId
         )
@@ -362,7 +369,7 @@ let instructionToSqlNewNames userId ( instructionId : string ) instruction =
         instruction.Data
         |> Array.map (fun part ->
               String.Format(
-                "UPDATE parts SET part_title = {0] WHERE instruction_id = {1} AND instruction_video = {2} AND instruction_txt = {3};",
+                "UPDATE parts SET part_title = '{0}' WHERE instruction_id = {1} AND instruction_video = '{2}' AND instruction_txt = '{3}';",
                 part.Title,
                 instructionId,
                 part.InstructionVideo,
@@ -393,7 +400,7 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
                 "DELETE FROM instructions WHERE id = {0} AND instruction_id = {1} AND title = '{2}';",
                 ids.UserId,
                 ids.InstructionId,
-                instruction.Title)
+                instruction |> getInstrTitle)
         let partsCommand =
             instruction.Data
             |> partDelete ids.UserId ids.InstructionId
@@ -767,7 +774,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
 
 let saveUserData
         ( status : SaveDataProgress<((Types.File * string) * DBIds * Utilities<User.Types.Msg> * DatabaseNewFilesOptions),
-                                        array<DatabaseSavingOptions> * DBIds * Utilities<'a>>) =
+                                        array<DatabaseSavingOptions> * DBIds * Utilities<User.Types.Msg>>) =
     match status with 
     | SavingHasNostStartedYet((file,newName),dbIds,utils,options) ->
         (fullPath newName dbIds,Instruction.Types.Uploaded.NoneUploaded)
@@ -796,9 +803,9 @@ let saveUserData
         |> Cmd.fromAsync
         |> fun x -> [|x|]
 
-    | SavingResolved(savingOptions,ids,positions) ->
+    | SavingResolved(savingOptions,ids,utils) ->
         let dbMsg =
-            (savingOptions,ids,positions)
+            (savingOptions,ids,utils)
             |> Instruction.Types.DatabaseChangeBegun
             |> Instruction.Types.Msg.DatabaseChangeMsg
             |> User.Types.InstructionMsg
@@ -1361,7 +1368,6 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
 
         popupNoMsg
     | DefaultWithButton (str,utils) ->
-        let style = utils.Ev |> ( getPositions >> defaultStyle )
 
         let buttonSettings =
             [|
@@ -1375,7 +1381,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         let popupNoMsgs =
             (
                 {
-                    Style = style
+                    Style = utils.Ev |> ( getPositions >> defaultStyle )
                     ButtonSettings = Some buttonSettings
                     Messages = str
                     ClickMessages = None
@@ -1387,13 +1393,10 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         popupNoMsgs
 
     | Default (str,utils) ->
-        
-        let style = utils.Ev |> ( getPositions >> defaultStyle )
-
         let popupNoMsgs =
             (
                 {
-                    Style = style
+                    Style =  utils.Ev |> ( getPositions >> defaultStyle )
                     ButtonSettings = None
                     Messages = str
                     ClickMessages = None
@@ -1436,10 +1439,9 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         popupNoMsg
 
     | DefaultNewPage (divs,newPage,utils) ->
-        let style = utils.Ev |> ( getPositions >> defaultStyle )
         let popupNoMsg =
             {
-                Style = style
+                Style = utils.Ev |> ( getPositions >> defaultStyle )
                 ButtonSettings = None
                 Messages = divs
                 ClickMessages = None
@@ -1524,7 +1526,7 @@ let savingChoicesTestable   instruction
                 newInstructionPerhapsNotOldName
             | Data.InstructionTitleInfo.HasNewName titles ->
                 let newTitle =
-                    titles.NewName
+                    titles.OldName
                     |> InstructionTitleInfo.HasOldName
 
                 { newInstructionPerhapsNotOldName with Title = newTitle}
@@ -1868,9 +1870,9 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                 ]
             |]
 
-        let funcChainingOptions positions popupMsg msgs =
+        let funcChainingOptions popupMsg msgs =
             
-            (popupMsg |> newStatus,positions,msgs) |>
+            (popupMsg |> newStatus,utils,msgs) |>
             (
                 PopUpSettings.DefaultWithOptions >>
                 Some >>
@@ -1878,7 +1880,7 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                 Cmd.ofMsg
             )
 
-        let funcChaining utils popupMsg =
+        let funcChaining popupMsg =
             
             (popupMsg |> newStatus,utils) |>
             (
@@ -1912,7 +1914,7 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
 
             let popupMsg =
                 loadingMsg
-                |> funcChaining utils
+                |> funcChaining
                 |> Cmd.ofMsg
 
             let dbMsg =
@@ -2008,65 +2010,65 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                     |> fun x -> [|x|]
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions utils popupMsg
+                |> funcChainingOptions popupMsg
             | SaveExistingNewTitles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save an existing instruction with new titles?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions utils popupMsg
+                |> funcChainingOptions popupMsg
             | SaveExisitngNewFIles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions utils popupMsg
+                |> funcChainingOptions popupMsg
                 
             | SaveExistingNewFilesAndTItles (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions utils popupMsg
+                |> funcChainingOptions popupMsg
             | SaveExistingNewFilesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions utils popupMsg
+                |> funcChainingOptions popupMsg
             | SaveExistingNewTItlesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
-                    "Are you sure you want to save existing instruction with new part titles?"
+                    "Are you sure you want to save existing instruction with new titles and parts to delete?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions utils popupMsg
+                |> funcChainingOptions popupMsg
             | SaveExistingNewFilesAndTItlesPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions utils popupMsg
+                |> funcChainingOptions popupMsg
             | SaveExistingPartsToDelete (savingOptions,instrId) ->
                 let popupMsg =
                     "Are you sure you want to save the changes?"
 
                 createNewSaveAndDBChangeMsgs savingOptions instrId
-                |> funcChainingOptions utils popupMsg
+                |> funcChainingOptions popupMsg
             | InstructionIsDelete errorMsg ->
                 errorMsg
-                |> funcChaining utils
+                |> funcChaining
                 |> Cmd.ofMsg
             | NoUserData errorMsg ->
                 errorMsg
-                |> funcChaining utils
+                |> funcChaining
                 |> Cmd.ofMsg
             | ThatInstructionAlreadyExists errorMsg ->
                 errorMsg
-                |> funcChaining utils
+                |> funcChaining
                 |> Cmd.ofMsg
             | InstructionHasNotDistinctTitles errorMsg ->
                 errorMsg
-                |> funcChaining utils
+                |> funcChaining
                 |> Cmd.ofMsg
         ()
         |> function
