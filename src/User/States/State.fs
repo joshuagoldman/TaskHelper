@@ -169,6 +169,20 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                 match newUserData with
                 | Deferred.Resolved(Ok usrData) ->
 
+                    let addInstructionListToNewAddMsg =
+                        usrData.Instructions
+                        |> Array.map (fun instr ->
+                            match instr.Title with
+                            | InstructionTitleInfo.HasOldName title ->
+                                title
+                            | InstructionTitleInfo.HasNewName titles ->
+                                titles.OldName)|>
+                        (
+                            NewAdd.Types.NewInstructionsListMsg >>
+                            User.Types.NewAddMsg >>
+                            Cmd.ofMsg
+                        )
+
                     let msgCommand =
                         usrData.Instructions
                         |> Array.indexed
@@ -222,6 +236,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                 instructionSearchCommand
                                 instructionMsgCommand
                                 escapeModifyModeCommandMsg
+                                addInstructionListToNewAddMsg
                             |]
                             |> Cmd.batch
 

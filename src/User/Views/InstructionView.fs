@@ -289,6 +289,53 @@ let delOrRegbutton model part dispatch =
     | _ -> [Html.none]
 
 
+let instructionTitleView model dispatch titleAlt =
+    model.PartNameModificationInput.Visible
+    |> function
+        | res when res = style.visibility.visible ->
+            Html.div[
+                prop.className "column"
+                prop.style[
+                    style.margin 5
+                ]
+                prop.children[
+                    Html.div[
+                        prop.className "field"
+                        prop.children[
+                            Html.div[
+                                prop.className "control"
+                                prop.children[
+                                    Html.input[
+                                        prop.className "input is-info"
+                                        prop.onTextChange (fun str -> Logic.instructionNameToChange dispatch titleAlt str )
+                                        prop.type'.text
+                                        prop.value ( Logic.newInstructionName model titleAlt )
+                                        prop.placeholder ( titleAlt |> Logic.getTitle )
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        | _ ->
+            Html.div[
+                prop.className "columns is-centered"
+                prop.children[
+                    Html.div[
+                        prop.className "column is-5"
+                        prop.style[
+                            style.fontSize 23
+                            style.fontFamily "Comic Sans MS"
+                            style.fontWeight.bold
+                        ]
+                        prop.children[
+                            str ( titleAlt |> Logic.getTitle )
+                        ]
+                    ]
+                ]
+            ]
+    
 let allPartsView ( part : Data.partData )
                  ( instruction : Data.InstructionData )
                  ( model : Instruction.Types.Model<User.Types.Msg> )
@@ -328,34 +375,6 @@ let allPartsView ( part : Data.partData )
                     ]
                 ]
             ]
-    
-let instructionTitleView model dispatch titleAlt =
-    Html.div[
-        prop.className "column"
-        prop.style[
-            style.margin 5
-        ]
-        prop.children[
-            Html.div[
-                prop.className "field"
-                prop.children[
-                    Html.div[
-                        prop.className "control"
-                        prop.children[
-                            Html.input[
-                                prop.className "input is-info"
-                                prop.onTextChange (fun str -> Logic.instructionNameToChange dispatch titleAlt str )
-                                prop.type'.text
-                                prop.value ( Logic.newInstructionName model titleAlt )
-                                prop.placeholder ( titleAlt |> Logic.getTitle )
-                            ]
-                        ]
-                    ]
-                ]
-            ]
-        ]
-    ]
-    
 
 let ShowFileUpload model dispatch =
     model.PartNameModificationInput.Visible
@@ -373,7 +392,7 @@ let showAllInstructionParts model dispatch =
             |> Seq.toList
             |> List.map (fun part ->
                             allPartsView part instRes model dispatch)
-            |> List.append [ instructionTitleView model dispatch instRes.Title ]   
+            |> List.append [ instructionTitleView model dispatch instRes.Title ]
         | Error err ->
             [
                 Html.div[
