@@ -14,7 +14,7 @@ let createNewInstructionSequence ( usrData : Data.UserData ) =
         | Data.InstructionTitleInfo.HasOldName title ->
             title
         | Data.InstructionTitleInfo.HasNewName titles ->
-            titles.OldName
+            titles.DbName
         )
     |> ( NewAdd.Types.NewInstructionsListMsg >> User.Types.NewAddMsg)
     |> fun x -> [|x|]

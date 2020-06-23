@@ -277,26 +277,29 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                     |>(Some >>
                        NewAdd.Types.NewCurrentInstructionMsg >>
                        User.Types.NewAddMsg >> Cmd.ofMsg )
-                titleOpt
-                |> function
-                    | res when res.IsSome ->
-                        data.Instructions
-                        |> Array.tryFind (fun (instruction) ->
-                            match instruction.Title with
-                            | Data.InstructionTitleInfo.HasOldName title ->
-                                title.Replace(" ","") <> titleOpt.Value
-                            | Data.InstructionTitleInfo.HasNewName titles ->
-                                titles.OldName.Replace(" ","") <> titleOpt.Value)
-                        |> function
-                            | res when res.IsSome ->
-                                res.Value
-                                |> fun instr ->
-                                    (Some instr,usrId) |>
-                                    ( Some >>
-                                      NewAdd.Types.NewCurrentInstructionMsg >>
-                                      User.Types.NewAddMsg >> Cmd.ofMsg )
-                            | _ -> dataIsNew
-                    | _ -> dataIsNew
+
+                let resultMsg =
+                    titleOpt
+                    |> function
+                        | res when res.IsSome ->
+                            data.Instructions
+                            |> Array.tryFind (fun instruction ->
+                                match instruction.Title with
+                                | Data.InstructionTitleInfo.HasOldName title ->
+                                    title.Replace(" ","") = titleOpt.Value.Replace(" ","")
+                                | Data.InstructionTitleInfo.HasNewName titles ->
+                                    titles.DbName.Replace(" ","") = titleOpt.Value.Replace(" ",""))
+                            |> function
+                                | res when res.IsSome ->
+                                    res.Value
+                                    |> fun instr ->
+                                        (Some instr,usrId) |>
+                                        ( Some >>
+                                          NewAdd.Types.NewCurrentInstructionMsg >>
+                                          User.Types.NewAddMsg >> Cmd.ofMsg )
+                                | _ -> dataIsNew
+                        | _ -> dataIsNew
+                resultMsg
                 |> fun msg ->
                     model, msg
             | _ -> model, []
@@ -431,13 +434,13 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         | Data.InstructionTitleInfo.HasOldName delTitle ->
                             titleFromDataBase.Replace(" ","") = delTitle.Replace(" ","")
                         | Data.InstructionTitleInfo.HasNewName titles ->
-                            titleFromDataBase.Replace(" ","") = titles.OldName.Replace(" ","")
+                            titleFromDataBase.Replace(" ","") = titles.DbName.Replace(" ","")
                     | Data.InstructionTitleInfo.HasNewName titles ->
                         match instruction.Title with
                         | Data.InstructionTitleInfo.HasOldName delTitle->
-                            titles.OldName.Replace(" ","") = delTitle.Replace(" ","")
+                            titles.DbName.Replace(" ","") = delTitle.Replace(" ","")
                         | Data.InstructionTitleInfo.HasNewName delTitles ->
-                            titles.OldName.Replace(" ","") = delTitles.OldName.Replace(" ",""))
+                            titles.DbName.Replace(" ","") = delTitles.DbName.Replace(" ",""))
                 |> function
                     | res when res.IsSome ->
                         let (indx,_) = res.Value

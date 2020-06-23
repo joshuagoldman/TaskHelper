@@ -30,6 +30,11 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
             Logic.saveUserData status
         model,Cmd.batch(msg)    
     | NewAddInfoMsg reactMessage ->
+        match model.CurrentInstruction with
+        | Some (_,id) ->
+            { model with  NewAddMessages = reactMessage
+                          CurrentInstruction = (None,id) |> Some}, []
+        | None ->
         { model with  NewAddMessages = reactMessage }, []
     | NewFilesChosenMsg (files,type') ->
         { model with NewInstructionData =
@@ -37,6 +42,7 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     | NewInstructionsListMsg sequence ->
         { model with InstructionList = Some sequence }, Cmd.none
     | NewCurrentInstructionMsg instrWId ->
+        console.log(instrWId)
         { model with CurrentInstruction = instrWId }, Cmd.none
     | NewDataToInstruction(newInstr,dbIds,utils) ->
         match model.NewInstructionData with

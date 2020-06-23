@@ -1056,7 +1056,7 @@ let decideIfRightFormat ( medias : array<NewAdd.Types.MediaChoiceFormData>) =
             vid.``type`` <> "video/avi"
 
         | NewAdd.Types.InstructionTxt instrctn ->
-            instrctn.``type`` <> "text/plain")
+            instrctn.``type`` <> "text/html")
     |> function
         | res when ( res |> Array.length ) = 0 ->
             None
@@ -1730,14 +1730,14 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                              (info,instrId)
                                              |> User.Types.newSaveResult.SaveExistingNewFilesAndTItles
                                     | _ when newFileParts.IsSome &&
-                                             partsToDelete.IsSome ->
+                                             partsWithNewNames.IsSome ->
                                             let info =
                                                 [|
                                                     { newInstruction with Data = newFileParts.Value }
                                                     |> DatabaseNewFilesOptions.SameInstructionOption
                                                     |> DatabaseSavingOptions.NewFilesInstruction
 
-                                                    { newInstruction with Data = partsToDelete.Value } |>
+                                                    { newInstruction with Data = partsWithNewNames.Value } |>
                                                     (DatabaseDeleteOptions.DeleteParts >>
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 |]
@@ -1768,7 +1768,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
 
                                         (info,instrId)
                                         |> User.Types.newSaveResult.SaveExisitngNewFIles
-                                    | _ when partsWithNewNames.IsSome ->
+                                    | _ when newFileParts.IsSome ->
                                         let info =
                                             [|
                                                 { newInstruction with Data = partsWithNewNames.Value }
