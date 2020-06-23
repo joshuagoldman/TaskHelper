@@ -109,10 +109,11 @@ app.post("/upload", (req, res, next) => {
 // DELETE FILES API
 // --------------------------------------------------------------------------------------------------------------
 app.post("/delete", (req, res, next) => {
-    let filePath = req.body.filePath;
-    let path = `${__dirname}/../public/${filePath}`;
-    let pubPath = `public/${filePath}`;
-    let fileName = filePath.replace(filePath.substring(0,filePath.lastIndexOf("/")),"");
+    let path = `${__dirname}/../public/${req.body.filePath}`;
+    let UsrPath = path.match(".*User.*?(?=\/)")[0];
+    let instrPath = path.match(".*Instruction.*?(?=\/)")[0];
+    let pubPath = `public/${req.body.filePath}`;
+    let fileName = req.body.filePath.replace(req.body.filePath.substring(0,req.body.filePath.lastIndexOf("/")),"");
     let fileInfo = {
         Name : fileName,
         Path : pubPath
@@ -121,12 +122,35 @@ app.post("/delete", (req, res, next) => {
     fs.unlink(path, (err) => {
         if (err) {
             console.error(err)
-            res.send(err)
-        }
-        else{
-            res.send(`Deleted file '${fileInfo.Name}' located at '${fileInfo.Path}'`);
-        }  
+            res.status(404).send(err)
+        } 
     });
+
+    fs.readdir(instrPath, function(err, files) {
+        if (err) {
+            res.status(404).send(err);
+        }
+        else {
+           if (!files.length) {
+                fs.rmdirSync(instrPath);
+                console.log("deleted instruction folder")
+                fs.readdir(UsrPath, function(err2, files2) {
+                    if (err2) {
+                        res.status(404).send(err2);
+
+                    } 
+                    else {
+                        if (!files2.length) {
+                            fs.rmdirSync(UsrPath);
+                            console.log("deleted user folder")
+                        } 
+                    }
+                });
+           }
+        }
+    });
+
+    res.send(`Deleted file '${fileInfo.Name}' located at '${fileInfo.Path}'`);
 });
 // --------------------------------------------------------------------------------------------------------------
 // INSERT, CHANGE, DELETE DATABASE INFO API
