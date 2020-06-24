@@ -1514,11 +1514,20 @@ let savingChoicesTestable   instruction
             | Data.InstructionTitleInfo.HasOldName _ ->
                 newInstructionPerhapsNotOldName
             | Data.InstructionTitleInfo.HasNewName titles ->
-                let newTitle =
-                    titles.OldName
-                    |> InstructionTitleInfo.HasOldName
+                ()
+                |> function
+                    | _ when titles.OldName <> "" ->
+                        let newTitle =
+                            titles.DbName
+                            |> InstructionTitleInfo.HasOldName
 
-                { newInstructionPerhapsNotOldName with Title = newTitle}
+                        { newInstructionPerhapsNotOldName with Title = newTitle}
+                    | _ ->
+                        let newTitle =
+                            titles.OldName
+                            |> InstructionTitleInfo.HasOldName
+
+                        { newInstructionPerhapsNotOldName with Title = newTitle}
 
 
         foundAlreadyExistingInstruction            
@@ -1757,7 +1766,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
 
                                         (info,instrId)
                                         |> User.Types.newSaveResult.SaveExisitngNewFIles
-                                    | _ when newFileParts.IsSome ->
+                                    | _ when partsWithNewNames.IsSome ->
                                         let info =
                                             [|
                                                 { newInstruction with Data = partsWithNewNames.Value }
