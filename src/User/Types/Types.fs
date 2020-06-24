@@ -50,10 +50,8 @@ type newSaveResult =
     | InstructionHasNotDistinctTitles of string
 
 type Msg =
-    | LoginAttemptMsg of string * string
     | LoadedInstructions of AsyncOperationEvent<Result<UserData, string>>
     | LoadedUsers of AsyncOperationEventWithDispatch<Msg -> unit,Result<LoginInfo * (Msg -> unit), string>>
-    | UserDataMsg of string 
     | InstructionMsg of Instruction.Types.Msg<Msg>
     | InstructionSearchMsg of InstructionSearch.Types.Msg<Msg>
     | NewAddMsg of NewAdd.Types.Msg<Msg>
@@ -62,14 +60,12 @@ type Msg =
     | PasswordInputChangedMsg of string
     | LoginSuceeded of UserData
     | NewUserId of int
-    | LoadInstructions of UserData
     | LoginSpinnerMsg of IStyleAttribute
     | PossibleNewUserDataMsg of UpdateUserInstructionsType
     | NewUserDataToAddMsg
     | ChangePage of NewUserPage
     | NewAddNewCurrentInstruction of Option<string>
     | GiveResetInstruction of string
-    | NewInstructionToSave of Data.InstructionData * string
     | PopUpMsg of PopUpSettings<Msg> Option
     | CompareNewSaveWithCurrentInstructions of Data.InstructionData *
                                                Option<array<Instruction.Types.modificationInfo>> *
@@ -78,7 +74,6 @@ type Msg =
     | CmdMsging of Elmish.Cmd<Msg>
     | MsgNone
     | GetIdsForNewInstrUpload of array<NewAdd.Types.MediaChoiceFormData> * InstructionData option
-    | GetIdsForNewFileName of array<Types.File>
     | SaveNewData of DatabaseNewFilesOptions * DBIds * Utilities<Msg> * NewAdd.Types.MediaChoiceFormData []
     | GetUserDispatchMsg of UsrTypeDispatchOptions<Msg>
 

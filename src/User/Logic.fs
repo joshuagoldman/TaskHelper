@@ -232,7 +232,7 @@ let loadInstructionItems ( id : int ) = async {
             
         | _ ->
             return LoadedInstructions (AsyncOperationEvent.Finished (Error ("Could not get api, status code: " +
-                                                        (response.statusCode |> string))))  
+                                                                            (response.statusCode |> string))))  
     }
 
 let funcChainingIsUploading utils status =
@@ -652,7 +652,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
                         ]
                     ]
                 )
-                |> Instruction.Types.UploadOrDeleteFinishedSuccesfully
+                |> Instruction.Types.UploadFinishedSuccesfully
 
             newStatus
             |> funcChainingIsUploading utils
@@ -685,7 +685,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
                         ]
                     ]
                 )
-                |> Instruction.Types.PartStatus.UploadOrDeleteFinishedWithFailure
+                |> Instruction.Types.PartStatus.UploadFinishedWithFailure
             
             newStatus
             |> funcChainingIsUploading utils
@@ -920,15 +920,12 @@ let loginAttempt ( status : Data.DeferredWithDispatch<Msg -> unit,Result<LoginIn
         | Ok (loginInfo,dispatch) ->
             [|
                     loginInfo.Id |> NewUserId
-                    loginInfo.Id |> (Part.Types.NewUserIdMsg >>
-                                     Instruction.Types.PartMsg >>
-                                     User.Types.InstructionMsg)
                     dispatch |>
                     (
                         DispatchDefined >>
                         User.Types.Msg.GetUserDispatchMsg
                     )
-                    User.Types.LoadedInstructions AsyncOperationEvent.Started
+                    User.Types.LoadedInstructions AsyncOperationEvent.Started 
             |]       
         | Error err -> [|err|> User.Types.LoginMessages ; spinnerMessage|]
         
@@ -939,14 +936,6 @@ let validateLoginInfo info =
             Invalid
        | _ ->
             Valid info
-
-let createNewInstructionId id userData =
-    userData.Instructions
-    |> Array.length
-    |> fun len -> (id |> string) + "_" + (len + 1 |> string)
-    |> NewAdd.Types.NewInstructionIdMsg
-    |> User.Types.NewAddMsg
-    |> Cmd.ofMsg
 
 let chooseMediaByName name file =
     name

@@ -14,10 +14,11 @@ type Uploaded =
 
 type PartStatus =
     | Delete of string
+    | DeleteFinished of string * ReactElement
     | Uploading of string * Uploaded
     | StatusExisting of string
-    | UploadOrDeleteFinishedSuccesfully of string * ReactElement
-    | UploadOrDeleteFinishedWithFailure of string * ReactElement
+    | UploadFinishedSuccesfully of string * ReactElement
+    | UploadFinishedWithFailure of string * ReactElement
 
 type DatabaseChangeResult<'a> =
     | DatabaseChangeSucceeded of ReactElement * Data.Utilities<'a> * array<DatabaseSavingOptions>
@@ -58,18 +59,13 @@ type Msg<'a> =
     | ImplementNewNames of Utilities<'a>
     | UpdateNewName of string * string
     | UpdateNewInstructionName of InstructionTitleInfo
-    | NewFileAddMsg of ReactElement
     | ResetInstruction of string
     | NewPage of Global.Page * int Option
     | HoverPartMsg of Data.partData * Data.Utilities<'a> * IStyleAttribute
-    | SaveData of Result<Data.InstructionData * string,string> *
-                  option<array<modificationInfo>> *
-                  Utilities<'a>
     | DeletePartFilesMsg of DeleteProcess<string * Data.Utilities<'a>,string * Data.Utilities<'a> * ReactElement> 
     | ChangeFileStatus of PartStatus  * Utilities<'a>
     | SaveInstructionToDataBase of Utilities<'a>
     | CheckIfSaveFinished of DBIds * Utilities<'a> * DatabaseNewFilesOptions
-    | CheckIfDeleteFinished of Utilities<'a>
     | CreateDeletePopup of Utilities<'a>
     | DatabaseChangeMsg of DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Data.Utilities<'a>,DatabaseChangeResult<'a>>
 

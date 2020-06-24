@@ -505,6 +505,7 @@ let filenameWStatus (msg : array<ReactElement> ) =
 let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                      ( newStatus : PartStatus)
                      ( utils ) =
+
     let upDatNameIfMatch ( name : string )
                          ( nameComp : string )
                            currStatus =
@@ -524,11 +525,13 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                     upDatNameIfMatch name nameComp currPartStatus
                 | PartStatus.Delete nameComp ->
                     upDatNameIfMatch name nameComp currPartStatus
+                | PartStatus.DeleteFinished(nameComp,_) ->
+                    upDatNameIfMatch name nameComp currPartStatus
                 | PartStatus.StatusExisting nameComp ->
                     upDatNameIfMatch name nameComp currPartStatus
-                | PartStatus.UploadOrDeleteFinishedSuccesfully (nameComp,_) ->
+                | PartStatus.UploadFinishedSuccesfully (nameComp,_) ->
                     upDatNameIfMatch name nameComp currPartStatus
-                | PartStatus.UploadOrDeleteFinishedWithFailure (nameComp,_) ->
+                | PartStatus.UploadFinishedWithFailure (nameComp,_) ->
                     upDatNameIfMatch name nameComp currPartStatus)
             |> fun newStatuses ->
                 { modInfo with Status = newStatuses })
@@ -587,9 +590,9 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
             modInfo.Status
             |> Array.choose (fun status ->
                 match status with
-                | PartStatus.UploadOrDeleteFinishedSuccesfully(_,msgElement) ->
+                | PartStatus.UploadFinishedSuccesfully(_,msgElement) ->
                     Some ([|msgElement|])
-                | PartStatus.UploadOrDeleteFinishedWithFailure(_,msgElement) ->
+                | PartStatus.UploadFinishedWithFailure(_,msgElement) ->
                     Some ([|msgElement|])
                 | PartStatus.Uploading (name,uploaded) ->
                     let uploadedAsFloat =
@@ -603,6 +606,8 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                     let msgElement =
                         divWSpinner ("Deleting file " + name) None
                     Some msgElement
+                | PartStatus.DeleteFinished(_,msgElement) ->
+                    Some ([|msgElement|])
                 | PartStatus.StatusExisting _ ->
                     None)
             |> Array.collect(fun x -> x))
@@ -611,11 +616,11 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
     | Some modInfos ->
         let (newInfo,msgElement) =
             match newStatus with
-            | PartStatus.UploadOrDeleteFinishedSuccesfully(name,_) ->
+            | PartStatus.UploadFinishedSuccesfully(name,_) ->
                 let newModInfos = getNewModInfos modInfos name
                 let newFileStatusMsgs = newStatusReactElements newModInfos
                 (newModInfos,newFileStatusMsgs)
-            | PartStatus.UploadOrDeleteFinishedWithFailure(name,_) ->
+            | PartStatus.UploadFinishedWithFailure(name,_) ->
                 let newModInfos = getNewModInfos modInfos name
                 let newFileStatusMsgs = newStatusReactElements newModInfos
                 (newModInfos,newFileStatusMsgs)
@@ -627,6 +632,10 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
             | PartStatus.Delete name ->
                 let newModInfos =
                     getNewModInfos modInfos name
+                let newFileStatusMsgs = newStatusReactElements newModInfos
+                (newModInfos,newFileStatusMsgs)
+            | PartStatus.DeleteFinished(name,_) ->
+                let newModInfos = getNewModInfos modInfos name
                 let newFileStatusMsgs = newStatusReactElements newModInfos
                 (newModInfos,newFileStatusMsgs)
             | PartStatus.StatusExisting name ->
@@ -641,22 +650,54 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                 modInfo.Status
                 |> Array.map (fun status ->
                     match status with
-                    | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
+                    | PartStatus.UploadFinishedSuccesfully(_,_) ->
                         true
-                    | PartStatus.UploadOrDeleteFinishedWithFailure(_,_) ->
+                    | PartStatus.UploadFinishedWithFailure(_,_) ->
+                        true
+                    | PartStatus.DeleteFinished(_,_) ->
                         true
                     | PartStatus.StatusExisting _ ->
                         true
                     | _ -> false))
             |> Array.forall (fun x -> x)
 
+        let allFilesHaveDeleteFinished =
+            newInfo
+            |> Array.collect (fun modInfo ->
+                modInfo.Status
+                |> Array.map (fun status ->
+                    match status with
+                    | PartStatus.StatusExisting _ ->
+                        true
+                    | PartStatus.DeleteFinished(_,_) ->
+                        true
+                    | _ -> false))
+            |> Array.forall (fun x -> x)
+
+
         let msg =
             ()
             |> function
                 | _ when allFileStatusesAreStale = true ->
-                    (msgElement,utils)
-                    |> funcChainingButton
-                    |> Cmd.ofMsg
+                    ()
+                    |> function
+                        | _ when allFilesHaveDeleteFinished  ->
+
+                            let addNewUserDataMsg = User.Types.NewUserDataToAddMsg
+                                                    |> Cmd.ofMsg
+
+                            [|
+                                (msgElement,utils)
+                                |> funcChainingButton
+                                |> Cmd.ofMsg
+
+                                addNewUserDataMsg
+                            |]
+                            |> Cmd.batch
+                        | _ ->
+                            (msgElement,utils)
+                            |> funcChainingButton
+                            |> Cmd.ofMsg
                 | _ ->
                     (msgElement,utils)
                     |> funcChainingNoButton
@@ -682,21 +723,24 @@ let deleteProcess ( status : DeleteProcess<string * Utilities<User.Types.Msg>,st
             |> User.Logic.deleteAsync mediaName 
             |> Cmd.fromAsync
             
-        seq[
+        [|
             mediaToDeleteMsg
             nextDeleteProcessMsg
-        ]
+        |]
     | DeleteProcess.DeleteFinished(mediaName,utils,reactEL) ->
         let mediaToDeleteMsg =
             (mediaName,reactEL)
-            |> PartStatus.UploadOrDeleteFinishedSuccesfully 
+            |> PartStatus.DeleteFinished 
             |> fun x ->
                 (x, utils)
                 |> ChangeFileStatus 
                 |> User.Types.InstructionMsg
                 |> Cmd.ofMsg
+
+        
         mediaToDeleteMsg
-        |> fun x -> seq[x]
+        |> fun x ->
+            [|x|]
         
         
 let uploadOrDeleteFinished ( modInfosOpt : Instruction.Types.modificationInfo [] option) options =
@@ -707,9 +751,9 @@ let uploadOrDeleteFinished ( modInfosOpt : Instruction.Types.modificationInfo []
             modInfo.Status
             |> Array.map (fun status ->
                 match status with
-                | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
+                | PartStatus.UploadFinishedSuccesfully(_,_) ->
                     true
-                | PartStatus.UploadOrDeleteFinishedWithFailure(_,_) ->
+                | PartStatus.UploadFinishedWithFailure(_,_) ->
                     true
                 | PartStatus.StatusExisting _ ->
                     true
@@ -723,15 +767,17 @@ let uploadOrDeleteFinished ( modInfosOpt : Instruction.Types.modificationInfo []
                         modInfo.Status
                         |> Array.map (fun status ->
                             match status with
-                            | PartStatus.UploadOrDeleteFinishedSuccesfully(name,_) ->
+                            | PartStatus.UploadFinishedSuccesfully(name,_) ->
                                 PartStatus.StatusExisting name
-                            | PartStatus.UploadOrDeleteFinishedWithFailure(name,_) ->
+                            | PartStatus.UploadFinishedWithFailure(name,_) ->
                                 PartStatus.StatusExisting name
                             | PartStatus.StatusExisting name ->
                                 PartStatus.StatusExisting name
                             | PartStatus.Uploading (name,_) ->
                                 PartStatus.StatusExisting name
                             | PartStatus.Delete name ->
+                                PartStatus.StatusExisting name
+                            | PartStatus.DeleteFinished(name,_) ->
                                 PartStatus.StatusExisting name)
                         |> fun newStatuses ->
                             { modInfo with Status = newStatuses}
@@ -743,7 +789,7 @@ let uploadOrDeleteFinished ( modInfosOpt : Instruction.Types.modificationInfo []
                         modInfo.Status
                         |> Array.forall (fun status ->
                             match status with
-                            | PartStatus.UploadOrDeleteFinishedSuccesfully(_,_) ->
+                            | PartStatus.UploadFinishedSuccesfully(_,_) ->
                                 true
                             | _ -> false)
                         |> function
@@ -905,29 +951,28 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
 
         let databaseMsgsCombined =
                 [|
-                    User.Types.NewUserDataToAddMsg
-                    |> Cmd.ofMsg
-
                     databaseChangePopupMsg
                     funcChainingDelayedPopupKill
                 |]
 
+        let addNewUserDataMsg = User.Types.NewUserDataToAddMsg
+                                |> Cmd.ofMsg
+
         let deletePartMsgs parts =
             parts
             |> Array.collect (fun part ->
-                let startDelProcessInstructionTxt =
-                    (part.InstructionVideo,utils)
+                let getDeleteProcessStart partType =
+                    (partType,utils)
                     |> Instruction.Types.DeleteInProgress
                     |> Instruction.Types.DeletePartFilesMsg
                     |> User.Types.InstructionMsg
                     |> Cmd.ofMsg
 
+                let startDelProcessInstructionTxt =
+                    part.InstructionVideo |> getDeleteProcessStart
                 let startDelProcessInstructionVideo =
-                    (part.InstructionTxt,utils)
-                    |> Instruction.Types.DeleteInProgress
-                    |> Instruction.Types.DeletePartFilesMsg
-                    |> User.Types.InstructionMsg
-                    |> Cmd.ofMsg
+                    part.InstructionTxt |> getDeleteProcessStart
+
                 [|
                     startDelProcessInstructionVideo
                     startDelProcessInstructionTxt
@@ -948,7 +993,8 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
                         |> deletePartMsgs
                         |> Array.append databaseMsgsCombined
                 | _ ->
-                    databaseMsgsCombined)
+                    databaseMsgsCombined
+                    |> Array.append [|addNewUserDataMsg|])
         ifDeleteMsg
 
 let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )

@@ -16,8 +16,6 @@ type MediaChoiceFormData =
 
 type Msg<'a> =
     | NewAddInfoMsg of array<ReactElement>
-    | NewInstructionIdMsg of string
-    | SpinnerVisibleMsg of IStyleAttribute
     | NewFilesChosenMsg of array<MediaChoiceFormData> * string
     | NewInstructionsListMsg of array<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>

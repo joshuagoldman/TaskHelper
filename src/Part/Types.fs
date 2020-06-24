@@ -7,7 +7,6 @@ type Msg =
     | NewPart2Show of Data.partData * Data.InstructionData
     | MakeButtonVisible of bool * string
     | SendErrorMessage of string
-    | NewUserIdMsg of int
 
 type Model =
     {
