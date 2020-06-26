@@ -89,11 +89,54 @@ let buttonActions name =
 
 let modificationButtons ( model : Instruction.Types.Model<User.Types.Msg> )
                           dispatch
-                          name
-                          disable =
+                          name =
     Html.a[
         prop.className "button"
-        prop.disabled disable
+        prop.onClick (fun ev ->
+                match name with
+                | "Modify" ->
+                        Logic.modifyOrNot model dispatch
+                | _ ->
+                    ()
+                    |>function
+                        | _ when model.PartNameModificationInput.Disable = false ->
+                            match model.UserTypeDispatch with
+                            | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
+                                let utils =
+                                    {
+                                        Data.Ev = ev
+                                        Data.MsgDispatch = usrTypeDispatch
+                                    }
+                        
+                                match name with
+                                | "Save" ->
+                                    utils
+                                    |>  ( Instruction.Types.SaveInstructionToDataBase >> dispatch)
+                                | "Modify Names" ->
+                                    Logic.modifyNames model dispatch utils
+                                | "Reset" ->
+                                    match model.CurrInstruction with
+                                    | Ok (instruction,_) ->
+                                        match instruction.Title with
+                                        | Data.InstructionTitleInfo.HasOldName title ->
+                                            title
+                                            |> ( ResetInstruction
+                                            >> dispatch )
+                                        | Data.InstructionTitleInfo.HasNewName names ->
+                                            names.DbName
+                                            |> ( ResetInstruction
+                                            >> dispatch )
+                                    | _ -> ()
+                                | _ ->
+                                    utils
+                                    |>  ( Instruction.Types.CreateDeletePopup >> dispatch)
+                        
+                            | _ -> ()
+                        | _ -> ())
+        prop.disabled(
+            match name with
+            | "Modify" -> false
+            | _ -> model.PartNameModificationInput.Disable)
         prop.style[
             style.backgroundColor.white
             style.fontSize 18
@@ -425,37 +468,14 @@ let modificationElements model dispatch =
                         ]
                     Html.div[
                         prop.className "column"
-                        prop.onClick (fun ev ->
-                            match model.UserTypeDispatch with
-                            | Data.DispatchDefined usrTypeDispatch ->
-                                let utils =
-                                    {
-                                        Data.Ev = ev
-                                        Data.MsgDispatch = usrTypeDispatch
-                                    }
-                                Logic.modifyNames model dispatch utils
-                            | _ -> ())
                         prop.children[
-                            modificationButtons model dispatch "Modify Names" false
+                            modificationButtons model dispatch "Modify Names"
                         ]
                     ]
                     Html.div[
                         prop.className "column is-4"
-                        prop.onClick (fun _ ->
-                            match model.CurrInstruction with
-                            | Ok (instruction,_) ->
-                                match instruction.Title with
-                                | Data.InstructionTitleInfo.HasOldName title ->
-                                    title
-                                    |> ( ResetInstruction
-                                    >> dispatch )
-                                | Data.InstructionTitleInfo.HasNewName names ->
-                                    names.DbName
-                                    |> ( ResetInstruction
-                                    >> dispatch )
-                            | _ -> ())
                         prop.children[
-                            modificationButtons model dispatch "Reset" false
+                            modificationButtons model dispatch "Reset"
                         ]
                     ]
                 ]
@@ -470,43 +490,21 @@ let root model dispatch =
               prop.children[
                   Html.div[
                       prop.className "column"
-                      prop.onClick (fun _ -> Logic.modifyOrNot model dispatch )
                       prop.children[
-                          modificationButtons model dispatch "Modify" false
+                          modificationButtons model dispatch "Modify"
                       ]
                   ]
                   Html.div[
                       prop.className "column is-3"
-                      prop.onClick (fun ev ->
-                        match model.UserTypeDispatch with
-                        | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
-                            let utils =
-                                {
-                                    Data.Ev = ev
-                                    Data.MsgDispatch = usrTypeDispatch
-                                }
-                            utils
-                            |>  ( Instruction.Types.SaveInstructionToDataBase >> dispatch)
-                        | _ -> ())
                       prop.children[
-                          modificationButtons model dispatch "Save" model.DeleteButton.Disable
+                          modificationButtons model dispatch "Save"
                       ]
                   ]
                   Html.div[
                       prop.className "column"
-                      prop.onClick (fun ev ->
-                        match model.UserTypeDispatch with
-                        | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
-                            let utils =
-                                {
-                                    Data.Ev = ev
-                                    Data.MsgDispatch = usrTypeDispatch
-                                }
-                            utils
-                            |>  ( Instruction.Types.CreateDeletePopup >> dispatch)
-                        | _ -> ())
+                      prop.disabled model.PartNameModificationInput.Disable
                       prop.children[
-                          modificationButtons model dispatch "Delete Instruction" model.DeleteButton.Disable
+                          modificationButtons model dispatch "Delete Instruction"
                       ]
                   ]
               ]

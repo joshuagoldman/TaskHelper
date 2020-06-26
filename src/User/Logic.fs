@@ -134,10 +134,11 @@ let searchInfo info (keyWord : string) =
     | InstructionSearch.Types.Instruction (instruction, _,_) ->
         match instruction.Title with
         | Data.InstructionTitleInfo.HasOldName title ->
-            title.ToLower().Contains keyWord && keyWord <> ""
+            (title.ToLower().Contains keyWord || keyWord.ToLower() = "instructions") && keyWord <> ""
         | Data.InstructionTitleInfo.HasNewName titles ->
-            false
-    | InstructionSearch.Types.Part (partData, _, _, _) -> partData.Title.ToLower().Contains keyWord && keyWord <> ""
+            (titles.OldName.ToLower().Contains keyWord || keyWord.ToLower() = "instructions") && keyWord <> ""
+    | InstructionSearch.Types.Part (partData, _, _, _) ->
+        ( partData.Title.ToLower().Contains keyWord || keyWord.ToLower() = "parts") && keyWord <> ""
 
 let loadInitData data =
 

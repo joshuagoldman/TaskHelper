@@ -62,8 +62,11 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
         { model with InstructionErrorMessage =
                         { model.InstructionErrorMessage with Text = str} }, []
     | ModifyInstructionMsg visibility ->
+        let disable = if visibility = style.visibility.hidden
+                      then true
+                      else false
         { model with PartNameModificationInput =
-                        { model.PartNameModificationInput with Visible = visibility } }, []
+                        { model.PartNameModificationInput with Visible = visibility ; Disable = disable } }, []
     | DeleteButtonEnablenMsg isDisabled ->
         { model with DeleteButton =
                         { model.DeleteButton with Disable = isDisabled } }, []

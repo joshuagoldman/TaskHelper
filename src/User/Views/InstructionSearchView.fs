@@ -16,41 +16,34 @@ let searchBarName model dispatch =
     Html.div
         [
             prop.className "field"
-            prop.children
-                [
-                    Html.label
-                        [
-                            prop.className "label"
-                            prop.style
-                                [
-                                    style.fontSize 20
-                                    style.color.white
-                                ]
-                            prop.children
-                                [
-                                    str "Search"
-                                ]
-                        ]
-                    Html.div
-                        [
-                            prop.className "control"
-                        ]
+            prop.children[
+                Html.label[
+                    prop.className "label"
+                    prop.style[
+                        style.fontSize 20
+                        style.color.white
+                    ]
+                    prop.children[
+                        str "Search"
+                    ]
                 ]
+                Html.div[
+                    prop.className "control"
+                ]
+            ]
         ]
 
 let searchBar model dispatch =
-    Html.input
-        [
-            prop.className "input"
-            prop.style
-                [
-                    style.margin(0,0,30,0)
-                ]
-            prop.type' "text"
-            prop.placeholder "Text input"
-            prop.onTextChange (fun ev -> TextHasChanged ev |>
-                                         (User.Types.InstructionSearchMsg >> dispatch))
+    Html.input[
+        prop.className "input"
+        prop.style[
+                style.margin(0,0,30,0)
         ]
+        prop.type' "text"
+        prop.placeholder "Text input"
+        prop.onTextChange (fun ev -> TextHasChanged ev |>
+                                        (User.Types.InstructionSearchMsg >> dispatch))
+    ]
 
 let sss ( model : User.Types.Model )  =
     match model.Instruction.CurrPart.Data with
@@ -58,50 +51,42 @@ let sss ( model : User.Types.Model )  =
     | Error err -> err
 
 let searchResult ( model : User.Types.Model ) dispatch result =
-    Html.div
-        [
-            prop.className "row"
-            prop.children
-                [
-                    Html.a
-                        [
-                            prop.className "button"
-                            prop.style
-                                [
-                                    style.backgroundColor.white
-                                    style.margin(5,5,5,50)
-                                    style.fontSize 25
-                                    style.opacity 0.9
-                                    style.borderRadius 10
-                                ]
-
-                            prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
-                            prop.href ( Global.toHashUser (choosePage result) )
-                            prop.children
-                                [
-                                    str (WritePartOrInstruction result)
-                                ]
-                        ]
+    Html.div[
+        prop.className "row"
+        prop.children[
+            Html.a[
+                prop.className "button"
+                prop.style [
+                    style.backgroundColor.white
+                    style.margin(5,5,5,50)
+                    style.fontSize 25
+                    style.opacity 0.9
+                    style.borderRadius 10
                 ]
+
+                prop.onClick (fun _ -> go2PartOrInstruction dispatch result)
+                prop.href ( Global.toHashUser (choosePage result) )
+                prop.children[
+                    str (WritePartOrInstruction result)
+                ]
+            ]
         ]
+    ]
 
 let SearchResultErrorComponent ( model : User.Types.Model ) message =
     [
-        Html.div
-            [
-                prop.style
-                    [
-                        style.color.white
-                        style.fontSize 25
-                        style.margin(5,5,5,50)
-                    ]
-                prop.children
-                    [
-                        str ( if model.InstructionSearch.SearchBar.Text = ""
-                              then ""
-                              else message ) 
-                    ]
+        Html.div[
+            prop.style[
+                style.color.white
+                style.fontSize 25
+                style.margin(5,5,5,50)
             ]
+            prop.children[
+                str ( if model.InstructionSearch.SearchBar.Text = ""
+                        then ""
+                        else message ) 
+            ]
+        ]
     ]
 
 let getSearchResults ( model : User.Types.Model ) dispatch =
@@ -129,17 +114,15 @@ let getSearchResults ( model : User.Types.Model ) dispatch =
 let root ( model : User.Types.Model ) dispatch =
     let searchResults = getSearchResults model dispatch
 
-    let searchBarList = 
-        [
+    let searchBarList = [
             searchBarName model dispatch
             searchBar model dispatch
-        ]
+    ]
 
-    Html.div
-        [
+    Html.div[
             prop.className "rows"
             prop.children
                 (List.append searchBarList searchResults)  
-        ]
+    ]
 
 
