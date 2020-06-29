@@ -661,7 +661,7 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                     | _ -> false))
             |> Array.forall (fun x -> x)
 
-        let allFilesHaveDeleteFinished =
+        let deleteFinished =
             newInfo
             |> Array.collect (fun modInfo ->
                 modInfo.Status
@@ -687,6 +687,16 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                     | _ -> false))
             |> Array.forall (fun x -> x)
 
+        let standardMessageNoButton =
+            (msgElement,utils)
+            |> funcChainingNoButton
+            |> Cmd.ofMsg
+
+        let standardMessageButton =
+            (msgElement,utils)
+            |> funcChainingButton
+            |> Cmd.ofMsg
+
 
         let msg =
             ()
@@ -694,9 +704,15 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                 | _ when allFileStatusesAreStale = true ->
                     ()
                     |> function
-                        | _ when allFilesHaveUploadedSuccessfully ->
+                        | _ when allFilesHaveUploadedSuccessfully && not(deleteFinished) ->
                             match model.CurrentDataBaseChanges with
                             | PendingDatabaseChanges.PendingDatabaseChanges (dbChanges,ids) ->
+
+                                let resetModificationArray =
+                                    Instruction.Types.Msg.CreateDefaultModificationInfoArray
+                                    |> User.Types.InstructionMsg
+                                    |> Cmd.ofMsg
+
                                 let resetPendingDbChangesMsg =
                                     NoPendingDatabaseCHanges
                                     |> Instruction.Types.Msg.NewPendingDatabaseChanges
@@ -705,41 +721,34 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
 
                                 let dbCHangeMsg =
                                     (dbChanges,ids,utils)
-                                    |> DatabaseChangeBegun
-                                    |> DatabaseChangeMsg
-                                    |> User.Types.InstructionMsg
+                                    |> SaveDataProgress.SavingResolved
+                                    |> NewAdd.Types.CreateNewDataMsg
+                                    |> User.Types.NewAddMsg
                                     |> Cmd.ofMsg
 
                                 [|
+                                    standardMessageButton
+                                    resetModificationArray
                                     resetPendingDbChangesMsg
                                     dbCHangeMsg
                                 |]
                                 |> Cmd.batch
                             | _ ->
-                                (msgElement,utils)
-                                |> funcChainingNoButton
-                                |> Cmd.ofMsg
-                        | _ when allFilesHaveDeleteFinished  ->
+                                standardMessageButton
+                        | _ when deleteFinished  ->
 
                             let addNewUserDataMsg = User.Types.NewUserDataToAddMsg
                                                     |> Cmd.ofMsg
 
                             [|
-                                (msgElement,utils)
-                                |> funcChainingButton
-                                |> Cmd.ofMsg
-
+                                standardMessageButton
                                 addNewUserDataMsg
                             |]
                             |> Cmd.batch
                         | _ ->
-                            (msgElement,utils)
-                            |> funcChainingButton
-                            |> Cmd.ofMsg
+                            standardMessageNoButton
                 | _ ->
-                    (msgElement,utils)
-                    |> funcChainingNoButton
-                    |> Cmd.ofMsg
+                    standardMessageNoButton
 
         { model with CurrPositions = Some newInfo }, msg
     | _ ->  model, []

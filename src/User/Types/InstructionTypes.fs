@@ -72,7 +72,8 @@ type Msg<'a> =
     | CheckIfSaveFinished of DBIds * Utilities<'a> * DatabaseNewFilesOptions
     | CreateDeletePopup of Utilities<'a>
     | DatabaseChangeMsg of DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Data.Utilities<'a>,DatabaseChangeResult<'a>>
-    | NewPendingDatabaseChanges of PendingDatabaseChanges  
+    | NewPendingDatabaseChanges of PendingDatabaseChanges
+    | CreateDefaultModificationInfoArray
 
 type InstructionMode  =
 | Regular

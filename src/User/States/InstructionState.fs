@@ -240,3 +240,32 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
     | NewPendingDatabaseChanges pendingOptions ->
         {model with CurrentDataBaseChanges = pendingOptions}, []
 
+    | CreateDefaultModificationInfoArray ->
+        match model.CurrInstruction with
+        | Ok (instr,_) ->
+            
+            let delOrReg  =
+                "Delete"
+                |> ( Delete >> Some )
+            let getStatus name =
+                PartStatus.StatusExisting(name)
+            let newModInfo =
+                instr.Data
+                |> Array.map (fun part ->
+                    let names =
+                        {
+                            CurrName = part.Title
+                            NewName = None
+                        }
+                    {
+                        DelOrReg = delOrReg
+                        Names = names
+                        Status =
+                            [|
+                                getStatus part.InstructionTxt
+                                getStatus part.InstructionVideo
+                            |]
+                        
+                    })
+            { model with CurrPositions = Some newModInfo }, []
+        | _ -> model,[]

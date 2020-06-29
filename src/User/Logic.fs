@@ -378,10 +378,19 @@ let instructionToSqlNewNames userId ( instructionId : string ) newNameChoice =
               ))
         |> String.concat ""
 
+    let getInstrTitle title =
+        match title with
+        | InstructionTitleInfo.HasOldName  instrTitle ->
+            instrTitle
+        | InstructionTitleInfo.HasNewName  instrTitles ->
+            instrTitles.DbName
+
     match newNameChoice with
     | NewNameOptions.OnlyInstructionNameCHange title ->
         let instructionInsert =
-            getInstructionInsert title
+            title
+            |> getInstrTitle
+            |> getInstructionInsert
 
         instructionInsert
         
@@ -1990,7 +1999,7 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                         }
 
                     let pendingDbChangesMsg =
-                        (pureDatabaseChangeWithPossibbleDelete.Value,dbIds)
+                        (savingOptions,dbIds)
                         |> Instruction.Types.PendingDatabaseChanges
                         |> Instruction.Types.Msg.NewPendingDatabaseChanges
                         |> User.Types.InstructionMsg
