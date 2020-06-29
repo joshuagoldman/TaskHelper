@@ -55,11 +55,15 @@ type DatabaseNewFilesOptions =
 
 type DatabaseDeleteOptions =
     | DeleteInstruction of InstructionData 
-    | DeleteParts of InstructionData 
+    | DeleteParts of InstructionData
+
+type NewNameOptions =
+    | OnlyInstructionNameCHange of InstructionTitleInfo 
+    | PartsChangeOrBoth of InstructionData
 
 type DatabaseSavingOptions = 
     | NewFilesInstruction of DatabaseNewFilesOptions
-    | NewNameInstruction of InstructionData
+    | NewNameInstruction of NewNameOptions
     | PartsToDeleteInstruction of DatabaseDeleteOptions
 
 type UsrTypeDispatchOptions<'a> =

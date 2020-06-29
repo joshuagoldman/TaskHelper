@@ -6,6 +6,7 @@ open Controls
 open Feliz
 open Browser
 
+
 type NewUserPage =
     | NoDelay of UserPage
     | Delay of UserPage * int

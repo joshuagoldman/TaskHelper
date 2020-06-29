@@ -504,7 +504,7 @@ let filenameWStatus (msg : array<ReactElement> ) =
 
 let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                      ( newStatus : PartStatus)
-                     ( utils ) =
+                     ( utils : Utilities<User.Types.Msg> ) =
 
     let upDatNameIfMatch ( name : string )
                          ( nameComp : string )
@@ -674,6 +674,19 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                     | _ -> false))
             |> Array.forall (fun x -> x)
 
+        let allFilesHaveUploadedSuccessfully =
+            newInfo
+            |> Array.collect (fun modInfo ->
+                modInfo.Status
+                |> Array.map (fun status ->
+                    match status with
+                    | PartStatus.StatusExisting _ ->
+                        true
+                    | PartStatus.UploadFinishedSuccesfully(_,_) ->
+                        true
+                    | _ -> false))
+            |> Array.forall (fun x -> x)
+
 
         let msg =
             ()
@@ -681,6 +694,31 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                 | _ when allFileStatusesAreStale = true ->
                     ()
                     |> function
+                        | _ when allFilesHaveUploadedSuccessfully ->
+                            match model.CurrentDataBaseChanges with
+                            | PendingDatabaseChanges.PendingDatabaseChanges (dbChanges,ids) ->
+                                let resetPendingDbChangesMsg =
+                                    NoPendingDatabaseCHanges
+                                    |> Instruction.Types.Msg.NewPendingDatabaseChanges
+                                    |> User.Types.InstructionMsg
+                                    |> Cmd.ofMsg
+
+                                let dbCHangeMsg =
+                                    (dbChanges,ids,utils)
+                                    |> DatabaseChangeBegun
+                                    |> DatabaseChangeMsg
+                                    |> User.Types.InstructionMsg
+                                    |> Cmd.ofMsg
+
+                                [|
+                                    resetPendingDbChangesMsg
+                                    dbCHangeMsg
+                                |]
+                                |> Cmd.batch
+                            | _ ->
+                                (msgElement,utils)
+                                |> funcChainingNoButton
+                                |> Cmd.ofMsg
                         | _ when allFilesHaveDeleteFinished  ->
 
                             let addNewUserDataMsg = User.Types.NewUserDataToAddMsg
@@ -981,7 +1019,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
         let ifDeleteMsg =
             databaseOptions
             |> Array.collect (fun option ->
-                match option with
+                match option with 
                 | PartsToDeleteInstruction delOptions ->
                     match delOptions with
                     | DatabaseDeleteOptions.DeleteInstruction instr ->
@@ -1018,10 +1056,9 @@ let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
 
     let newInstr =
         match options with
-        | DatabaseNewFilesOptions.NewInstructionOption instr ->
-            instr
-        | DatabaseNewFilesOptions.SameInstructionOption instr ->
-            instr
+        | DatabaseNewFilesOptions.NewInstructionOption instr -> instr
+        | DatabaseNewFilesOptions.SameInstructionOption instr -> instr
+        
 
     newInstr.Data
     |> Array.forall (fun part ->
@@ -1054,6 +1091,8 @@ let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
             |> Cmd.ofMsg
             |> fun msg ->
                 msg
+
+    
 
 let isInstructionUnique instruction currentInstructions =
     match instruction.Title with

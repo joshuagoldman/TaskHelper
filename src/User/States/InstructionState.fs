@@ -18,12 +18,13 @@ let init () : Model<'a> * Cmd<Msg<User.Types.Msg>> =
       CurrPositions = None
       CurrTempInstruction = None
       PartNameModificationInput =
-        { defaultAppearanceAttributes with Visible = style.visibility.hidden }
+        { defaultAppearanceAttributes with Visible = style.visibility.hidden ; Disable = true }
       PositionsInput = defaultAppearanceAttributes
       DeleteButton =
         { defaultAppearanceAttributes with Disable = true }
       UserTypeDispatch = NoDispatchDefined
       FileAddMsg = defaultAppearanceAttributes
+      CurrentDataBaseChanges = NoPendingDatabaseCHanges
     }, []
 
 
@@ -235,4 +236,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
 
             {model with CurrInstruction = newInstr}, []
         | _ -> model,[]
+
+    | NewPendingDatabaseChanges pendingOptions ->
+        {model with CurrentDataBaseChanges = pendingOptions}, []
 

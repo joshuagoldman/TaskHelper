@@ -69,8 +69,6 @@ let update msg model : Model * Cmd<App.Types.Msg> =
                  model,  Cmd.ofMsg (Logic.loginToUserIfSuccess model)
                    
     | LoginToUser (AsyncOperationEvent.Finished page) ->
-            console.log("login finished to:")
-            console.log(page)
             let (newModel, _) =
                     { model with CurrentPage = page }, []
             newModel, []

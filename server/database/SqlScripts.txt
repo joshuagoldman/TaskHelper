@@ -43,19 +43,19 @@ VALUES ( 0,0, 'User_0/Instruction_0/Video1.mp4', 'User_0/Instruction_0/Text1.htm
 INSERT INTO parts ( id,instruction_id, instruction_video, instruction_txt, part_title)
 VALUES ( 0,0, 'User_0/Instruction_0/Video2.mp4', 'User_0/Instruction_0/Text2.html', 'Chelek Shtaim');
 
-INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
-VALUES ( 1, 'Videos/Video.mp4', 'Example Text 3', 'Example Part 3');
+INSERT INTO parts ( id, instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 0, 1, 'Videos/Video.mp4', 'Example Text 3', 'Example Part 3');
 
-INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
-VALUES ( 1, 'Videos/Video.mp4', 'Example Text 4', 'Example Part 4');
+INSERT INTO parts ( id, instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 0, 1, 'Videos/Video.mp4', 'Example Text 4', 'Example Part 4');
 
-INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
-VALUES ( 1, 'Videos/Video.mp4', 'Example Text 5', 'Example Part 5');
+INSERT INTO parts ( id, instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 0, 1, 'Videos/Video.mp4', 'Example Text 5', 'Example Part 5');
 
-INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
-VALUES ( 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 1');
+INSERT INTO parts ( id, instruction_id, instruction_video, instruction_txt, part_title)
+VALUES ( 0, 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 1');
 
-INSERT INTO parts ( instruction_id, instruction_video, instruction_txt, part_title)
+INSERT INTO parts ( id, instruction_id, instruction_video, instruction_txt, part_title)
 VALUES ( 2, 'Videos/Video.mp4', 'Admin Example Text 1', ' Admin Example Part 2');
 
 UPDATE parts

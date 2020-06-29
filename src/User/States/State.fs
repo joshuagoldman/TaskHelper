@@ -351,7 +351,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         instructionInfo
 
         model,msg
-    | DeleteInstructionMsg(delInstruction,positions) ->
+    | DeleteInstructionMsg(delInstruction,utils) ->
         match model.UserData with
         | Resolved(Ok(usrData)) ->
             let foundExistingInstruction = 
@@ -364,13 +364,13 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         | Data.InstructionTitleInfo.HasOldName delTitle ->
                             titleFromDataBase.Replace(" ","") = delTitle.Replace(" ","")
                         | Data.InstructionTitleInfo.HasNewName titles ->
-                            titleFromDataBase.Replace(" ","") = titles.OldName.Replace(" ","")
+                            titleFromDataBase.Replace(" ","") = titles.DbName.Replace(" ","")
                     | Data.InstructionTitleInfo.HasNewName titles ->
                         match delInstruction.Title with
                         | Data.InstructionTitleInfo.HasOldName delTitle->
-                            titles.OldName.Replace(" ","") = delTitle.Replace(" ","")
+                            titles.DbName.Replace(" ","") = delTitle.Replace(" ","")
                         | Data.InstructionTitleInfo.HasNewName delTitles ->
-                            titles.OldName.Replace(" ","") = delTitles.OldName.Replace(" ",""))
+                            titles.DbName.Replace(" ","") = delTitles.DbName.Replace(" ",""))
 
             foundExistingInstruction
             |> function
@@ -390,7 +390,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         |> Data.DatabaseSavingOptions.PartsToDeleteInstruction
                         |> fun x -> [|x|]
                         |> fun saveOpt ->
-                            (saveOpt,dbIds,positions)
+                            (saveOpt,dbIds,utils)
                             |>Instruction.Types.DatabaseChangeBegun
                             |> Instruction.Types.Msg.DatabaseChangeMsg
                             |> User.Types.InstructionMsg
