@@ -662,17 +662,29 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
             |> Array.forall (fun x -> x)
 
         let deleteFinished =
-            newInfo
-            |> Array.collect (fun modInfo ->
-                modInfo.Status
-                |> Array.map (fun status ->
-                    match status with
-                    | PartStatus.StatusExisting _ ->
-                        true
-                    | PartStatus.DeleteFinished(_,_) ->
-                        true
-                    | _ -> false))
-            |> Array.forall (fun x -> x)
+            let noDeleteActionExists =
+                newInfo
+                |> Array.collect (fun modInfo ->
+                    modInfo.Status
+                    |> Array.map (fun status ->
+                        match status with
+                        | PartStatus.Delete _ ->
+                            false
+                        | _ -> true))
+                |> Array.forall (fun x -> x)
+
+            let someIsDeleteFinished =
+                newInfo
+                |> Array.collect (fun modInfo ->
+                    modInfo.Status
+                    |> Array.map (fun status ->
+                        match status with
+                        | PartStatus.DeleteFinished(_,_) ->
+                            true
+                        | _ -> false))
+                |> Array.exists (fun x -> x)
+
+            noDeleteActionExists && someIsDeleteFinished
 
         let allFilesHaveUploadedSuccessfully =
             newInfo
@@ -697,27 +709,39 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
             |> funcChainingButton
             |> Cmd.ofMsg
 
+        let pendingDbCHangesExist =
+            match model.CurrentDataBaseChanges with
+            | PendingDatabaseChanges.PendingDatabaseChanges (dbChanges,ids) ->
+                Some (dbChanges,ids)
+            | PendingDatabaseChanges.NoPendingDatabaseCHanges ->
+                None
+
 
         let msg =
             ()
             |> function
+                | _ when deleteFinished ->
+                    let addNewUserDataMsg =
+                        User.Types.NewUserDataToAddMsg
+                        |> Cmd.ofMsg
+
+                    [|
+                        standardMessageButton
+                        addNewUserDataMsg
+                    |]
+                    |> Cmd.batch
                 | _ when allFileStatusesAreStale = true ->
                     ()
                     |> function
-                        | _ when allFilesHaveUploadedSuccessfully && not(deleteFinished) ->
-                            match model.CurrentDataBaseChanges with
-                            | PendingDatabaseChanges.PendingDatabaseChanges (dbChanges,ids) ->
-
-                                let resetModificationArray =
-                                    Instruction.Types.Msg.CreateDefaultModificationInfoArray
-                                    |> User.Types.InstructionMsg
-                                    |> Cmd.ofMsg
+                        | _ when allFilesHaveUploadedSuccessfully && pendingDbCHangesExist.IsSome ->
 
                                 let resetPendingDbChangesMsg =
                                     NoPendingDatabaseCHanges
                                     |> Instruction.Types.Msg.NewPendingDatabaseChanges
                                     |> User.Types.InstructionMsg
                                     |> Cmd.ofMsg
+
+                                let (dbChanges,ids) = pendingDbCHangesExist.Value
 
                                 let dbCHangeMsg =
                                     (dbChanges,ids,utils)
@@ -728,23 +752,10 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
 
                                 [|
                                     standardMessageButton
-                                    resetModificationArray
                                     resetPendingDbChangesMsg
                                     dbCHangeMsg
                                 |]
                                 |> Cmd.batch
-                            | _ ->
-                                standardMessageButton
-                        | _ when deleteFinished  ->
-
-                            let addNewUserDataMsg = User.Types.NewUserDataToAddMsg
-                                                    |> Cmd.ofMsg
-
-                            [|
-                                standardMessageButton
-                                addNewUserDataMsg
-                            |]
-                            |> Cmd.batch
                         | _ ->
                             standardMessageNoButton
                 | _ ->

@@ -111,7 +111,13 @@ app.post("/upload", (req, res, next) => {
 app.post("/delete", (req, res, next) => {
     let path = `${__dirname}/../public/${req.body.filePath}`;
     let UsrPath = path.match(".*User.*?(?=\/)")[0];
-    let instrPath = path.match(".*Instruction.*?(?=\/)")[0];
+    var instrPath;
+    if(path.match(".*Instruction.*?(?=\/)") != null){
+        instrPath = path.match(".*Instruction.*?(?=\/)")[0];
+    } 
+    else{
+        instrPath = null;
+    }
     let pubPath = `public/${req.body.filePath}`;
     let fileName = req.body.filePath.replace(req.body.filePath.substring(0,req.body.filePath.lastIndexOf("/")),"");
     let fileInfo = {
@@ -119,38 +125,45 @@ app.post("/delete", (req, res, next) => {
         Path : pubPath
     }
 
-    fs.unlink(path, (err) => {
-        if (err) {
-            console.error(err)
-            res.status(404).send(err)
-        } 
-    });
-
-    fs.readdir(instrPath, function(err, files) {
-        if (err) {
-            res.status(404).send(err);
-        }
-        else {
-           if (!files.length) {
-                fs.rmdirSync(instrPath);
-                console.log("deleted instruction folder")
-                fs.readdir(UsrPath, function(err2, files2) {
-                    if (err2) {
-                        res.status(404).send(err2);
-
-                    } 
+    if(!fs.existsSync(path)){
+        res.status(404).send(`file ${path} does not exist`);
+    }
+    else{
+        fs.unlink(path, (err) => {
+            if (err) {
+                console.error(err)
+                res.status(404).send(err)
+            } 
+            else{
+                // Clean up if no files are left
+                fs.readdir(instrPath, function(err, files) {
+                    if (err) {
+                        console.log(err);
+                    }
                     else {
-                        if (!files2.length) {
-                            fs.rmdirSync(UsrPath);
-                            console.log("deleted user folder")
-                        } 
+                        if (!files.length) {
+                                fs.rmdirSync(instrPath);
+                                console.log("deleted instruction folder")
+                                fs.readdir(UsrPath, function(err2, files2) {
+                                    if (err2) {
+                                        console.log(err2);
+                
+                                    } 
+                                    else {
+                                        if (!files2.length) {
+                                            fs.rmdirSync(UsrPath);
+                                            console.log("deleted user folder")
+                                        } 
+                                    }
+                                });
+                        }
                     }
                 });
-           }
-        }
-    });
-
-    res.send(`Deleted file '${fileInfo.Name}' located at '${fileInfo.Path}'`);
+            
+                res.send(`Deleted file '${fileInfo.Name}' located at '${fileInfo.Path}'`);
+            }
+        });
+    }
 });
 // --------------------------------------------------------------------------------------------------------------
 // INSERT, CHANGE, DELETE DATABASE INFO API
