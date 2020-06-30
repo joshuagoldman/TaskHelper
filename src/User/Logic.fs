@@ -358,7 +358,7 @@ let instructionToSqlSaveNew userId
     
 let instructionToSqlNewNames userId ( instructionId : string ) newNameChoice =
 
-    let getInstructionInsert title =
+    let getInstructionInsert ( title : string ) =
         String.Format(
             "UPDATE instructions SET title = '{0}' WHERE id = {1} AND instruction_id = {2};",
             title,
@@ -396,7 +396,9 @@ let instructionToSqlNewNames userId ( instructionId : string ) newNameChoice =
         
     | NewNameOptions.PartsChangeOrBoth instruction ->
         let instructionInsert =
-            getInstructionInsert instruction.Title
+            instruction.Title
+            |> getInstrTitle
+            |> getInstructionInsert 
 
         let partInsert = getPartInsert instruction
 
@@ -646,11 +648,6 @@ let saveAsync ( (file,newName) : (Types.File * string) )
     let fData =
         FormData.Create()
 
-    let checkSavingMsg =
-        (ids,utils,options)
-        |> Instruction.Types.CheckIfSaveFinished
-        |> User.Types.InstructionMsg
-
     fData.append("filePath", fullPath)
     fData.append("file", file)
 
@@ -681,10 +678,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
             newStatus
             |> funcChainingIsUploading utils
             |> fun x ->
-                [|
-                    x
-                    checkSavingMsg
-                |]
+                [|x|]
                 |> Array.map (fun msg -> msg |> Cmd.ofMsg)
                 |> Cmd.batch
                 |> User.Types.CmdMsging
@@ -714,10 +708,7 @@ let saveAsync ( (file,newName) : (Types.File * string) )
             newStatus
             |> funcChainingIsUploading utils
             |> fun x ->
-                [|
-                    x
-                    checkSavingMsg
-                |]
+                [|x|]
                 |> Array.map (fun msg -> msg |> Cmd.ofMsg)
                 |> Cmd.batch
                 |> User.Types.CmdMsging
