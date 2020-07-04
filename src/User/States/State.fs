@@ -213,7 +213,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                         |> Ok)
 
                                 let instrRes =
-                                    (instr,instrId |> string,Cmd.none) |> InstructionSearch.Types.Instruction
+                                    (instr,Cmd.none) |> InstructionSearch.Types.Instruction
                                     |> Ok
                                     |> fun x -> [|x|]
 
@@ -227,7 +227,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                                 |> Cmd.ofMsg
 
                             let instructionMsgCommand =
-                                (instr,instrId |> string)
+                                instr
                                 |> Instruction.Types.NewInstruction2Show
                                 |> InstructionMsg
                                 |> Cmd.ofMsg
@@ -308,8 +308,8 @@ let update msg model : Model * Cmd<User.Types.Msg> =
         let msg =
             match model.UserData with
             | Resolved (Ok data) ->
-                Array.zip data.Instructions [|0..data.Instructions |> Array.length |> fun x -> x - 1|]
-                |> Array.tryFind (fun (instruction,pos) ->
+                data.Instructions
+                |> Array.tryFind (fun instruction ->
                     match instruction.Title with
                     | Data.InstructionTitleInfo.HasOldName title ->
                         title = str
@@ -317,8 +317,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         titles.OldName = str)
                 |> function
                     | res when res.IsSome ->
-                        let (instr,id) = res.Value |> fun  (a,b) -> (a,b |> string)
-                        (instr,id)
+                        res.Value
                         |> (Instruction.Types.NewInstruction2Show >>
                             User.Types.InstructionMsg >>
                             Cmd.ofMsg) 
@@ -390,7 +389,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
                         |> Data.DatabaseSavingOptions.PartsToDeleteInstruction
                         |> fun x -> [|x|]
                         |> fun saveOpt ->
-                            (saveOpt,dbIds,utils)
+                            (saveOpt,utils)
                             |>Instruction.Types.DatabaseChangeBegun
                             |> Instruction.Types.Msg.DatabaseChangeMsg
                             |> User.Types.InstructionMsg
@@ -462,7 +461,7 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             | _ -> newInstructionOption
                         
         | _ -> model,[]
-    | SaveNewData (dbNewFileOptions,dbIds,positions,medias) ->
+    | SaveNewData (dbNewFileOptions,positions,medias) ->
         match model.UserData with
         | Resolved(Ok usrData) ->
             let mediaWPossibleNewNames =
@@ -470,7 +469,6 @@ let update msg model : Model * Cmd<User.Types.Msg> =
             let msg =
                 Instruction.Logic.saveNewData mediaWPossibleNewNames
                                               dbNewFileOptions
-                                              dbIds
                                               positions
             model,msg
         | _ -> model,[]

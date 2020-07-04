@@ -62,11 +62,11 @@ let delayedMessage time ( msg : 'msg ) =
         return(msg)
     }
 
-let fullPath name ids =
+let fullPath name userId instrId =
      String.Format(
          "User_{0}/Instruction_{1}/{2}",
-         ids.UserId,
-         ids.InstructionId,
+         userId |> string,
+         instrId |> string,
          name
      )
 
@@ -108,8 +108,8 @@ let go2PartOrInstruction dispatch result =
         
             
             
-    | InstructionSearch.Types.Instruction (instruction,id,_) ->
-        (instruction,id)
+    | InstructionSearch.Types.Instruction (instruction,_) ->
+        instruction
         |> Instruction.Types.NewInstruction2Show 
         |> User.Types.InstructionMsg
         |> dispatch
@@ -117,7 +117,7 @@ let go2PartOrInstruction dispatch result =
 let WritePartOrInstruction result =
     match result with
     | InstructionSearch.Types.Part (partData, _, _, _) -> partData.Title
-    | InstructionSearch.Types.Instruction (instruction, _,_) ->
+    | InstructionSearch.Types.Instruction (instruction,_) ->
         match instruction.Title with
         | Data.InstructionTitleInfo.HasOldName title -> title
         | Data.InstructionTitleInfo.HasNewName titles -> titles.OldName
@@ -126,12 +126,12 @@ let choosePage page =
     match page with
     | InstructionSearch.Types.Part (_, _, _, _) ->
                 Global.Part
-    | InstructionSearch.Types.Instruction (_,_,_) ->
+    | InstructionSearch.Types.Instruction (_,_) ->
                 Global.Instruction
 
 let searchInfo info (keyWord : string) =
     match info with
-    | InstructionSearch.Types.Instruction (instruction, _,_) ->
+    | InstructionSearch.Types.Instruction (instruction,_) ->
         match instruction.Title with
         | Data.InstructionTitleInfo.HasOldName title ->
             (title.ToLower().Contains keyWord || keyWord.ToLower() = "instructions") && keyWord <> ""
@@ -160,7 +160,7 @@ let loadInitData data =
         )
 
     let newInstr2ShowFuncChaining initInstruction id =
-        (initInstruction, id |> string ) |>
+        initInstruction |>
         (
             Instruction.Types.NewInstruction2Show >>
             User.Types.InstructionMsg
@@ -317,18 +317,16 @@ let getInstrTitle instruction =
     | InstructionTitleInfo.HasNewName titles ->
         titles.OldName
 
-let instructionToSqlSaveNew userId
-                            ( instructionId : string )
-                            ( databaseNewFilesOptions : DatabaseNewFilesOptions ) =
+let instructionToSqlSaveNew ( databaseNewFilesOptions : DatabaseNewFilesOptions ) =
 
-    let getPartInsert parts =
-        parts
+    let getPartInsert instruction=
+        instruction.Data
         |> Array.map (fun part ->
               String.Format(
                 "INSERT INTO parts ( id,instruction_id, instruction_video, instruction_txt, part_title)
                 VALUES ( {0}, {1}, '{2}', '{3}','{4}');",
-                userId,
-                instructionId,
+                instruction.UserId |> string,
+                instruction.InstructionId |> string,
                 part.InstructionVideo,
                 part.InstructionTxt,
                 part.Title
@@ -341,29 +339,29 @@ let instructionToSqlSaveNew userId
             String.Format(
                 "INSERT INTO instructions ( id, instruction_id, title )
                  VALUES ( {0}, {1}, '{2}');",
-                 userId,
-                 instructionId,
+                 instruction.UserId |> string,
+                 instruction.InstructionId |> string,
                  instruction |> getInstrTitle)
 
         let partInsert =
-            getPartInsert instruction.Data
+            getPartInsert instruction
 
         instructionInsert + partInsert
 
     | DatabaseNewFilesOptions.SameInstructionOption instruction ->
         let partInsert =
-            getPartInsert instruction.Data
+            getPartInsert instruction
 
         partInsert
     
-let instructionToSqlNewNames userId ( instructionId : string ) newNameChoice =
+let instructionToSqlNewNames newNameChoice =
 
-    let getInstructionInsert ( title : string ) =
+    let getInstructionInsert instruction =
         String.Format(
             "UPDATE instructions SET title = '{0}' WHERE id = {1} AND instruction_id = {2};",
-            title,
-            userId,
-            instructionId
+            instruction |> getInstrTitle,
+            instruction.UserId |> string,
+            instruction.InstructionId |> string
         )
 
     let getPartInsert instruction =
@@ -372,7 +370,7 @@ let instructionToSqlNewNames userId ( instructionId : string ) newNameChoice =
               String.Format(
                 "UPDATE parts SET part_title = '{0}' WHERE instruction_id = {1} AND instruction_video = '{2}' AND instruction_txt = '{3}';",
                 part.Title,
-                instructionId,
+                instruction.InstructionId |> string,
                 part.InstructionVideo,
                 part.InstructionTxt
               ))
@@ -386,28 +384,30 @@ let instructionToSqlNewNames userId ( instructionId : string ) newNameChoice =
             instrTitles.DbName
 
     match newNameChoice with
-    | NewNameOptions.OnlyInstructionNameCHange title ->
+    | NewNameOptions.OnlyInstructionNameCHange instruction ->
         let instructionInsert =
-            title
-            |> getInstrTitle
-            |> getInstructionInsert
+            getInstructionInsert instruction
 
         instructionInsert
         
     | NewNameOptions.PartsChangeOrBoth instruction ->
-        let instructionInsert =
-            instruction.Title
-            |> getInstrTitle
-            |> getInstructionInsert 
+        let instructionInsert = getInstructionInsert instruction
 
         let partInsert = getPartInsert instruction
 
         instructionInsert + partInsert
     
 
-let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
+let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) =
 
-    let partDelete usrId instructionId parts =
+    let (usrId, instructionId) =
+        match dbOptions with
+        | DatabaseDeleteOptions.DeleteParts instr ->
+            (instr.UserId,instr.InstructionId)
+        | DatabaseDeleteOptions.DeleteInstruction instr ->
+            (instr.UserId,instr.InstructionId)
+
+    let partDelete parts =
         parts
         |> Array.map (fun part ->
               String.Format(
@@ -424,34 +424,33 @@ let instructionToSqlDelete ( dbOptions : DatabaseDeleteOptions ) ids =
         let instructionDelete =
             String.Format(
                 "DELETE FROM instructions WHERE id = {0} AND instruction_id = {1} AND title = '{2}';",
-                ids.UserId,
-                ids.InstructionId,
+                usrId |> string ,
+                instructionId |> string,
                 instruction |> getInstrTitle)
         let partsCommand =
             instruction.Data
-            |> partDelete ids.UserId ids.InstructionId
+            |> partDelete
 
         instructionDelete + partsCommand
     | DeleteParts instr ->
         let partsCommand =
             instr.Data
-            |> partDelete ids.UserId ids.InstructionId
+            |> partDelete
         partsCommand
 
-let sqlCommandToDB databaseOptions ids positions = async{
+let sqlCommandToDB databaseOptions positions = async{
     let sqlCommands =
         databaseOptions
         |> Array.map (fun option ->
             match option with
             | DatabaseSavingOptions.NewFilesInstruction savingOptions ->
                 savingOptions
-                |> instructionToSqlSaveNew ids.UserId ids.InstructionId
+                |> instructionToSqlSaveNew
             | DatabaseSavingOptions.NewNameInstruction newNameChoice ->
                 newNameChoice
-                |> instructionToSqlNewNames ids.UserId ids.InstructionId
+                |> instructionToSqlNewNames
             | DatabaseSavingOptions.PartsToDeleteInstruction delOption ->
-                ids
-                |> instructionToSqlDelete delOption)
+                instructionToSqlDelete delOption)
         |> String.concat ""
 
     let fd = FormData.Create()
@@ -593,6 +592,8 @@ let createInstructionFromFile ( medias : (MediaChoiceFormData * string)[])
                     "Please_provide_Title"
                     |> InstructionTitleInfo.HasOldName
                 Data = parts
+                InstructionId = ids.InstructionId |> int
+                UserId = ids.UserId |> int
             }
     |> function
         | res when instruction2Add.IsSome ->
@@ -603,8 +604,10 @@ let createInstructionFromFile ( medias : (MediaChoiceFormData * string)[])
             {
                 Title = instruction2Add.Value.Title
                 Data = newParts
-            },ids.InstructionId
-        | res -> res,ids.InstructionId
+                InstructionId = ids.InstructionId |> int
+                UserId = ids.UserId |> int
+            }
+        | res -> res
     |> Instruction.Types.NewInstruction2Show
     |> User.Types.InstructionMsg
     |> fun x ->
@@ -633,7 +636,6 @@ let createInstructionFromFile ( medias : (MediaChoiceFormData * string)[])
         msgs
 
 let saveAsync ( (file,newName) : (Types.File * string) )
-              ( options : DatabaseNewFilesOptions )
               ( utils : Data.Utilities<User.Types.Msg> )
               ( ids : DBIds ) = async{
 
@@ -788,11 +790,18 @@ let saveAsync ( (file,newName) : (Types.File * string) )
 }
 
 let saveUserData
-        ( status : SaveDataProgress<((Types.File * string) * DBIds * Utilities<User.Types.Msg> * DatabaseNewFilesOptions),
-                                        array<DatabaseSavingOptions> * DBIds * Utilities<User.Types.Msg>>) =
+        ( status : SaveDataProgress<((Types.File * string) * Utilities<User.Types.Msg> * DatabaseNewFilesOptions),
+                                        array<DatabaseSavingOptions> * Utilities<User.Types.Msg>>) =
     match status with 
-    | SavingHasNostStartedYet((file,newName),dbIds,utils,options) ->
-        (fullPath newName dbIds,Instruction.Types.Uploaded.NoneUploaded)
+    | SavingHasNostStartedYet((file,newName),utils,options) ->
+        let (userId, instrId) =
+            match options with
+            | DatabaseNewFilesOptions.NewInstructionOption instr ->
+                (instr.UserId,instr.InstructionId)
+            | DatabaseNewFilesOptions.SameInstructionOption instr ->
+                (instr.UserId,instr.InstructionId)
+
+        (fullPath newName userId instrId,Instruction.Types.Uploaded.NoneUploaded)
         |> Instruction.Types.Uploading 
         |> funcChainingIsUploading utils
         |> Cmd.ofMsg
@@ -806,21 +815,30 @@ let saveUserData
                 )
             [|
                 x
-                ((file,newName),dbIds,utils,options)
+                ((file,newName),utils,options)
                 |> funcChainingSavingInProgress
                 |> Cmd.ofMsg
             |]
 
-    | SavingInProgress(media,dbIds,utils,options) ->
-          
-        dbIds
-        |> saveAsync media options utils
+    | SavingInProgress(media,utils,options) ->
+        let (userId, instrId) =
+            match options with
+            | DatabaseNewFilesOptions.NewInstructionOption instr ->
+                (instr.UserId,instr.InstructionId)
+            | DatabaseNewFilesOptions.SameInstructionOption instr ->
+                (instr.UserId,instr.InstructionId)
+
+        {
+            UserId = userId |> string
+            InstructionId = instrId |> string
+        } 
+        |> saveAsync media utils
         |> Cmd.fromAsync
         |> fun x -> [|x|]
 
-    | SavingResolved(savingOptions,ids,utils) ->
+    | SavingResolved(savingOptions,utils) ->
         let dbMsg =
-            (savingOptions,ids,utils)
+            (savingOptions,utils)
             |> Instruction.Types.DatabaseChangeBegun
             |> Instruction.Types.Msg.DatabaseChangeMsg
             |> User.Types.InstructionMsg
@@ -1483,7 +1501,7 @@ let savingChoicesTestable   instruction
                         let sameDbdName = title.Replace(" ", "") = titleFromDataBase.Replace(" ", "")
                         if sameDbdName
                         then
-                            {| SameDbName = sameDbdName ; NewName = false ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameDbName = sameDbdName ; NewName = false ; ExistInstruction = existInstr|}
                             |> Some
                         else None
                         
@@ -1492,7 +1510,7 @@ let savingChoicesTestable   instruction
 
                         if sameDbdName
                         then
-                            {| SameDbName = sameDbdName ; NewName = false ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameDbName = sameDbdName ; NewName = false ; ExistInstruction = existInstr|}
                             |> Some
                         else None
                 | Data.InstructionTitleInfo.HasNewName titles ->
@@ -1503,7 +1521,7 @@ let savingChoicesTestable   instruction
 
                         if sameDbdName
                         then
-                            {| SameDbName = sameDbdName ; NewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameDbName = sameDbdName ; NewName = sameNewName ; ExistInstruction = existInstr|}
                             |> Some
                         else None
 
@@ -1514,7 +1532,7 @@ let savingChoicesTestable   instruction
 
                         if sameDbdName
                         then
-                            {| SameDbName = sameDbdName ; NewName = sameNewName ; ExistInstruction = existInstr ; Position  = pos|}
+                            {| SameDbName = sameDbdName ; NewName = sameNewName ; ExistInstruction = existInstr|}
                             |> Some
                         else None)
 
@@ -1546,10 +1564,7 @@ let savingChoicesTestable   instruction
         foundAlreadyExistingInstruction            
         |> function
             | res when res.IsSome ->
-                let (pos,existingInstr) =
-                    (res.Value.Position,res.Value.ExistInstruction)
-                let instrId =
-                    pos |> string
+                let existingInstr = res.Value.ExistInstruction
 
                 let allTitlesUnique =
                     newInstruction.Data
@@ -1677,7 +1692,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                         | _ ->
                                             if foundAlreadyExistingInstruction.Value.NewName
                                             then
-                                                newInstruction.Title
+                                                newInstruction
                                                 |> NewNameOptions.OnlyInstructionNameCHange
                                                 |> Some
                                             else None
@@ -1729,7 +1744,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 |]
 
-                                            (info,instrId)
+                                            info
                                             |> User.Types.newSaveResult.SaveExistingNewFilesAndTItlesPartsToDelete
 
                                     | _ when partsWithNewNames.IsSome &&
@@ -1744,7 +1759,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                      |> DatabaseSavingOptions.NewNameInstruction
                                                  |]
 
-                                             (info,instrId)
+                                             info
                                              |> User.Types.newSaveResult.SaveExistingNewFilesAndTItles
                                     | _ when newFileParts.IsSome &&
                                              partsToDelete.IsSome ->
@@ -1759,7 +1774,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                     |> DatabaseSavingOptions.PartsToDeleteInstruction
                                                 |]
 
-                                            (info,instrId)
+                                            info
                                             |> User.Types.newSaveResult.SaveExistingNewFilesPartsToDelete
                                     | _ when partsWithNewNames.IsSome &&
                                              partsToDelete.IsSome ->
@@ -1773,7 +1788,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                      DatabaseSavingOptions.PartsToDeleteInstruction)
                                                 |]
 
-                                            (info,instrId)
+                                            info
                                             |> User.Types.newSaveResult.SaveExistingNewTItlesPartsToDelete
                                     | _ when newFileParts.IsSome ->
                                         let info =
@@ -1783,7 +1798,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                 |> DatabaseSavingOptions.NewFilesInstruction
                                             |]
 
-                                        (info,instrId)
+                                        info
                                         |> User.Types.newSaveResult.SaveExisitngNewFIles
                                     | _ when partsWithNewNames.IsSome ->
                                         let info =
@@ -1792,7 +1807,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                 |> DatabaseSavingOptions.NewNameInstruction
                                             |]
 
-                                        (info,instrId)
+                                        info
                                         |> User.Types.newSaveResult.SaveExistingNewTitles
                                     | _ ->
                                         let info =
@@ -1802,7 +1817,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                                  DatabaseSavingOptions.PartsToDeleteInstruction)
                                             |]
 
-                                        (info,instrId)
+                                        info
                                         |> User.Types.newSaveResult.SaveExistingPartsToDelete
             | _ ->
                 let instrid =
@@ -1812,7 +1827,7 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                     |> fun (pos,_) ->
                         pos + 1
                         |> string
-                (newInstruction,instrid)
+                newInstruction
                 |> User.Types.newSaveResult.SaveNew
 
                 
@@ -1906,26 +1921,16 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                 User.Types.PopUpMsg
             )
 
-        let saveNewMsg newInstr instrId =
-            let dbIds =
-                {
-                    UserId = data.Id |> string
-                    InstructionId = instrId
-                }
+        let saveNewMsg newInstr =
+
             (
                 newInstr,
-                dbIds,
                 utils
             )
             |> (NewAdd.Types.Msg.NewDataToInstruction >>
                 User.Types.NewAddMsg)
 
-        let getDatabaseMsg instrId savingOptions  =
-            let dbIds =
-                {
-                    UserId = data.Id |> string
-                    InstructionId = instrId
-                }
+        let getDatabaseMsg savingOptions  =
             let loadingMsg =
                 "Saving Changes..."
 
@@ -1935,7 +1940,7 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                 |> Cmd.ofMsg
 
             let dbMsg =
-                (savingOptions,dbIds,utils)|>
+                (savingOptions,utils)|>
                 (
                     Instruction.Types.DatabaseChangeBegun >>
                     Instruction.Types.Msg.DatabaseChangeMsg >>
@@ -1951,7 +1956,7 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
             |> Cmd.batch
             |> User.Types.Msg.CmdMsging
 
-        let createNewSaveAndDBChangeMsgs savingOptions instrId =
+        let createNewSaveAndDBChangeMsgs savingOptions =
             let newFilesToSave =
                 savingOptions
                 |> Array.tryPick (fun opt ->
@@ -1977,18 +1982,11 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                 | _ when newFilesToSave.IsSome ->
 
                     let newSaveMsg =
-                        instrId
-                        |> saveNewMsg newFilesToSave.Value
+                        saveNewMsg newFilesToSave.Value
                         |> Cmd.ofMsg
 
-                    let dbIds =
-                        {
-                            UserId = data.Id |> string
-                            InstructionId = instrId
-                        }
-
                     let pendingDbChangesMsg =
-                        (savingOptions,dbIds)
+                        savingOptions
                         |> Instruction.Types.PendingDatabaseChanges
                         |> Instruction.Types.Msg.NewPendingDatabaseChanges
                         |> User.Types.InstructionMsg
@@ -2006,7 +2004,7 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
 
                     let dbMsg =
                         pureDatabaseChangeWithPossibbleDelete.Value
-                        |> getDatabaseMsg instrId
+                        |> getDatabaseMsg
 
                     dbMsg
                     |> fun x -> [|x|]
@@ -2017,7 +2015,7 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
             
         let msg =
             match result with
-            | SaveNew (newInstr,instrId) ->
+            | SaveNew newInstr ->
                 let popupMsg =
                     "Are you sure you want to save a new instruction?"
 
@@ -2027,50 +2025,50 @@ let savingChoices userDataOpt ( utils : Utilities<User.Types.Msg> ) instruction 
                     |> DatabaseSavingOptions.NewFilesInstruction
                     |> fun x -> [|x|]
 
-                createNewSaveAndDBChangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions
                 |> funcChainingOptions popupMsg
-            | SaveExistingNewTitles (savingOptions,instrId) ->
+            | SaveExistingNewTitles savingOptions ->
                 let popupMsg =
                     "Are you sure you want to save an existing instruction with new titles?"
 
-                createNewSaveAndDBChangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions
                 |> funcChainingOptions popupMsg
-            | SaveExisitngNewFIles (savingOptions,instrId) ->
+            | SaveExisitngNewFIles savingOptions ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files?"
 
-                createNewSaveAndDBChangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions
                 |> funcChainingOptions popupMsg
                 
-            | SaveExistingNewFilesAndTItles (savingOptions,instrId) ->
+            | SaveExistingNewFilesAndTItles savingOptions ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles?"
 
-                createNewSaveAndDBChangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions
                 |> funcChainingOptions popupMsg
-            | SaveExistingNewFilesPartsToDelete (savingOptions,instrId) ->
+            | SaveExistingNewFilesPartsToDelete savingOptions ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and parts to delete?"
 
-                createNewSaveAndDBChangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions
                 |> funcChainingOptions popupMsg
-            | SaveExistingNewTItlesPartsToDelete (savingOptions,instrId) ->
+            | SaveExistingNewTItlesPartsToDelete savingOptions ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new titles and parts to delete?"
 
-                createNewSaveAndDBChangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions
                 |> funcChainingOptions popupMsg
-            | SaveExistingNewFilesAndTItlesPartsToDelete (savingOptions,instrId) ->
+            | SaveExistingNewFilesAndTItlesPartsToDelete savingOptions ->
                 let popupMsg =
                     "Are you sure you want to save existing instruction with new files and titles and files to delete?"
 
-                createNewSaveAndDBChangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions
                 |> funcChainingOptions popupMsg
-            | SaveExistingPartsToDelete (savingOptions,instrId) ->
+            | SaveExistingPartsToDelete savingOptions ->
                 let popupMsg =
                     "Are you sure you want to delete the chosen parts?"
 
-                createNewSaveAndDBChangeMsgs savingOptions instrId
+                createNewSaveAndDBChangeMsgs savingOptions
                 |> funcChainingOptions popupMsg
             | InstructionIsDelete errorMsg ->
                 errorMsg

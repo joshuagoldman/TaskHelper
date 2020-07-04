@@ -93,8 +93,8 @@ let getSearchResults ( model : User.Types.Model ) dispatch =
     let status = loadData model.UserData
     match status with
     | Ok result ->
-        Array.zip result.Instructions [|0..result.Instructions |> Seq.length |> fun x -> x - 1|]
-        |> Array.map (fun (instr,id) -> Instruction (instr,id |> string,[]))
+        result.Instructions
+        |> Array.map (fun instr -> Instruction (instr,[]))
         |> Array.append (result.Instructions
                        |> Array.collect (fun instr -> instr.Data
                                                     |> Array.map (fun part -> Part(part, [], instr, []) )))

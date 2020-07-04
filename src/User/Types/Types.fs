@@ -37,14 +37,14 @@ type PopUpSettings<'a> =
 
 // Many discriminated unions in order to facilitate unit testing
 type newSaveResult =
-    | SaveNew of Data.InstructionData * string
-    | SaveExistingNewTitles of array<DatabaseSavingOptions> * string
-    | SaveExisitngNewFIles of array<DatabaseSavingOptions> * string
-    | SaveExistingNewFilesAndTItles of array<DatabaseSavingOptions> * string
-    | SaveExistingNewFilesPartsToDelete of array<DatabaseSavingOptions> * string
-    | SaveExistingNewTItlesPartsToDelete of array<DatabaseSavingOptions> * string
-    | SaveExistingNewFilesAndTItlesPartsToDelete of array<DatabaseSavingOptions> * string
-    | SaveExistingPartsToDelete of array<DatabaseSavingOptions> * string
+    | SaveNew of Data.InstructionData
+    | SaveExistingNewTitles of array<DatabaseSavingOptions>
+    | SaveExisitngNewFIles of array<DatabaseSavingOptions>
+    | SaveExistingNewFilesAndTItles of array<DatabaseSavingOptions>
+    | SaveExistingNewFilesPartsToDelete of array<DatabaseSavingOptions>
+    | SaveExistingNewTItlesPartsToDelete of array<DatabaseSavingOptions>
+    | SaveExistingNewFilesAndTItlesPartsToDelete of array<DatabaseSavingOptions>
+    | SaveExistingPartsToDelete of array<DatabaseSavingOptions>
     | InstructionIsDelete of string
     | NoUserData of string
     | ThatInstructionAlreadyExists of string
@@ -75,7 +75,7 @@ type Msg =
     | CmdMsging of Elmish.Cmd<Msg>
     | MsgNone
     | GetIdsForNewInstrUpload of array<NewAdd.Types.MediaChoiceFormData> * InstructionData option
-    | SaveNewData of DatabaseNewFilesOptions * DBIds * Utilities<Msg> * NewAdd.Types.MediaChoiceFormData []
+    | SaveNewData of DatabaseNewFilesOptions * Utilities<Msg> * NewAdd.Types.MediaChoiceFormData []
     | GetUserDispatchMsg of UsrTypeDispatchOptions<Msg>
 
 type Model =

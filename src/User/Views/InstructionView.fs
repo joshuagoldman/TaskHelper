@@ -116,7 +116,7 @@ let modificationButtons ( model : Instruction.Types.Model<User.Types.Msg> )
                                     Logic.modifyNames model dispatch utils
                                 | "Reset" ->
                                     match model.CurrInstruction with
-                                    | Ok (instruction,_) ->
+                                    | Ok instruction ->
                                         match instruction.Title with
                                         | Data.InstructionTitleInfo.HasOldName title ->
                                             title
@@ -430,8 +430,8 @@ let showAllInstructionParts model dispatch =
     match model.CurrInstruction with
     | Ok partRes ->
         match model.CurrInstruction with
-        |Ok (instRes,_) ->
-            (instRes.Data)
+        |Ok instRes ->
+            instRes.Data
             |> Seq.toList
             |> List.map (fun part ->
                             allPartsView part instRes model dispatch)

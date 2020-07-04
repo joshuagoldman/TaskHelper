@@ -10,7 +10,7 @@ open Browser
 
 type PendingDatabaseChanges =
     | NoPendingDatabaseCHanges
-    | PendingDatabaseChanges of DatabaseSavingOptions [] * DBIds
+    | PendingDatabaseChanges of DatabaseSavingOptions []
 
 type Uploaded =
       | Percentage of float
@@ -52,7 +52,7 @@ type modificationInfo = {
 }
 
 type Msg<'a> =
-    | NewInstruction2Show of Data.InstructionData * string
+    | NewInstruction2Show of Data.InstructionData
     | PartMsg of Part.Types.Msg
     | ErrorMsg of string
     | ModifyInstructionMsg of IStyleAttribute
@@ -71,7 +71,7 @@ type Msg<'a> =
     | SaveInstructionToDataBase of Utilities<'a>
     | CheckIfSaveFinished of DBIds * Utilities<'a> * DatabaseNewFilesOptions
     | CreateDeletePopup of Utilities<'a>
-    | DatabaseChangeMsg of DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Data.Utilities<'a>,DatabaseChangeResult<'a>>
+    | DatabaseChangeMsg of DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.Utilities<'a>,DatabaseChangeResult<'a>>
     | NewPendingDatabaseChanges of PendingDatabaseChanges
     | CreateDefaultModificationInfoArray
 
@@ -82,7 +82,7 @@ type InstructionMode  =
 type Model<'a> =
     {
         InstructionErrorMessage : AppearanceAttributes
-        CurrInstruction : Result<Data.InstructionData * string,string>
+        CurrInstruction : Result<Data.InstructionData,string>
         CurrPart : Part.Types.Model
         CurrPositions : Option<array<modificationInfo>>
         CurrTempInstruction : Option<InstructionData>

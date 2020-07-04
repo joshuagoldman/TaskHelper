@@ -30,7 +30,7 @@ let init () : Model<'a> * Cmd<Msg<User.Types.Msg>> =
 
 let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.Msg>  =
     match msg with
-    | NewInstruction2Show (instruction,id) ->
+    | NewInstruction2Show instruction->
         let delOrReg  =
             "Delete"
             |> ( Delete >> Some )
@@ -54,7 +54,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
                         |]
                         
                 })
-        { model with CurrInstruction = Ok (instruction,id) ;
+        { model with CurrInstruction = Ok instruction ;
                      CurrPositions = Some newModInfo }, []
     | PartMsg msg ->
         let (parModel, partModelCmd) = Part.State.update msg model.CurrPart
@@ -73,7 +73,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
                         { model.DeleteButton with Disable = isDisabled } }, []
     | NewModificationInfo (delOrReg,currName,newName) ->
         match model.CurrInstruction with
-        | Ok (instruction,id) ->
+        | Ok instruction ->
             match model.CurrPositions with
             | Some modinfo ->
                 let (newInstruction,newModInfo) =
@@ -82,14 +82,14 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
                                                       delOrReg
                                                       currName
                                                       newName
-                { model with CurrInstruction = Ok (newInstruction,id)
+                { model with CurrInstruction = Ok newInstruction
                              CurrPositions = Some newModInfo}, []
             | _ -> model,[]
         | _ -> model,[]
 
     | ImplementNewNames positions ->
         match model.CurrInstruction with
-        | Ok (instruction,id)->
+        | Ok instruction->
             let result =
                 Logic.implementNewNamesTestable instruction model.CurrPositions positions
             result
@@ -97,7 +97,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
                 | res when res.IsSome ->
                     match res.Value with
                     | Ok (newInstruction,newModInfo) ->
-                        {model with CurrInstruction = Ok (newInstruction,id);
+                        {model with CurrInstruction = Ok newInstruction;
                                     CurrPositions = Some newModInfo },[]
                     | Error msg ->
                         model,Cmd.ofMsg(msg)
@@ -136,7 +136,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
         console.log(User.Types.CompareNewSaveWithCurrentInstructions)
         console.log(utils)
         match model.CurrInstruction with
-        | Ok (instruction,_) ->
+        | Ok instruction ->
             let usrMsg =
                 (instruction,model.CurrPositions,utils)
                 |> User.Types.CompareNewSaveWithCurrentInstructions
@@ -157,7 +157,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
                     |> function
                         | (uploadOrDeleteFinished,savingOpt) when savingOpt.IsSome ->
                             let msg =
-                                (savingOpt.Value,ids,utils) |>
+                                (savingOpt.Value,utils) |>
                                 (
                                     SavingResolved >>
                                     NewAdd.Types.CreateNewDataMsg >>
@@ -173,7 +173,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
 
     | CreateDeletePopup utils ->
         match model.CurrInstruction with
-        | Ok (instr,_) ->
+        | Ok instr ->
             let msgsIfYesClicked =
 
                 let deleteMsg =
@@ -226,11 +226,10 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
 
     | UpdateNewInstructionName instrTitle ->
         match model.CurrInstruction with
-        | Ok (instruction,id) ->
+        | Ok instruction ->
             let newInstr =
                 (
-                    {instruction with Title = instrTitle},
-                    id
+                    {instruction with Title = instrTitle}
                 )
                 |> Ok
 
@@ -242,7 +241,7 @@ let update msg model : Instruction.Types.Model<User.Types.Msg> * Cmd<User.Types.
 
     | CreateDefaultModificationInfoArray ->
         match model.CurrInstruction with
-        | Ok (instr,_) ->
+        | Ok instr ->
             
             let delOrReg  =
                 "Delete"

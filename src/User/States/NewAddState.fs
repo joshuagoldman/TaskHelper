@@ -44,11 +44,11 @@ let update msg model : NewAdd.Types.Model * Cmd<User.Types.Msg>  =
     | NewCurrentInstructionMsg instrWId ->
         console.log(instrWId)
         { model with CurrentInstruction = instrWId }, Cmd.none
-    | NewDataToInstruction(newInstr,dbIds,utils) ->
+    | NewDataToInstruction(newInstr,utils) ->
         match model.NewInstructionData with
         | Some instrData ->
             let createInstructionMsg =
-                (newInstr,dbIds,utils,instrData)
+                (newInstr,utils,instrData)
                 |> User.Types.SaveNewData
                 |> Cmd.ofMsg
             model,createInstructionMsg

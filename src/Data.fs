@@ -47,6 +47,8 @@ type InstructionData =
     {
         Data : array<partData>
         Title : InstructionTitleInfo
+        InstructionId : int
+        UserId : int
     }
 
 type DatabaseNewFilesOptions =
@@ -58,7 +60,7 @@ type DatabaseDeleteOptions =
     | DeleteParts of InstructionData
 
 type NewNameOptions =
-    | OnlyInstructionNameCHange of InstructionTitleInfo 
+    | OnlyInstructionNameCHange of InstructionData 
     | PartsChangeOrBoth of InstructionData
 
 type DatabaseSavingOptions = 
@@ -92,6 +94,8 @@ let InstructionDecoder : Decoder<InstructionData> =
         Title =
             fields.Required.At ["title"] Decode.string
             |> InstructionTitleInfo.HasOldName
+        InstructionId = fields.Required.At ["instruction_id"] Decode.int
+        UserId = fields.Required.At ["id"] Decode.int
     })
 
 let InstructionArrayDecoder =
@@ -205,6 +209,8 @@ let errorInstruction =
                 [|
                     errorPart 
                 |]
+            InstructionId = 0
+            UserId = 0
         }
 
 type SocketEventFinished = {

@@ -19,9 +19,9 @@ type Msg<'a> =
     | NewFilesChosenMsg of array<MediaChoiceFormData> * string
     | NewInstructionsListMsg of array<string>
     | NewCurrentInstructionMsg of option<Data.InstructionData option * string>
-    | NewDataToInstruction of DatabaseNewFilesOptions * DBIds * Utilities<'a>
+    | NewDataToInstruction of DatabaseNewFilesOptions * Utilities<'a>
     | CreateNewDataMsg of
-        SaveDataProgress<((Types.File * string) * DBIds * Utilities<'a> * DatabaseNewFilesOptions),array<DatabaseSavingOptions> * DBIds * Utilities<'a>>
+        SaveDataProgress<((Types.File * string) * Utilities<'a> * DatabaseNewFilesOptions),array<DatabaseSavingOptions> * Utilities<'a>>
 
 type SearchResult<'a> =
     | Instruction of Data.InstructionData * Cmd<Instruction.Types.Msg<'a>>

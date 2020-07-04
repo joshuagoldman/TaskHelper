@@ -380,6 +380,8 @@ let implementNewNamesTestable ( instruction : Data.InstructionData )
                         {
                             Title = newTitle
                             Data = parts
+                            InstructionId = instruction.InstructionId
+                            UserId = instruction.UserId
                         }
                     let newModinfoRes = newNameBecomesCurrent modInfo positions
 
@@ -404,7 +406,7 @@ let newInstructionName ( model: Model<'a> ) titleAlt =
     match titleAlt with
     | Data.InstructionTitleInfo.HasOldName title ->
         match model.CurrInstruction with
-        | Ok (existinstruction,_) ->
+        | Ok existinstruction ->
             match existinstruction.Title with
             | Data.InstructionTitleInfo.HasOldName _ ->
                 ""
@@ -413,7 +415,7 @@ let newInstructionName ( model: Model<'a> ) titleAlt =
         | Error _ -> ""
     | Data.InstructionTitleInfo.HasNewName titles ->
         match model.CurrInstruction with
-        | Ok (existinstruction,_) ->
+        | Ok existinstruction ->
             match existinstruction.Title with
             | Data.InstructionTitleInfo.HasOldName titleExist ->
                 if titles.OldName.Replace(" ","") = titleExist.Replace(" ","")
@@ -725,8 +727,8 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
 
         let pendingDbCHangesExist =
             match model.CurrentDataBaseChanges with
-            | PendingDatabaseChanges.PendingDatabaseChanges (dbChanges,ids) ->
-                Some (dbChanges,ids)
+            | PendingDatabaseChanges.PendingDatabaseChanges dbChanges ->
+                Some dbChanges
             | PendingDatabaseChanges.NoPendingDatabaseCHanges ->
                 None
 
@@ -751,10 +753,10 @@ let changeFileStatus ( model : Instruction.Types.Model<User.Types.Msg> )
                         |> User.Types.InstructionMsg
                         |> Cmd.ofMsg
 
-                    let (dbChanges,ids) = pendingDbCHangesExist.Value
+                    let dbChanges = pendingDbCHangesExist.Value
 
                     let dbCHangeMsg =
-                        (dbChanges,ids,utils)
+                        (dbChanges,utils)
                         |> SaveDataProgress.SavingResolved
                         |> NewAdd.Types.CreateNewDataMsg
                         |> User.Types.NewAddMsg
@@ -891,6 +893,8 @@ let uploadOrDeleteFinished ( modInfosOpt : Instruction.Types.modificationInfo []
                                                 {
                                                     Title = instruction.Title
                                                     Data = existsPartsToAddToDB
+                                                    InstructionId = instruction.InstructionId
+                                                    UserId = instruction.UserId
                                                 }
 
                                             let savingOptions =
@@ -915,7 +919,9 @@ let uploadOrDeleteFinished ( modInfosOpt : Instruction.Types.modificationInfo []
                                             let instruction4DBInfo =
                                                 {
                                                     Title = instruction.Title
-                                                    Data = existsPartsToAddToDB 
+                                                    Data = existsPartsToAddToDB
+                                                    InstructionId = instruction.InstructionId
+                                                    UserId = instruction.UserId
                                                 }
 
                                             let savingOptions =
@@ -932,10 +938,10 @@ let uploadOrDeleteFinished ( modInfosOpt : Instruction.Types.modificationInfo []
             | _ -> None
     | _ -> None
 
-let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Data.DBIds * Utilities<User.Types.Msg>,
+let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.DatabaseSavingOptions> * Utilities<User.Types.Msg>,
                                                                DatabaseChangeResult<User.Types.Msg>> ) =
     match status with
-    | DatabaseChangeBegun(dbSaveOpt,ids,utils) ->
+    | DatabaseChangeBegun(dbSaveOpt,utils) ->
         let databaseChangesMsg =
             "Performing database changes..."
 
@@ -964,7 +970,7 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
 
         let dbChangeMsg =
             utils
-            |> User.Logic.sqlCommandToDB dbSaveOpt ids
+            |> User.Logic.sqlCommandToDB dbSaveOpt
             |> Cmd.fromAsync
             |> fun x -> [|x|]
 
@@ -1074,20 +1080,19 @@ let databaseChangeProcedure  ( status :  DatabaseChangeProcess<array<Data.Databa
 
 let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
                 ( options : DatabaseNewFilesOptions )
-                dbIds
-                utils =
+                 utils =
 
-    let fullPath name =
+    let fullPath name userId instrId =
         String.Format(
             "User_{0}/Instruction_{1}/{2}",
-            dbIds.UserId,
-            dbIds.InstructionId,
+            userId,
+            instrId,
             name
         )
 
-    let matchMaking str =
+    let matchMaking str userId instrId =
         medias
-        |> Array.map (fun (_,newName) -> fullPath newName)
+        |> Array.map (fun (_,newName) -> fullPath newName userId instrId)
         |> Array.exists (fun nameComp ->
                 nameComp = str)
 
@@ -1095,12 +1100,14 @@ let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
         match options with
         | DatabaseNewFilesOptions.NewInstructionOption instr -> instr
         | DatabaseNewFilesOptions.SameInstructionOption instr -> instr
+
+
         
 
     newInstr.Data
     |> Array.forall (fun part ->
-        matchMaking part.InstructionTxt &&
-        matchMaking part.InstructionVideo)
+            matchMaking part.InstructionTxt newInstr.UserId newInstr.InstructionId &&
+            matchMaking part.InstructionVideo newInstr.UserId newInstr.InstructionId )
     |> function
         | res when res = true ->
             let funcChaining info =
@@ -1116,7 +1123,7 @@ let saveNewData ( medias : (NewAdd.Types.MediaChoiceFormData * string)[] )
                 | NewAdd.Types.MediaChoiceFormData.Video file -> (file,newName)
                 | NewAdd.Types.MediaChoiceFormData.InstructionTxt file -> (file,newName))
             |> Array.map (fun media ->
-                (media,dbIds,utils,options)
+                (media,utils,options)
                 |> funcChaining
                 |> Cmd.ofMsg)
             |> Cmd.batch
