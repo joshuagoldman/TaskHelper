@@ -1210,7 +1210,7 @@ let decideIfUploadValid ( medias : array<NewAdd.Types.MediaChoiceFormData>)
 
     let utils =
         {
-            Ev = ev
+            Positions = getPositions ev
             MsgDispatch = dispatch
         }
     [|decideIfUploadableByTypeCount medias|]
@@ -1250,7 +1250,7 @@ let decideIfUploadValid ( medias : array<NewAdd.Types.MediaChoiceFormData>)
         | res ->
             let utils =
                 {
-                    Ev = ev
+                    Positions = getPositions ev
                     MsgDispatch = dispatch
                 }
             res
@@ -1264,7 +1264,7 @@ let isUploadable ( model : NewAdd.Types.Model )
 
     let utils =
         {
-            Ev = ev
+            Positions = getPositions ev
             MsgDispatch = dispatch
         }
     match model.NewInstructionData with
@@ -1361,7 +1361,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         let popupNoMsg =
             (
                 {
-                    Style = utils.Ev |> ( getPositions >> defaultStyle )
+                    Style = utils.Positions |> defaultStyle 
                     ButtonSettings = buttonSettings |> Some
                     ClickMessages = msgs |> Some
                     Messages = divs
@@ -1385,7 +1385,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         let popupNoMsgs =
             (
                 {
-                    Style = utils.Ev |> ( getPositions >> defaultStyle )
+                    Style = utils.Positions |> defaultStyle 
                     ButtonSettings = Some buttonSettings
                     Messages = str
                     ClickMessages = None
@@ -1400,7 +1400,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         let popupNoMsgs =
             (
                 {
-                    Style =  utils.Ev |> ( getPositions >> defaultStyle )
+                    Style =  utils.Positions |> defaultStyle 
                     ButtonSettings = None
                     Messages = str
                     ClickMessages = None
@@ -1412,13 +1412,11 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
         popupNoMsgs
 
     | OptionalWithMsg (divs,utils,styles) ->
-        let positions =
-            getPositions utils.Ev
         let style =
             [
                 style.zIndex 1
-                Feliz.style.left ( positions.X |> int )
-                Feliz.style.top ( positions.Y |> int )
+                Feliz.style.left ( utils.Positions.X |> int )
+                Feliz.style.top ( utils.Positions.Y |> int )
                 style.position.absolute
                 style.backgroundColor.white
                 style.borderRadius 10
@@ -1445,7 +1443,7 @@ let getPopupWindow ( popupSettings : PopUpSettings<User.Types.Msg> ) =
     | DefaultNewPage (divs,newPage,utils) ->
         let popupNoMsg =
             {
-                Style = utils.Ev |> ( getPositions >> defaultStyle )
+                Style = utils.Positions |> defaultStyle 
                 ButtonSettings = None
                 Messages = divs
                 ClickMessages = None

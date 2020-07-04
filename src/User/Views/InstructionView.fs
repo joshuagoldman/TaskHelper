@@ -104,7 +104,7 @@ let modificationButtons ( model : Instruction.Types.Model<User.Types.Msg> )
                             | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
                                 let utils =
                                     {
-                                        Data.Ev = ev
+                                        Data.Positions = User.Logic.getPositions ev
                                         Data.MsgDispatch = usrTypeDispatch
                                     }
                         
@@ -181,7 +181,7 @@ let modElements ( part : Data.partData ) model dispatch =
                                         | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
                                             let utils =
                                                 {
-                                                    Data.Ev = ev
+                                                    Data.Positions = User.Logic.getPositions ev
                                                     Data.MsgDispatch = usrTypeDispatch
                                                 }
                                             (part,utils,style.visibility.visible) 
@@ -192,7 +192,7 @@ let modElements ( part : Data.partData ) model dispatch =
                                         | Data.UsrTypeDispatchOptions.DispatchDefined usrTypeDispatch ->
                                             let utils =
                                                 {
-                                                    Data.Ev = ev
+                                                    Data.Positions = User.Logic.getPositions ev
                                                     Data.MsgDispatch = usrTypeDispatch
                                                 }
                                             (part,utils,style.visibility.hidden) 

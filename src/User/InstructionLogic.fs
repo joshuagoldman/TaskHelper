@@ -482,8 +482,8 @@ let createHoverMessageCommponents ( part : Data.partData )
 
     [|
         visible
-        Feliz.style.left ( (utils.Ev |> User.Logic.getPositions).X |> int )
-        Feliz.style.top ( (utils.Ev |> User.Logic.getPositions).Y |> int )
+        Feliz.style.left ( utils.Positions.X |> int )
+        Feliz.style.top ( utils.Positions.Y |> int )
     |]
     |> fun styles ->
         divs,utils,styles

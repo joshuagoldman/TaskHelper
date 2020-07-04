@@ -178,14 +178,14 @@ type DBIds = {
     InstructionId : string
 }
 
-type Utilities<'a> = {
-    MsgDispatch : 'a -> unit
-    Ev : Types.Event
-}
-
 type Positions = {
     X : float
     Y : float
+}
+
+type Utilities<'a> = {
+    MsgDispatch : 'a -> unit
+    Positions : Positions
 }
 
 let errorPart =
