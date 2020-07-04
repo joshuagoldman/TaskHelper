@@ -14,7 +14,7 @@ from (
                     from parts
                     where parts.instruction_id = instructions.instruction_id
                 ) e
-            ) as parts 
+            ) as parts, instruction_id, id 
         from instructions
         where instructions.id = users.id
       ) d
