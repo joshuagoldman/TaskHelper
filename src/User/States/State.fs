@@ -405,23 +405,26 @@ let update msg model : Model * Cmd<User.Types.Msg> =
 
             let fileWPossibleNewName =
                 Logic.changeFileNameIfNotUnique usrData.Instructions medias
-            let newInstructionOption =
+
+            let existingInstrIds =
                 usrData.Instructions
-                |> Array.indexed
-                |> Array.last
-                |> fun (indx,_) ->
-                    let dbIds =
-                        {
-                            UserId = model.Id |> string
-                            InstructionId = indx + 1 |> string
-                        }
+                |> Array.map( fun instr -> instr.InstructionId)
 
-                    let commandMsg =
-                        Logic.createInstructionFromFile fileWPossibleNewName None dbIds
-                        |> Array.map (fun msg -> msg |> Cmd.ofMsg)
-                        |> Cmd.batch
+            let  newInstructionId = existingInstrIds |> getNewInstructionId
 
-                    model, commandMsg
+            let newInstructionOption =
+                let dbIds =
+                    {
+                        UserId = model.Id |> string
+                        InstructionId = newInstructionId |> string
+                    }
+
+                let commandMsg =
+                    Logic.createInstructionFromFile fileWPossibleNewName None dbIds
+                    |> Array.map (fun msg -> msg |> Cmd.ofMsg)
+                    |> Cmd.batch
+
+                model, commandMsg
             match instructionOpt with
             | Some instruction ->
                 usrData.Instructions

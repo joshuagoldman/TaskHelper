@@ -63,3 +63,36 @@ let divWithFileName ( file : Types.File ) =
        ]
     ]
 
+let getNewInstructionId existingInstrIds =
+    let min = 
+        existingInstrIds
+        |> Array.sort
+        |> Array.head
+    let max =
+        existingInstrIds
+        |> Array.sort
+        |> Array.last
+
+    let regexString =
+        existingInstrIds
+        |> Array.map(fun x -> x |> string)
+        |> String.concat ";"
+        |> fun str -> ";" + str + ";"
+
+    [|min..max|]
+    |> Array.tryPick (fun numComp ->
+        let pattern = ";" + (numComp |> string) + ";"
+        let exists =
+            TaskHelperJsInterop.Regex.IsMatch pattern regexString
+
+        match exists with
+        | Some res ->
+            if res = false
+            then Some numComp
+            else None
+        | None -> None)
+    |> function
+        | res when res.IsSome ->
+            res.Value
+        | _ -> max + 1
+

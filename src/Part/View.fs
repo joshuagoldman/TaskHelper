@@ -146,10 +146,10 @@ let root model dispatch =
             ]
         ]
         Html.div[
-            prop.className "columns"
+            prop.className "columns is-centered"
             prop.children[
                 Html.div[
-                    prop.className "column is-full"
+                    prop.className "column is-12"
                     prop.style[
                         style.margin 5
                         style.color.white
