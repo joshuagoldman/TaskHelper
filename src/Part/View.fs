@@ -50,6 +50,10 @@ let instrVideo (model : Part.Types.Model) dispatch =
 
 let instructionText (model : Part.Types.Model) =
         Html.iframe[
+            prop.className "column"
+            prop.style[
+                style.height 400
+            ]
             prop.src(
                match model.Data with
                | Ok result -> result.InstructionTxt
@@ -146,18 +150,9 @@ let root model dispatch =
             ]
         ]
         Html.div[
-            prop.className "columns is-centered"
+            prop.className "columns"
             prop.children[
-                Html.div[
-                    prop.className "column is-12"
-                    prop.style[
-                        style.margin 5
-                        style.color.white
-                    ]
-                    prop.children[
-                        instructionText model
-                    ]
-                ]
+                instructionText model
             ]
         ]
         Html.div[
