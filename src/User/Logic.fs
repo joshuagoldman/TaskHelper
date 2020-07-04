@@ -1820,14 +1820,43 @@ Kindly re-name instruction part/parts such that all are of distinct nature.",
                                         info
                                         |> User.Types.newSaveResult.SaveExistingPartsToDelete
             | _ ->
-                let instrid =
+                let existingInstrIds =
                     userDataInstructions
-                    |> Array.indexed
-                    |> Array.last
-                    |> fun (pos,_) ->
-                        pos + 1
-                        |> string
-                newInstruction
+                    |> Array.map( fun instr -> instr.InstructionId)
+
+                let newInstructionId =
+                    let min = 
+                        existingInstrIds
+                        |> Array.sort
+                        |> Array.head
+                    let max =
+                        existingInstrIds
+                        |> Array.sort
+                        |> Array.last
+
+                    let regexString =
+                        existingInstrIds
+                        |> Array.map(fun x -> x |> string)
+                        |> String.concat ";"
+                        |> fun str -> ";" + str + ";"
+
+                    [|min..max|]
+                    |> Array.tryPick (fun numComp ->
+                        let exists =
+                            TaskHelperJsInterop.Regex.IsMatch regexString (numComp |> string)
+
+                        match exists with
+                        | Some res ->
+                            if res = false
+                            then Some numComp
+                            else None
+                        | None -> None)
+                    |> function
+                        | res when res.IsSome ->
+                            res.Value
+                        | _ -> max + 1
+
+                { newInstruction with InstructionId = newInstructionId }
                 |> User.Types.newSaveResult.SaveNew
 
                 
