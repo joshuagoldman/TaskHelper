@@ -15,7 +15,7 @@
     "FileReader": "^0.10.2",
     "FileSaver": "^0.10.0",
     "ajax": "0.0.4",
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "babel": "^6.23.0",
     "blob": "^0.1.0",
     "concurrently": "^5.2.0",
